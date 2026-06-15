@@ -1,0 +1,191 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@theme inline {
+  /* ──────────────────────────────────────────
+     LandCamp Color System (CI Official)
+     ────────────────────────────────────────── */
+  --color-forest-deep: #4d584b;
+  --color-forest-night: #2c3327;
+  --color-sage-mid: #778475;
+  --color-sage-light: #a2aaa1;
+  --color-warm-clay: #9a795b;
+  --color-bone: #f5f1ea;
+  --color-bone-soft: #ece6da;
+  --color-ink: #1a1814;
+  --color-mist: rgba(162, 170, 161, 0.18);
+
+  /* ──────────────────────────────────────────
+     Typography — minimal sans for body, with a
+     brand serif (Cormorant Garamond, upright)
+     reserved for the LandCamp wordmark.
+     Inter (Latin) + IBM Plex Sans Thai are
+     metric-friendly siblings; Cormorant is the
+     editorial accent.
+     ────────────────────────────────────────── */
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-thai: var(--font-plex-thai), "IBM Plex Sans Thai", sans-serif;
+  --font-display: var(--font-inter), var(--font-plex-thai), "Inter",
+    "IBM Plex Sans Thai", system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), "Cormorant Garamond",
+    var(--font-plex-thai), "IBM Plex Sans Thai", serif;
+
+  /* ──────────────────────────────────────────
+     Motion
+     ────────────────────────────────────────── */
+  --ease-editorial: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ──────────────────────────────────────────
+     Layout
+     ────────────────────────────────────────── */
+  --container-max: 1440px;
+  --gutter: 32px;
+}
+
+/* ──────────────────────────────────────────
+   Root
+   ────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --header-h: 84px;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--color-bone);
+  color: var(--color-ink);
+  font-family: var(--font-sans), var(--font-thai);
+  font-weight: 400;
+  font-feature-settings: "ss01", "cv01";
+  font-style: normal;
+}
+
+/* Thai text — never thin, never tight */
+:lang(th),
+[lang="th"] {
+  font-family: var(--font-thai), var(--font-sans);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.65;
+  font-style: normal;
+}
+
+/* Thai headlines slightly heavier so they sit
+   on the same optical weight as Inter at the
+   same px size. */
+:lang(th) h1,
+:lang(th) h2,
+:lang(th) h3,
+[lang="th"] h1,
+[lang="th"] h2,
+[lang="th"] h3 {
+  font-weight: 500;
+}
+
+/* Display = same sans family, just heavier.
+   Kept as a className for legacy components. */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-style: normal;
+  letter-spacing: -0.01em;
+}
+
+/* Brand wordmark — Cormorant Garamond, upright
+   only. Latin chars render in Cormorant; the
+   CSS fallback chain hands Thai glyphs off to
+   Plex Thai automatically. */
+.font-serif {
+  font-family: var(--font-serif);
+  font-style: normal;
+  font-feature-settings: "liga", "dlig";
+}
+
+/* Belt-and-braces: kill any stray italics that
+   may slip through from old className combos. */
+.font-display,
+.font-display *,
+.font-serif,
+.font-serif * {
+  font-style: normal !important;
+}
+
+/* ──────────────────────────────────────────
+   Selection
+   ────────────────────────────────────────── */
+::selection {
+  background: var(--color-warm-clay);
+  color: var(--color-bone);
+}
+
+/* ──────────────────────────────────────────
+   Scrollbar
+   ────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-sage-light);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-sage-mid);
+}
+
+/* ──────────────────────────────────────────
+   Editorial rule line
+   ────────────────────────────────────────── */
+.rule-line {
+  display: inline-block;
+  width: 56px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+  vertical-align: middle;
+  margin: 0 12px;
+}
+
+/* ──────────────────────────────────────────
+   Image organic clip-paths (Pigma style)
+   ────────────────────────────────────────── */
+.clip-organic-1 {
+  clip-path: path(
+    "M 30 0 Q 0 20 0 80 Q 0 200 60 280 Q 180 360 320 340 Q 460 320 460 240 Q 460 120 380 60 Q 280 0 200 8 Q 100 16 30 0 Z"
+  );
+}
+
+/* ──────────────────────────────────────────
+   Hide outline on click but keep for keyboard
+   ────────────────────────────────────────── */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--color-warm-clay);
+  outline-offset: 3px;
+}
+
+/* ──────────────────────────────────────────
+   Reduced motion
+   ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
