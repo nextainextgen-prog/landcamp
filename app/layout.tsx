@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     url: siteConfig.seo.siteUrl,
     siteName: siteConfig.brand.name,
     title: siteConfig.brand.nameFull,
-    description: siteConfig.brand.tagline.th,
+    description: siteConfig.brand.description.th,
     images: [
       {
         url: `${siteConfig.seo.siteUrl}/og-image.jpg`,
@@ -86,7 +86,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: siteConfig.brand.nameFull,
-    description: siteConfig.brand.tagline.th,
+    description: siteConfig.brand.description.th,
     images: [`${siteConfig.seo.siteUrl}/og-image.jpg`],
   },
   category: "hospitality",
