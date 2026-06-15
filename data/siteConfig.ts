@@ -96,7 +96,7 @@ export const siteConfig = {
      SEO
      ──────────────────────────────────────── */
   seo: {
-    siteUrl: "https://landcamp.vercel.app",
+    siteUrl: "https://landcamp-eta.vercel.app",
     defaultLocale: "th_TH",
     alternateLocales: ["en_US"],
     keywordsTh: [
