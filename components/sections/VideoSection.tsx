@@ -248,7 +248,7 @@ export function VideoSection() {
             style={{ letterSpacing: "-0.02em" }}
           >
             {t({
-              th: "ดูบรรยากาศจริงผ่าน\nสายตาผู้เข้าพัก",
+              th: "ชมบรรยากาศจริงผ่าน\nมุมมองของผู้เข้าพัก",
               en: "See it through\nour guests' eyes",
             })}
           </h2>

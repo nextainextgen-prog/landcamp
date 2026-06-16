@@ -187,7 +187,7 @@ export function MenuSection() {
           className="mt-12 sm:mt-16 text-center text-sm text-[color:var(--color-ink)]/55 max-w-2xl mx-auto"
         >
           {t({
-            th: "อาหารเช้ารวมในแพ็คเกจ · อาหารตามสั่ง คาเฟ่ และหมูกระทะสั่งเพิ่มได้ที่ Line @landcamp",
+            th: "อาหารเช้ารวมในแพ็กเกจ · อาหารตามสั่ง คาเฟ่ และหมูกระทะ สั่งเพิ่มได้ทาง Line @landcamp",
             en: "Breakfast included with every stay · Thai à la carte, cafe and moo krata available on order via Line @landcamp.",
           })}
         </motion.p>

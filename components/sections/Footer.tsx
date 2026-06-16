@@ -34,7 +34,7 @@ export function Footer() {
             <Wordmark size="md" color="bone" />
             <p className="text-sm leading-relaxed text-[color:var(--color-bone)]/65 max-w-sm">
               {t({
-                th: "วิลล่าหรูสไตล์ Glamping ใจกลางขุนเขาเขาใหญ่ — 6 หลัง แยกพื้นที่ส่วนตัว ไม่ใช่โรงแรม ไม่ใช่รีสอร์ต",
+                th: "วิลล่าหรูสไตล์ Glamping ใจกลางขุนเขาเขาใหญ่ — 6 หลัง แยกพื้นที่ส่วนตัว ไม่ใช่โรงแรม ไม่ใช่รีสอร์ท",
                 en: "Luxury glamping villas at the heart of Khao Yai — six private retreats, each in its own pine-forest plot.",
               })}
             </p>

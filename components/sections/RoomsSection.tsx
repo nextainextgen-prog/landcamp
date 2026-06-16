@@ -107,7 +107,7 @@ export function RoomsSection() {
                   style={{ fontFamily: "var(--font-inter)" }}
                 >
                   {t({
-                    th: `พักได้ ${room.maxGuests}`,
+                    th: `พักได้ ${room.maxGuests} ท่าน`,
                     en: `Sleeps ${room.maxGuests}`,
                   })}
                 </span>
@@ -321,8 +321,9 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
               className="mt-2 text-[11px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/55"
               style={{ fontFamily: "var(--font-inter)" }}
             >
-              {t({ th: "พักได้", en: "Sleeps" })} {room.maxGuests} ·{" "}
-              {t({ th: "เริ่มต้น", en: "From" })}{" "}
+              {t({ th: "พักได้", en: "Sleeps" })} {room.maxGuests}{" "}
+              {t({ th: "ท่าน ·", en: "·" })}{" "}
+              {t({ th: "เริ่มต้นที่", en: "From" })}{" "}
               {room.priceWeekday.toLocaleString()}{" "}
               {t({ th: "บาท / คืน", en: "THB / night" })}
             </p>

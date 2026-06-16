@@ -16,7 +16,7 @@ export const rooms: Room[] = [
       en: "Villa 1",
     },
     description: {
-      th: "วิลล่าโมเดิร์นพร้อมผนังกระจกบานสูงเปิดวิวสวน อ่างแช่นอกตัวบ้านริมลำธาร เหมาะคู่รักหรือเดินทางส่วนตัว",
+      th: "วิลล่าโมเดิร์น ผนังกระจกบานสูงเปิดวิวสวน อ่างแช่ริมลำธารนอกตัวบ้าน เหมาะสำหรับคู่รักหรือทริปส่วนตัว",
       en: "A modern villa with floor-to-ceiling glass and a private soaking tub by the stream — ideal for couples seeking total privacy.",
     },
     priceWeekday: 4500,
@@ -102,7 +102,7 @@ export const rooms: Room[] = [
       en: "Villa 2",
     },
     description: {
-      th: "วิลล่าหลังใหญ่ที่สุดของแลนด์แคมป์ พักได้ 4 ท่าน พื้นที่ Dining + ระเบียงรอบตัวบ้าน เหมาะครอบครัวหรือเดินทางเป็นกลุ่ม",
+      th: "วิลล่าหลังใหญ่ที่สุดของแลนด์แคมป์ พักได้ 4 ท่าน มีพื้นที่ Dining และระเบียงรอบบ้าน เหมาะสำหรับครอบครัวหรือกลุ่มเพื่อน",
       en: "Our largest villa for up to four guests — full dining area, wraparound terrace, designed for family stays and small celebrations.",
     },
     priceWeekday: 6500,
@@ -220,7 +220,7 @@ export const rooms: Room[] = [
       en: "Camper Train",
     },
     description: {
-      th: "ตู้รถไฟไทยโบราณดัดแปลงเป็นที่พักผนังไม้สัก เตียง 5 ฟุต ห้องน้ำในตัว ระเบียงหน้าพร้อมอ่างแช่ใหญ่",
+      th: "ตู้รถไฟไทยโบราณดัดแปลงเป็นที่พัก ผนังไม้สัก เตียง 5 ฟุต ห้องน้ำในตัว ระเบียงด้านหน้าพร้อมอ่างแช่ขนาดใหญ่",
       en: "A classic Thai railway carriage reborn as a glamping suite — teak panelling, queen bed, private ensuite and a deck with a large bathtub.",
     },
     priceWeekday: 5000,
@@ -322,7 +322,7 @@ export const rooms: Room[] = [
       en: "Camper Van",
     },
     description: {
-      th: "รถบ้านสไตล์อังกฤษบอดี้เงิน ตกแต่งภายในอบอุ่นเป็นกันเอง ล้อมรอบด้วยต้นอะกาเว่ ฟีลเหมือนหลุดไปนิวซีแลนด์",
+      th: "รถบ้านสไตล์อังกฤษบอดี้เงิน ตกแต่งภายในอบอุ่นเป็นกันเอง ล้อมรอบด้วยต้นอะกาเว่ ให้ฟีลเหมือนหลุดไปนิวซีแลนด์",
       en: "A British-style silver camper wrapped in agave gardens — cosy interior, photogenic exterior, the feel of a Pacific Northwest road trip.",
     },
     priceWeekday: 4500,

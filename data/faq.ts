@@ -74,7 +74,7 @@ export const faqItems: FAQItem[] = [
       en: "Is breakfast included and are other meals served?",
     },
     answer: {
-      th: "อาหารเช้ารวมในแพ็คเกจที่พักทุกคืน เมนูเช้ามีข้าวต้มเครื่องและไข่กระทะเสิร์ฟถึงห้องริมลำธาร สำหรับมื้อเย็นสั่งเพิ่มได้ เช่น ชุดหมูกระทะ (650 บาท) แจ่วฮ้อน (550 บาท) ยำทะเลรวม และเครื่องดื่ม ทั้งกาแฟดริป ชาไทย และไวน์",
+      th: "อาหารเช้ารวมในแพ็กเกจที่พักทุกคืน เมนูเช้ามีข้าวต้มเครื่องและไข่กระทะเสิร์ฟถึงห้องริมลำธาร สำหรับมื้อเย็นสั่งเพิ่มได้ เช่น ชุดหมูกระทะ (650 บาท) แจ่วฮ้อน (550 บาท) ยำทะเลรวม และเครื่องดื่ม ทั้งกาแฟดริป ชาไทย และไวน์",
       en: "Breakfast is included with every stay — choose between Thai rice porridge or skillet eggs, served at your stream-side villa. For dinner, add the Moo Krata grill set (THB 650), Jaew Hon hot pot (THB 550), seafood salads and a curated drinks menu (drip coffee, matcha, wine by the glass).",
     },
   },

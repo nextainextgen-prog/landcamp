@@ -31,7 +31,7 @@ export const menuItems: MenuItem[] = [
     category: "food",
     name: { th: "ข้าวต้มเครื่อง", en: "Thai Rice Soup" },
     description: {
-      th: "ข้าวต้มร้อนๆ เครื่องครบ ไข่ลวก หมูสับ ขิงซอย — เมนูเช้ารวมในแพ็คเกจ",
+      th: "ข้าวต้มร้อนๆ เครื่องครบ ไข่ลวก หมูสับ ขิงซอย — เมนูเช้ารวมในแพ็กเกจ",
       en: "Warm rice porridge with poached egg, minced pork and ginger — included with your stay.",
     },
     price: 0,

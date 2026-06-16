@@ -154,7 +154,7 @@ export function ContactSection() {
 
             <p className="text-sm sm:text-base leading-[1.65] text-[color:var(--color-bone)]/75 max-w-md">
               {t({
-                th: "ทีมงานตอบทุกข้อความใน 3 ชั่วโมง ไม่ผ่านเอเจนซี่ ไม่มีค่าธรรมเนียมแอบแฝง — แอด Line แล้วจองได้เลย",
+                th: "ทีมงานตอบทุกข้อความภายใน 3 ชั่วโมง ไม่ผ่านเอเจนซี ไม่มีค่าธรรมเนียมแอบแฝง — แอด Line แล้วจองได้เลย",
                 en: "Our team responds within 3 hours. No agency, no hidden fees — add us on Line and book directly.",
               })}
             </p>
@@ -283,7 +283,7 @@ export function ContactSection() {
             </span>
             <h3 className="mt-3 font-display text-2xl sm:text-3xl leading-tight max-w-lg">
               {t({
-                th: "ประสบการณ์ของคุณมีค่า แชร์รีวิวให้คนอื่นได้รู้จักเรา",
+                th: "ประสบการณ์ของคุณมีค่า ช่วยแชร์รีวิวให้คนอื่นได้รู้จักเรา",
                 en: "Your experience matters — share a review and help others find us.",
               })}
             </h3>

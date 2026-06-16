@@ -140,7 +140,7 @@ export function GallerySection() {
             style={{ letterSpacing: "-0.02em" }}
           >
             {t({
-              th: "ทุกมุมที่นี่ ถูกออกแบบไว้ให้คุณเก็บไว้ในเฟรม",
+              th: "ทุกมุมที่นี่ออกแบบไว้ให้คุณเก็บลงในเฟรม",
               en: "Every corner here was designed to be photographed",
             })}
           </h2>

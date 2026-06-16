@@ -176,7 +176,7 @@ export function HeroSection() {
           className="mt-7 sm:mt-8 max-w-md text-sm sm:text-[15px] leading-relaxed text-[color:var(--color-bone)]/82"
         >
           {t({
-            th: "วิลล่าสไตล์ Glamping 6 หลัง ใจกลางขุนเขาเขาใหญ่ ที่ทุกมุมมองเก็บไว้ให้คุณเพียงคนเดียว",
+            th: "วิลล่าสไตล์ Glamping 6 หลัง ใจกลางขุนเขาเขาใหญ่ ทุกมุมมองสงวนไว้ให้คุณคนเดียว",
             en: "Six glamping villas tucked into the forests of Khao Yai — every vista, reserved for you alone.",
           })}
         </motion.p>
@@ -242,7 +242,7 @@ export function HeroSection() {
             <span aria-hidden className="h-px w-8 bg-current opacity-50" />
             <span>
               {t({
-                th: `เริ่มต้น ${siteConfig.inventory.priceFromTHB.toLocaleString()} บาท`,
+                th: `เริ่มต้นที่ ${siteConfig.inventory.priceFromTHB.toLocaleString()} บาท`,
                 en: `From THB ${siteConfig.inventory.priceFromTHB.toLocaleString()}`,
               })}
             </span>
