@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AnimatePresence,
   motion,
   useMotionValueEvent,
   useScroll,
@@ -10,6 +11,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useT } from "@/app/providers";
+import { FullMenuModal } from "@/components/sections/FullMenuModal";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -54,8 +56,12 @@ const DISHES_IMAGES: MenuImage[] = [
 // Row 3 — อาหารเช้า + หมูกระทะ
 const BREAKFAST_KRATA_IMAGES: MenuImage[] = [
   { src: "/images/menu/breakfast-krata/bf-01.jpg", alt: "Pan breakfast with eggs, ham, sausage, salad and fresh juice" },
+  { src: "/images/menu/breakfast-krata/bf-04.jpg", alt: "Skillet eggs with toast, sausage, orange juice and fresh salad" },
   { src: "/images/menu/breakfast-krata/bf-02.jpg", alt: "Close-up of pan breakfast with eggs, bacon and toast" },
+  { src: "/images/menu/breakfast-krata/bf-05.jpg", alt: "Rattan breakfast basket — skillet eggs, rice soup, fruits and fresh juice" },
+  { src: "/images/menu/breakfast-krata/bf-06.jpg", alt: "Top-down skillet eggs with sausage and ground pork on wooden deck" },
   { src: "/images/menu/breakfast-krata/bf-03.jpg", alt: "Full breakfast spread — pan eggs, salad, soup and orange juice" },
+  { src: "/images/menu/breakfast-krata/bf-07.jpg", alt: "Full Thai breakfast spread — rice soup, skillet eggs, juice and fruits" },
   { src: "/images/menu/breakfast-krata/krata-01.jpg", alt: "Moo krata clay pot set with raw meats and vegetables" },
   { src: "/images/menu/breakfast-krata/krata-02.jpg", alt: "Charcoal clay-pot moo krata being cooked outdoors" },
   { src: "/images/menu/breakfast-krata/krata-03.jpg", alt: "Moo krata outdoor setup with vegetables and dipping sauces" },
@@ -89,6 +95,14 @@ const ROWS: {
 
 export function MenuSection() {
   const t = useT();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
 
   // Hidden scroll-to-accelerate
   const { scrollY } = useScroll();
@@ -149,7 +163,7 @@ export function MenuSection() {
           </div>
 
           <h2
-            className="font-display text-[26px] sm:text-[34px] lg:text-[42px] leading-[1.1] text-[color:var(--color-forest-deep)] max-w-xl"
+            className="font-display text-[22px] sm:text-[30px] lg:text-[38px] leading-[1.15] text-[color:var(--color-forest-deep)] lg:whitespace-nowrap"
             style={{ letterSpacing: "-0.02em" }}
           >
             {t({
@@ -157,6 +171,16 @@ export function MenuSection() {
               en: "Kitchen, cafe and dinner by the stream",
             })}
           </h2>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="mt-3 inline-flex items-center gap-3 rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] px-6 py-3 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-warm-clay)] transition-colors duration-300 shadow-[0_10px_24px_-12px_rgba(0,0,0,0.4)]"
+            style={{ fontFamily: "var(--font-inter)" }}
+          >
+            {t({ th: "ดูเมนูทั้งหมด", en: "View Full Menu" })}
+            <span aria-hidden>→</span>
+          </button>
         </motion.div>
       </div>
 
@@ -192,6 +216,10 @@ export function MenuSection() {
           })}
         </motion.p>
       </div>
+
+      <AnimatePresence>
+        {menuOpen && <FullMenuModal onClose={() => setMenuOpen(false)} />}
+      </AnimatePresence>
     </section>
   );
 }

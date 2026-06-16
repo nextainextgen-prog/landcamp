@@ -2,6 +2,7 @@ import { Navbar } from "@/components/navigation/Navbar";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { AboutSection } from "@/components/sections/AboutSection";
 import { RoomsSection } from "@/components/sections/RoomsSection";
+import { WeddingSection } from "@/components/sections/WeddingSection";
 import { GallerySection } from "@/components/sections/GallerySection";
 import { VideoSection } from "@/components/sections/VideoSection";
 import { MenuSection } from "@/components/sections/MenuSection";
@@ -34,6 +35,7 @@ export default function Home() {
       <AboutSection />
       <GallerySection />
       <RoomsSection />
+      <WeddingSection />
       <VideoSection />
       <MenuSection />
       <MapSection />

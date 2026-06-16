@@ -1,7 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useInView } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { rooms } from "@/data/rooms";
 import { siteConfig } from "@/data/siteConfig";
 import { useT } from "@/app/providers";
@@ -10,12 +10,16 @@ import { cn } from "@/lib/cn";
 import type { Room } from "@/types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+const COVER_DURATION_MS = 5000;
+const SLIDE_DURATION_MS = 4000;
 
 export function RoomsSection() {
   const t = useT();
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  // Carousel timers only start once the section enters the viewport.
+  const inView = useInView(sectionRef, { once: true, margin: "-10% 0px" });
 
-  // Lock body scroll when modal open
   useEffect(() => {
     document.body.style.overflow = activeRoom ? "hidden" : "";
     return () => {
@@ -25,11 +29,11 @@ export function RoomsSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="rooms"
       aria-label={t({ th: "ห้องพักทั้งหมด", en: "All Rooms" })}
       className="relative bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] py-24 sm:py-32 lg:py-40 overflow-hidden"
     >
-      {/* Subtle texture overlay */}
       <div
         aria-hidden
         className="absolute inset-0 opacity-[0.04] pointer-events-none"
@@ -39,7 +43,6 @@ export function RoomsSection() {
       />
 
       <div className="relative mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-14">
-        {/* Eyebrow + Thai section intro */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -66,15 +69,12 @@ export function RoomsSection() {
           </h2>
           <p className="max-w-xl text-sm sm:text-base leading-relaxed text-[color:var(--color-bone)]/70">
             {t({
-              th: "4 รูปแบบที่พัก พร้อมจองออนไลน์ — เลือกห้องที่ใช่สำหรับคุณ ดูภาพเพิ่มเติม หรือจองทันทีผ่าน Line",
-              en: "Four stay styles — explore photos, pick the one that fits, and book instantly via Line.",
+              th: "6 หลังให้เลือก — ดูภาพห้องเลื่อนอัตโนมัติ กดเข้าไปดูรายละเอียดทั้งหมด หรือจองทันทีผ่าน Line",
+              en: "Six villas to choose from — photos auto-slide on each card, tap any to see the full details or book instantly via Line.",
             })}
           </p>
         </motion.div>
 
-        {/* ──────────────────────────────────
-            2x2 grid of room cards — stacked layers, big image
-            ────────────────────────────────── */}
         <div className="mt-12 sm:mt-16 lg:mt-20 grid grid-cols-1 md:grid-cols-2 gap-7 sm:gap-8 lg:gap-10">
           {rooms.map((room, i) => (
             <motion.article
@@ -85,15 +85,14 @@ export function RoomsSection() {
               transition={{ duration: 0.8, ease: EASE, delay: i * 0.08 }}
               className="relative bg-[color:var(--color-bone)] text-[color:var(--color-ink)] rounded-[22px] overflow-hidden group flex flex-col shadow-[0_30px_60px_-30px_rgba(0,0,0,0.5)]"
             >
-              {/* Layer 1 — auto-cycling image carousel */}
               <div className="relative w-full aspect-[16/10] overflow-hidden">
                 <RoomCardCarousel
                   images={room.images}
                   alt={(img) => t(img.alt)}
-                  intervalMs={4000}
+                  started={inView}
+                  cardIndex={i}
                 />
 
-                {/* Number badge */}
                 <span
                   className="absolute top-4 right-4 z-10 h-11 w-11 flex items-center justify-center rounded-full bg-[color:var(--color-bone)]/95 backdrop-blur-md text-[color:var(--color-forest-deep)] font-display text-xl shadow-[0_6px_18px_-4px_rgba(0,0,0,0.35)]"
                   aria-hidden
@@ -101,7 +100,6 @@ export function RoomsSection() {
                   {i + 1}
                 </span>
 
-                {/* Sleeps pill */}
                 <span
                   className="absolute top-4 left-4 z-10 bg-[color:var(--color-forest-deep)]/85 backdrop-blur-md text-[color:var(--color-bone)] px-3 py-1.5 rounded-full text-[10px] uppercase tracking-[0.28em]"
                   style={{ fontFamily: "var(--font-inter)" }}
@@ -113,7 +111,6 @@ export function RoomsSection() {
                 </span>
               </div>
 
-              {/* Layer 2 — content body */}
               <div className="flex flex-col gap-4 p-6 sm:p-7 lg:p-8">
                 <header className="flex items-baseline justify-between gap-4 border-b border-[color:var(--color-ink)]/10 pb-4">
                   <h3 className="font-display text-[26px] sm:text-[28px] lg:text-[32px] text-[color:var(--color-forest-deep)] leading-tight">
@@ -134,7 +131,6 @@ export function RoomsSection() {
                   {t(room.description)}
                 </p>
 
-                {/* Layer 3 — clear, prominent action buttons */}
                 <div className="mt-2 flex flex-col sm:flex-row gap-3">
                   <button
                     type="button"
@@ -161,9 +157,6 @@ export function RoomsSection() {
         </div>
       </div>
 
-      {/* ──────────────────────────────────
-          Detail modal — opens straight to gallery
-          ────────────────────────────────── */}
       <AnimatePresence>
         {activeRoom && <RoomModal room={activeRoom} onClose={() => setActiveRoom(null)} />}
       </AnimatePresence>
@@ -172,43 +165,49 @@ export function RoomsSection() {
 }
 
 /* ──────────────────────────────────────────
-   Auto-rotating image carousel for room cards.
-   Crossfades through all images on a fixed
-   interval; pauses while hovered.
+   Auto-sliding carousel.
+   Cover image holds for COVER_DURATION_MS (5s)
+   from the moment the section enters the viewport;
+   each subsequent image holds for SLIDE_DURATION_MS (4s).
+   New images slide in from the right.
    ────────────────────────────────────────── */
 function RoomCardCarousel({
   images,
   alt,
-  intervalMs,
+  started,
+  cardIndex,
 }: {
   images: Room["images"];
   alt: (img: Room["images"][number]) => string;
-  intervalMs: number;
+  started: boolean;
+  cardIndex: number;
 }) {
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
+  // The 5s cover hold only applies to the first viewing of the cover —
+  // after the carousel leaves index 0, all subsequent slides (including
+  // wrap-around back to index 0) follow the standard 4s cadence.
+  const initialCoverDoneRef = useRef(false);
 
   useEffect(() => {
-    if (paused || images.length <= 1) return;
-    const id = setInterval(() => {
+    if (!started || images.length <= 1) return;
+    const isInitialCover = index === 0 && !initialCoverDoneRef.current;
+    const duration = isInitialCover ? COVER_DURATION_MS : SLIDE_DURATION_MS;
+    const id = window.setTimeout(() => {
+      if (isInitialCover) initialCoverDoneRef.current = true;
       setIndex((i) => (i + 1) % images.length);
-    }, intervalMs);
-    return () => clearInterval(id);
-  }, [paused, images.length, intervalMs]);
+    }, duration);
+    return () => window.clearTimeout(id);
+  }, [started, index, images.length]);
 
   return (
-    <div
-      className="absolute inset-0"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
-      <AnimatePresence mode="sync" initial={false}>
+    <div className="absolute inset-0 overflow-hidden">
+      <AnimatePresence initial={false} mode="popLayout">
         <motion.div
           key={index}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.9, ease: EASE }}
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "-100%" }}
+          transition={{ duration: 0.85, ease: EASE }}
           className="absolute inset-0"
         >
           <Image
@@ -217,12 +216,11 @@ function RoomCardCarousel({
             fill
             sizes="(max-width: 768px) 92vw, (max-width: 1280px) 46vw, 45vw"
             className="object-cover"
-            priority={index === 0}
+            priority={index === 0 && cardIndex < 2}
           />
         </motion.div>
       </AnimatePresence>
 
-      {/* Slide indicators */}
       {images.length > 1 && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex gap-1.5">
           {images.map((_, i) => (
@@ -244,13 +242,12 @@ function RoomCardCarousel({
 }
 
 /* ──────────────────────────────────────────
-   Room Detail Modal — gallery-first
+   Room Detail Modal — comprehensive spec view
    ────────────────────────────────────────── */
 function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
   const t = useT();
   const [lightbox, setLightbox] = useState<number | null>(null);
 
-  // Esc to close
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -303,13 +300,12 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
         </button>
 
         <div className="overflow-y-auto">
-          {/* Title bar */}
-          <header className="px-6 sm:px-8 lg:px-10 pt-6 sm:pt-8 pb-4 border-b border-[color:var(--color-ink)]/10">
+          <header className="px-6 sm:px-8 lg:px-10 pt-6 sm:pt-8 pb-5 border-b border-[color:var(--color-ink)]/10">
             <span
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
               style={{ fontFamily: "var(--font-inter)" }}
             >
-              LandCamp · {room.type.replace("-", " ")}
+              LandCamp · {t({ th: "รายละเอียดห้องพัก", en: "Room details" })}
             </span>
             <h3
               id="room-modal-title"
@@ -321,16 +317,107 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
               className="mt-2 text-[11px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/55"
               style={{ fontFamily: "var(--font-inter)" }}
             >
-              {t({ th: "พักได้", en: "Sleeps" })} {room.maxGuests}{" "}
-              {t({ th: "ท่าน ·", en: "·" })}{" "}
               {t({ th: "เริ่มต้นที่", en: "From" })}{" "}
-              {room.priceWeekday.toLocaleString()}{" "}
+              <span className="text-[color:var(--color-warm-clay)] font-medium">
+                {room.startingPrice.toLocaleString()}
+              </span>{" "}
               {t({ th: "บาท / คืน", en: "THB / night" })}
             </p>
           </header>
 
-          {/* Gallery — additional images shown immediately */}
+          {/* ── Spec block ─────────────────────────── */}
+          <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8 border-b border-[color:var(--color-ink)]/10">
+            <h4
+              className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-5"
+              style={{ fontFamily: "var(--font-inter)" }}
+            >
+              {t({ th: "ข้อมูลห้องพัก", en: "Room information" })}
+            </h4>
+
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm leading-relaxed">
+              <SpecRow
+                label={t({ th: "เช็คอิน", en: "Check-in" })}
+                value={`${room.checkIn} ${t({ th: "น.", en: "" })}`.trim()}
+              />
+              <SpecRow
+                label={t({ th: "เช็คเอาท์", en: "Check-out" })}
+                value={`${room.checkOut} ${t({ th: "น.", en: "" })}`.trim()}
+              />
+              <SpecRow
+                label={t({ th: "จำนวนผู้เข้าพัก", en: "Guests" })}
+                value={t({
+                  th: `${room.maxGuests} ท่าน`,
+                  en: `${room.maxGuests} guests`,
+                })}
+              />
+              <SpecRow label={t({ th: "ขนาดเตียง", en: "Bed size" })} value={t(room.bedSize)} />
+              <SpecRow label={t({ th: "ขนาดห้อง", en: "Room size" })} value={t(room.roomSize)} />
+              {room.layout && (
+                <SpecRow
+                  label={t({ th: "พื้นที่ห้อง", en: "Layout" })}
+                  value={t(room.layout)}
+                />
+              )}
+              <SpecRow
+                label={t({ th: "อาหารเช้า", en: "Breakfast" })}
+                value={t(room.breakfastIncluded)}
+              />
+              <SpecRow
+                label={t({ th: "ราคาวันธรรมดา", en: "Weekday rate" })}
+                value={t({
+                  th: `${room.priceWeekday.toLocaleString()} บาท / คืน`,
+                  en: `THB ${room.priceWeekday.toLocaleString()} / night`,
+                })}
+              />
+              <SpecRow
+                label={t({ th: "ราคาวันหยุด", en: "Weekend rate" })}
+                value={t({
+                  th: `${room.priceWeekend.toLocaleString()} บาท / คืน`,
+                  en: `THB ${room.priceWeekend.toLocaleString()} / night`,
+                })}
+              />
+            </dl>
+          </div>
+
+          {/* ── Services block ──────────────────────── */}
+          <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8 border-b border-[color:var(--color-ink)]/10">
+            <h4
+              className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-5"
+              style={{ fontFamily: "var(--font-inter)" }}
+            >
+              {t({ th: "บริการ", en: "Services" })}
+            </h4>
+            <ul className="flex flex-col gap-3.5 text-sm leading-relaxed">
+              {room.services.map((s, i) => (
+                <li key={i} className="flex items-center gap-3.5 text-[color:var(--color-ink)]/85">
+                  <ServiceIcon index={i} />
+                  <span>{t(s)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* ── Extra bed ──────────────────────────── */}
+          <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8 border-b border-[color:var(--color-ink)]/10">
+            <h4
+              className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-3"
+              style={{ fontFamily: "var(--font-inter)" }}
+            >
+              {t({ th: "ค่าเตียงเสริม", en: "Extra bed" })}
+            </h4>
+            <p className="text-sm leading-relaxed text-[color:var(--color-ink)]/85">
+              {t(room.extraBed)}
+            </p>
+          </div>
+
+          {/* ── Photo gallery ──────────────────────── */}
           <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8">
+            <h4
+              className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-5"
+              style={{ fontFamily: "var(--font-inter)" }}
+            >
+              {t({ th: "ภาพห้องพัก", en: "Gallery" })}
+            </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
               {room.images.map((img, i) => (
                 <button
@@ -354,7 +441,6 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
             </div>
           </div>
 
-          {/* Footer CTA */}
           <footer className="px-6 sm:px-8 lg:px-10 pb-6 sm:pb-8 flex flex-col sm:flex-row gap-3">
             <a
               href={siteConfig.contact.lineUrl}
@@ -377,7 +463,6 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
         </div>
       </motion.div>
 
-      {/* Lightbox for full-size image */}
       <AnimatePresence>
         {lightbox !== null && (
           <motion.div
@@ -422,5 +507,68 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+/* Thin-line service icons matching the site's warm-clay accent.
+   Order is fixed: 0 = room service, 1 = breakfast, 2 = wifi. */
+function ServiceIcon({ index }: { index: number }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.5,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+    className: "h-5 w-5 shrink-0 text-[color:var(--color-warm-clay)]",
+  };
+
+  if (index === 0) {
+    // Room service — cloche / serving dome
+    return (
+      <svg {...common}>
+        <path d="M4 18h16" />
+        <path d="M5.5 18a6.5 6.5 0 0 1 13 0" />
+        <path d="M12 5.5V4" />
+        <circle cx="12" cy="6.5" r="0.6" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+
+  if (index === 1) {
+    // Breakfast — coffee cup with steam
+    return (
+      <svg {...common}>
+        <path d="M5 10h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4v-5Z" />
+        <path d="M16 12h1.5a2 2 0 0 1 0 4H16" />
+        <path d="M8 4c0 1 1 1.4 1 2.5S8 8 8 8" />
+        <path d="M11.5 4c0 1 1 1.4 1 2.5S11.5 8 11.5 8" />
+      </svg>
+    );
+  }
+
+  // Wi-Fi — concentric arcs
+  return (
+    <svg {...common}>
+      <path d="M4.5 11.5a11 11 0 0 1 15 0" />
+      <path d="M7.5 14.5a7 7 0 0 1 9 0" />
+      <path d="M10.5 17.5a3 3 0 0 1 3 0" />
+      <circle cx="12" cy="19.8" r="0.7" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function SpecRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1 border-b border-[color:var(--color-ink)]/8 pb-3 last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0">
+      <dt
+        className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/50"
+        style={{ fontFamily: "var(--font-inter)" }}
+      >
+        {label}
+      </dt>
+      <dd className="text-[color:var(--color-forest-deep)] font-medium">{value}</dd>
+    </div>
   );
 }

@@ -1,423 +1,298 @@
 import type { Room } from "@/types";
 
 /**
- * Four LandCamp accommodation types.
- *
- * Data here is the source of truth for both the rooms section and any
- * future Supabase mirror. Each amenity entry is a bilingual short phrase
- * (no full sentences).
+ * Six LandCamp accommodation units across four types.
+ * Image numbering matches the source asset library: cover first, then
+ * additional gallery images in the order provided by the owner.
  */
-export const rooms: Room[] = [
+
+const SHARED_SERVICES = [
+  { th: "Room service menu 11.00-20.30 kha", en: "Room service · 11:00 – 20:30" },
+  { th: "Breakfast form 07.00 - 10.30", en: "Breakfast · 07:00 – 10:30" },
+  { th: "ฟรีไวไฟ", en: "Free Wi-Fi" },
+] as const;
+
+/** Shared breakfast photos appended to every room gallery. */
+const SHARED_BREAKFAST_IMAGES = [
   {
-    id: "villa-1bed",
+    src: "/images/rooms/_breakfast/338.png",
+    alt: { th: "อาหารเช้า — ตะกร้าเสิร์ฟพร้อมข้าวต้มและผลไม้", en: "Breakfast basket with rice soup and fresh fruit" },
+  },
+  {
+    src: "/images/rooms/_breakfast/339.png",
+    alt: { th: "ไข่กระทะมุมบน", en: "Skillet eggs — top-down view" },
+  },
+];
+
+const CHECK_IN = "14:00";
+const CHECK_OUT = "12:00";
+
+const baseRooms: Room[] = [
+  {
+    id: "villa-1",
     type: "villa-1bed",
-    name: {
-      th: "วิลล่า 1 · Villa 1",
-      en: "Villa 1",
-    },
+    name: { th: "วิลล่า 1 · Villa 1", en: "Villa 1" },
     description: {
       th: "วิลล่าโมเดิร์น ผนังกระจกบานสูงเปิดวิวสวน อ่างแช่ริมลำธารนอกตัวบ้าน เหมาะสำหรับคู่รักหรือทริปส่วนตัว",
       en: "A modern villa with floor-to-ceiling glass and a private soaking tub by the stream — ideal for couples seeking total privacy.",
     },
-    priceWeekday: 4500,
-    priceWeekend: 5500,
+    priceWeekday: 4000,
+    priceWeekend: 4500,
+    startingPrice: 4000,
     maxGuests: 2,
+    bedSize: { th: "King Size Bed 6 ฟุต", en: "King Size Bed (6 ft)" },
+    roomSize: { th: "40 ตร.ม.", en: "40 sqm" },
+    breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
+    extraBed: {
+      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      en: "1 extra bed available · THB 750 per person (breakfast included)",
+    },
+    services: [...SHARED_SERVICES],
+    checkIn: CHECK_IN,
+    checkOut: CHECK_OUT,
     amenities: [
       { th: "ผนังกระจกเปิดวิวสวน", en: "Floor-to-ceiling glass" },
       { th: "อ่างแช่นอกตัวบ้าน", en: "Outdoor soaking tub" },
       { th: "ลำธารส่วนตัวข้างห้อง", en: "Private stream-side" },
-      { th: "Marshall Speaker", en: "Marshall Speaker" },
-      { th: "เครื่องชงกาแฟแคปซูล", en: "Capsule coffee maker" },
       { th: "เครื่องปรับอากาศ", en: "Air conditioning" },
     ],
     images: [
-      {
-        src: "/images/rooms/villa-1bed/cover.jpg",
-        alt: { th: "วิลล่า 1 ห้องนอน — มุมเตียงเปิดวิวสวน", en: "Villa 1 Bedroom — bedroom with garden view" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-01.jpg",
-        alt: { th: "ระเบียงมองออกสวน", en: "Deck through the trees" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-02.jpg",
-        alt: { th: "อ่างแช่นอกตัวบ้าน", en: "Outdoor soaking tub" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-03.jpg",
-        alt: { th: "วิลล่ามุมภายนอก ผนังกระจกบานสูง", en: "Villa exterior with floor-to-ceiling glass" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-04.jpg",
-        alt: { th: "ห้องนอนพร้อมทีวีและตู้ไม้สัก", en: "Bedroom with TV and teak cabinetry" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-05.jpg",
-        alt: { th: "มุมมองทั้งห้อง ผนังกระจกเปิดสวน", en: "Wide bedroom with glass wall to garden" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-06.jpg",
-        alt: { th: "อ่างแช่ริมลำธาร", en: "Soaking tub overlooking the stream" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-07.jpg",
-        alt: { th: "Marshall Speaker ข้างเตียง", en: "Marshall speaker on the nightstand" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-08.jpg",
-        alt: { th: "ห้องน้ำหินอ่อนเทา", en: "Grey marble bathroom" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-09.jpg",
-        alt: { th: "เตียงเฟอร์นิเจอร์ไม้รัตตัน", en: "Rattan bed and natural wood furniture" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-10.jpg",
-        alt: { th: "ห้องอาบน้ำพร้อมฝักบัวเรน", en: "Walk-in shower with rain head" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-11.jpg",
-        alt: { th: "ตัวบ้านหินธรรมชาติพร้อมประตูไม้", en: "Stone-clad facade with timber door" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-12.jpg",
-        alt: { th: "ระเบียงไม้พร้อมเก้าอี้ Adirondack", en: "Wood deck with Adirondack chairs" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-13.jpg",
-        alt: { th: "วิลล่าซ่อนตัวในพุ่มไม้", en: "Villa nestled in the trees" },
-      },
-      {
-        src: "/images/rooms/villa-1bed/detail-14.jpg",
-        alt: { th: "ผนังกระจกเปิดมุมห้องนอน", en: "Glass facade revealing the bedroom" },
-      },
+      { src: "/images/rooms/villa-1/245.png", alt: { th: "วิลล่า 1 — ภาพหน้าปก", en: "Villa 1 — cover" } },
+      { src: "/images/rooms/villa-1/246.png", alt: { th: "วิลล่า 1 — มุมห้อง", en: "Villa 1 — interior" } },
+      { src: "/images/rooms/villa-1/247.png", alt: { th: "วิลล่า 1 — มุมที่พัก", en: "Villa 1 — view" } },
+      { src: "/images/rooms/villa-1/248.png", alt: { th: "วิลล่า 1 — ภาพห้อง", en: "Villa 1 — room" } },
+      { src: "/images/rooms/villa-1/249.png", alt: { th: "วิลล่า 1 — มุมระเบียง", en: "Villa 1 — terrace" } },
+      { src: "/images/rooms/villa-1/250.png", alt: { th: "วิลล่า 1 — ภาพภายใน", en: "Villa 1 — interior" } },
+      { src: "/images/rooms/villa-1/251.png", alt: { th: "วิลล่า 1 — มุมสบาย", en: "Villa 1 — lounge" } },
+      { src: "/images/rooms/villa-1/252.png", alt: { th: "วิลล่า 1 — อ่างแช่", en: "Villa 1 — soaking tub" } },
+      { src: "/images/rooms/villa-1/253.png", alt: { th: "วิลล่า 1 — มุมห้องนอน", en: "Villa 1 — bedroom" } },
+      { src: "/images/rooms/villa-1/254.png", alt: { th: "วิลล่า 1 — ภาพมุมกว้าง", en: "Villa 1 — wide angle" } },
+      { src: "/images/rooms/villa-1/255.png", alt: { th: "วิลล่า 1 — รายละเอียดห้อง", en: "Villa 1 — room detail" } },
+      { src: "/images/rooms/villa-1/256.png", alt: { th: "วิลล่า 1 — มุมภายนอก", en: "Villa 1 — exterior" } },
+      { src: "/images/rooms/villa-1/257.png", alt: { th: "วิลล่า 1 — มุมสวน", en: "Villa 1 — garden" } },
     ],
     available: true,
   },
   {
-    id: "villa-2bed",
+    id: "villa-2",
     type: "villa-2bed",
-    name: {
-      th: "วิลล่า 2 · Villa 2",
-      en: "Villa 2",
-    },
+    name: { th: "วิลล่า 2 · Villa 2", en: "Villa 2" },
     description: {
       th: "วิลล่าหลังใหญ่ที่สุดของแลนด์แคมป์ พักได้ 4 ท่าน มีพื้นที่ Dining และระเบียงรอบบ้าน เหมาะสำหรับครอบครัวหรือกลุ่มเพื่อน",
       en: "Our largest villa for up to four guests — full dining area, wraparound terrace, designed for family stays and small celebrations.",
     },
     priceWeekday: 6500,
-    priceWeekend: 7500,
+    priceWeekend: 7000,
+    startingPrice: 6500,
     maxGuests: 4,
+    bedSize: { th: "King Size Bed 6 ฟุต", en: "King Size Bed (6 ft)" },
+    roomSize: { th: "90 ตร.ม.", en: "90 sqm" },
+    layout: {
+      th: "2 ห้องนอน · 1 ห้องนั่งเล่น · 2 ห้องน้ำ",
+      en: "2 bedrooms · 1 living room · 2 bathrooms",
+    },
+    breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
+    extraBed: {
+      th: "เสริมเตียงได้ 2 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      en: "Up to 2 extra beds · THB 750 per person (breakfast included)",
+    },
+    services: [...SHARED_SERVICES],
+    checkIn: CHECK_IN,
+    checkOut: CHECK_OUT,
     amenities: [
       { th: "2 ห้องนอน พักได้ 4 ท่าน", en: "2 bedrooms · sleeps 4" },
       { th: "พื้นที่ Dining ในตัว", en: "Indoor dining area" },
       { th: "ระเบียงรอบตัวบ้าน", en: "Wraparound terrace" },
       { th: "ห้องน้ำ 2 ห้อง", en: "Two bathrooms" },
-      { th: "Marshall Speaker", en: "Marshall Speaker" },
-      { th: "เครื่องชงกาแฟแคปซูล", en: "Capsule coffee maker" },
     ],
     images: [
-      {
-        src: "/images/rooms/villa-2bed/cover.jpg",
-        alt: { th: "วิลล่า 2 ห้องนอน — ห้องนอนรองเปิดวิวสวน", en: "Villa 2 Bedrooms — guest bedroom with garden view" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-01.jpg",
-        alt: { th: "ห้องนอนรองพร้อมเตียงคิงและภาพศิลปะ", en: "Second bedroom with king bed and wall art" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-02.jpg",
-        alt: { th: "ตัวบ้านหินธรรมชาติริมลำธาร", en: "Stone-clad villa beside the stream" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-03.jpg",
-        alt: { th: "ระเบียงไม้เลียบลำธารหินธรรมชาติ", en: "Wood walkway along the natural stream" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-04.jpg",
-        alt: { th: "ห้องน้ำผนังไม้พร้อมฝักบัวเรน", en: "Wood-panel bathroom with rain shower" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-05.jpg",
-        alt: { th: "Walk-in shower ผนังไม้", en: "Walk-in shower with timber walls" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-06.jpg",
-        alt: { th: "อ่างล้างหน้าและกระจกกลม", en: "Vanity with round mirror" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-07.jpg",
-        alt: { th: "มุมห้องน้ำกับบันไดไม้ไผ่", en: "Bathroom with bamboo towel ladder" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-08.jpg",
-        alt: { th: "ห้องนั่งเล่นเปิดวิวต้นไม้", en: "Lounge with garden window" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-09.jpg",
-        alt: { th: "ห้องนอนหลักเปิดมุมกระจกบานสูง", en: "Master bedroom with floor-to-ceiling glass" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-10.jpg",
-        alt: { th: "โซฟาผ้าครีมหน้าหน้าต่างไม้สัก", en: "Cream sofa under teak-framed window" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-11.jpg",
-        alt: { th: "ห้องน้ำผนังไม้พร้อมอ่างแช่และสวนหลัง", en: "Wood bathroom with soaking tub and rear garden" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-12.jpg",
-        alt: { th: "อ่างแช่อิสระและตู้เก็บผ้าเชือก", en: "Freestanding tub with linen storage" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-13.jpg",
-        alt: { th: "Outdoor shower กับผนังหินและไม้", en: "Outdoor shower with stone and timber walls" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-14.jpg",
-        alt: { th: "อ่างแช่ผนังไม้เปิดสวนหลังบ้าน", en: "Soaking tub framing the back garden" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-15.jpg",
-        alt: { th: "ระเบียงนั่งเล่นด้านหน้าตัววิลล่าหิน", en: "Front deck of the stone villa" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-16.jpg",
-        alt: { th: "มุมระเบียงข้างผนังหิน", en: "Side deck against the stone wall" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-17.jpg",
-        alt: { th: "มุมระเบียงและประตูกระจกบานเลื่อน", en: "Deck and sliding glass entry" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-18.jpg",
-        alt: { th: "ลำธารส่วนตัวรอบบ้าน", en: "Private stream wrapping the villa" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-19.jpg",
-        alt: { th: "บานกระจกเปิดวิวภายในห้องนั่งเล่น", en: "Glass facade revealing the living room" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-20.jpg",
-        alt: { th: "ระเบียงและประตูกระจก มุมที่สาม", en: "Deck and glass door — alternate angle" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-21.jpg",
-        alt: { th: "ระเบียงและประตูกระจก มุมที่สี่", en: "Deck and glass door — wide angle" },
-      },
-      {
-        src: "/images/rooms/villa-2bed/detail-22.jpg",
-        alt: { th: "พื้นที่ Dining มองจากสวนผ่านกระจก", en: "Dining area glimpsed through the garden glass" },
-      },
+      { src: "/images/rooms/villa-2/258.png", alt: { th: "วิลล่า 2 — ภาพหน้าปก", en: "Villa 2 — cover" } },
+      { src: "/images/rooms/villa-2/259.png", alt: { th: "วิลล่า 2 — มุมห้อง", en: "Villa 2 — interior" } },
+      { src: "/images/rooms/villa-2/269.png", alt: { th: "วิลล่า 2 — มุมระเบียง", en: "Villa 2 — terrace" } },
+      { src: "/images/rooms/villa-2/260.png", alt: { th: "วิลล่า 2 — มุมห้องนอน", en: "Villa 2 — bedroom" } },
+      { src: "/images/rooms/villa-2/261.png", alt: { th: "วิลล่า 2 — พื้นที่ Dining", en: "Villa 2 — dining area" } },
+      { src: "/images/rooms/villa-2/262.png", alt: { th: "วิลล่า 2 — มุมนั่งเล่น", en: "Villa 2 — lounge" } },
+      { src: "/images/rooms/villa-2/263.png", alt: { th: "วิลล่า 2 — มุมห้องน้ำ", en: "Villa 2 — bathroom" } },
+      { src: "/images/rooms/villa-2/264.png", alt: { th: "วิลล่า 2 — ภาพภายนอก", en: "Villa 2 — exterior" } },
+      { src: "/images/rooms/villa-2/265.png", alt: { th: "วิลล่า 2 — มุมมองทั่วไป", en: "Villa 2 — general view" } },
+      { src: "/images/rooms/villa-2/266.png", alt: { th: "วิลล่า 2 — รายละเอียดห้อง", en: "Villa 2 — room detail" } },
+      { src: "/images/rooms/villa-2/267.png", alt: { th: "วิลล่า 2 — มุมสวน", en: "Villa 2 — garden" } },
     ],
     available: true,
   },
   {
-    id: "train",
-    type: "train",
-    name: {
-      th: "บ้านรถไฟ · Camper Train",
-      en: "Camper Train",
-    },
-    description: {
-      th: "ตู้รถไฟไทยโบราณดัดแปลงเป็นที่พัก ผนังไม้สัก เตียง 5 ฟุต ห้องน้ำในตัว ระเบียงด้านหน้าพร้อมอ่างแช่ขนาดใหญ่",
-      en: "A classic Thai railway carriage reborn as a glamping suite — teak panelling, queen bed, private ensuite and a deck with a large bathtub.",
-    },
-    priceWeekday: 5000,
-    priceWeekend: 6000,
-    maxGuests: 2,
-    amenities: [
-      { th: "ผนังไม้สักดั้งเดิม", en: "Original teak panelling" },
-      { th: "เตียง 5 ฟุต", en: "Queen-size bed" },
-      { th: "อ่างแช่หน้าระเบียง", en: "Deck-side bathtub" },
-      { th: "ห้องน้ำในตัว", en: "Private ensuite" },
-      { th: "Marshall Speaker", en: "Marshall Speaker" },
-      { th: "ทีวี + ตู้เย็น", en: "TV + mini fridge" },
-    ],
-    images: [
-      {
-        src: "/images/rooms/train/cover.jpg",
-        alt: { th: "บ้านรถไฟ — ห้องนอนเตียงคู่ใต้เพดานโค้ง", en: "Camper Train — bed under the arched carriage ceiling" },
-      },
-      {
-        src: "/images/rooms/train/detail-01.jpg",
-        alt: { th: "มุมสูงระเบียงไม้ใต้ต้นสน", en: "Aerial of the timber deck nestled under pines" },
-      },
-      {
-        src: "/images/rooms/train/detail-02.jpg",
-        alt: { th: "ตู้รถไฟท่ามกลางแนวต้นสน", en: "The carriage framed by tall pine trees" },
-      },
-      {
-        src: "/images/rooms/train/detail-03.jpg",
-        alt: { th: "อ่างแช่กลางแจ้งล้อมรอบด้วยผนังไม้และไฟราว", en: "Outdoor soaking tub with timber walls and festoon lights" },
-      },
-      {
-        src: "/images/rooms/train/detail-04.jpg",
-        alt: { th: "มุมสูงสนามหญ้าและทางเดินหิน", en: "Aerial view of the lawn and stepping-stone path" },
-      },
-      {
-        src: "/images/rooms/train/detail-05.jpg",
-        alt: { th: "ระเบียงไม้พร้อมเก้าอี้พักผ่อนใต้ร่ม", en: "Timber deck with lounge chairs under a cantilever umbrella" },
-      },
-      {
-        src: "/images/rooms/train/detail-06.jpg",
-        alt: { th: "ทางเดินไม้แคบเลียบตัวรถไฟ", en: "Narrow boardwalk running alongside the carriage" },
-      },
-      {
-        src: "/images/rooms/train/detail-07.jpg",
-        alt: { th: "ด้านข้างตู้รถไฟพร้อมประตูบานเลื่อนกระจก", en: "Carriage flank with sliding glass door to the deck" },
-      },
-      {
-        src: "/images/rooms/train/detail-08.jpg",
-        alt: { th: "มุมเครื่องดื่มกับลำโพง Marshall และตู้เย็นวินเทจ", en: "Pantry corner with Marshall speaker and vintage mini fridge" },
-      },
-      {
-        src: "/images/rooms/train/detail-09.jpg",
-        alt: { th: "ด้านหน้าตู้รถไฟกลางหมู่ต้นสน", en: "Front of the carriage among Norfolk pines" },
-      },
-      {
-        src: "/images/rooms/train/detail-10.jpg",
-        alt: { th: "ระเบียงไม้พร้อมโต๊ะยาวและที่นั่งคู่", en: "Timber deck with long table and paired loungers" },
-      },
-      {
-        src: "/images/rooms/train/detail-11.jpg",
-        alt: { th: "มุมระเบียงไม้กว้างกับวิวต้นไม้", en: "Wide deck angle opening to the garden trees" },
-      },
-      {
-        src: "/images/rooms/train/detail-12.jpg",
-        alt: { th: "มุมเก้าอี้ไม้มองออกสนามหญ้า", en: "Adirondack chair facing the open lawn" },
-      },
-      {
-        src: "/images/rooms/train/detail-13.jpg",
-        alt: { th: "มุมระเบียงและทางเดินไม้ยามบ่าย", en: "Deck and boardwalk in afternoon light" },
-      },
-      {
-        src: "/images/rooms/train/detail-14.jpg",
-        alt: { th: "มุมพักผ่อนระเบียงพร้อมเก้าอี้คู่", en: "Twin recliners on the deck under the umbrella" },
-      },
-      {
-        src: "/images/rooms/train/detail-15.jpg",
-        alt: { th: "ผู้เข้าพักนั่งอ่านหนังสือพิมพ์บนระเบียง", en: "A guest reading the paper on the deck" },
-      },
-      {
-        src: "/images/rooms/train/detail-16.jpg",
-        alt: { th: "ผู้เข้าพักสวมหมวกฟางพักผ่อนใต้ร่ม", en: "A guest in a straw hat relaxing under the parasol" },
-      },
-      {
-        src: "/images/rooms/train/detail-17.jpg",
-        alt: { th: "ผู้เข้าพักก้าวออกจากประตูตู้รถไฟ", en: "A guest stepping out of the carriage door" },
-      },
-      {
-        src: "/images/rooms/train/detail-18.jpg",
-        alt: { th: "ภาพพอร์ตเทรตท่ามกลางใบสน", en: "Portrait among the pine fronds" },
-      },
-    ],
-    available: true,
-  },
-  {
-    id: "camper",
+    id: "camper-van",
     type: "camper",
-    name: {
-      th: "รถบ้าน · Camper Van",
-      en: "Camper Van",
-    },
+    name: { th: "รถบ้าน · Camper Van", en: "Camper Van" },
     description: {
       th: "รถบ้านสไตล์อังกฤษบอดี้เงิน ตกแต่งภายในอบอุ่นเป็นกันเอง ล้อมรอบด้วยต้นอะกาเว่ ให้ฟีลเหมือนหลุดไปนิวซีแลนด์",
       en: "A British-style silver camper wrapped in agave gardens — cosy interior, photogenic exterior, the feel of a Pacific Northwest road trip.",
     },
-    priceWeekday: 4500,
-    priceWeekend: 5500,
+    priceWeekday: 3500,
+    priceWeekend: 4000,
+    startingPrice: 3500,
     maxGuests: 2,
+    bedSize: { th: "King Size Bed 5 ฟุต", en: "King Size Bed (5 ft)" },
+    roomSize: { th: "32 ตร.ม.", en: "32 sqm" },
+    breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
+    extraBed: { th: "ไม่สามารถเสริมเตียงได้", en: "Extra bed not available" },
+    services: [...SHARED_SERVICES],
+    checkIn: CHECK_IN,
+    checkOut: CHECK_OUT,
     amenities: [
       { th: "บอดี้เงินสไตล์อังกฤษ", en: "British silver camper body" },
       { th: "ภายในตกแต่งเป็นกันเอง", en: "Cosy boutique interior" },
       { th: "ห้องน้ำส่วนตัวข้างรถ", en: "Adjacent private bathroom" },
-      { th: "ลานนั่งเล่นรายล้อมอะกาเว่", en: "Agave-lined patio" },
-      { th: "Marshall Speaker", en: "Marshall Speaker" },
       { th: "เครื่องปรับอากาศ", en: "Air conditioning" },
     ],
     images: [
-      {
-        src: "/images/rooms/camper/cover.jpg",
-        alt: { th: "รถบ้าน — เตียงคิงในห้องนอนสไตล์ Airstream", en: "Camper Van — king bed inside the Airstream cabin" },
-      },
-      {
-        src: "/images/rooms/camper/detail-01.jpg",
-        alt: { th: "มุมห้องนั่งเล่นพร้อม Marshall, ทีวี และตู้เย็นวินเทจ", en: "Lounge corner with Marshall speaker, TV and vintage mini fridge" },
-      },
-      {
-        src: "/images/rooms/camper/detail-02.jpg",
-        alt: { th: "เก้าอี้ทับครีมคู่ใต้เครื่องปรับอากาศ", en: "Twin cream tub chairs beneath the air conditioner" },
-      },
-      {
-        src: "/images/rooms/camper/detail-03.jpg",
-        alt: { th: "ห้องน้ำส่วนตัว พร้อม walk-in shower และโต๊ะเครื่องแป้ง", en: "Private bathroom with walk-in shower and vanity" },
-      },
-      {
-        src: "/images/rooms/camper/detail-04.jpg",
-        alt: { th: "อ่างแช่อิสระมองออกป่าสน", en: "Freestanding tub looking out to pine trees" },
-      },
-      {
-        src: "/images/rooms/camper/detail-05.jpg",
-        alt: { th: "มุมอ่างแช่กับราวผ้าไม้ไผ่และเสื้อคลุม", en: "Tub corner with bamboo towel ladder and bathrobes" },
-      },
-      {
-        src: "/images/rooms/camper/detail-06.jpg",
-        alt: { th: "รายละเอียดโคมไฟ กระจกแต่งหน้า และก้านน้ำหอม", en: "Detail of lamp, vanity mirror and reed diffuser" },
-      },
-      {
-        src: "/images/rooms/camper/detail-07.jpg",
-        alt: { th: "ลำโพง Marshall บนตอไม้ข้างต้นมะกอก", en: "Marshall speaker on a wood stump beside the olive plant" },
-      },
-      {
-        src: "/images/rooms/camper/detail-08.jpg",
-        alt: { th: "กุญแจห้องไม้สลักโลโก้ LandCamp", en: "Engraved LandCamp wooden room-key" },
-      },
-      {
-        src: "/images/rooms/camper/detail-09.jpg",
-        alt: { th: "ระเบียงไม้ข้างบอดี้เงินสะท้อนแสง", en: "Deck beside the reflective silver body" },
-      },
-      {
-        src: "/images/rooms/camper/detail-10.jpg",
-        alt: { th: "ผู้เข้าพักนั่งอ่านหนังสือพิมพ์ริมระเบียง", en: "A guest reading the paper at the deck edge" },
-      },
-      {
-        src: "/images/rooms/camper/detail-11.jpg",
-        alt: { th: "คู่รักพักผ่อนบนระเบียงรถบ้าน", en: "A couple unwinding on the Camper deck" },
-      },
-      {
-        src: "/images/rooms/camper/detail-12.jpg",
-        alt: { th: "มุมนั่งมองสนามหญ้าและหลุมไฟ", en: "Seat facing the lawn and fire-pit garden" },
-      },
-      {
-        src: "/images/rooms/camper/detail-13.jpg",
-        alt: { th: "อ่างแช่อิสระมองวิวภูเขายามเย็น", en: "Freestanding tub with mountain view at dusk" },
-      },
-      {
-        src: "/images/rooms/camper/detail-14.jpg",
-        alt: { th: "Airstream คู่กับห้องน้ำไม้แยกหลังท่ามกลางสวนอะกาเว่", en: "Airstream paired with the timber bathhouse in an agave garden" },
-      },
-      {
-        src: "/images/rooms/camper/detail-15.jpg",
-        alt: { th: "มุมสูงเห็นระเบียงและตัวรถบ้านบอดี้เงิน", en: "Aerial of the deck and polished camper body" },
-      },
-      {
-        src: "/images/rooms/camper/detail-16.jpg",
-        alt: { th: "ภาพดิ่งมุมบนเห็นแลนด์สเคปทั้งหมด", en: "Top-down aerial of the full setting" },
-      },
-      {
-        src: "/images/rooms/camper/detail-17.jpg",
-        alt: { th: "ผู้เข้าพักนั่งพิงบอดี้รถบ้านยามเย็น", en: "A guest leaning against the camper body at golden hour" },
-      },
-      {
-        src: "/images/rooms/camper/detail-18.jpg",
-        alt: { th: "บอดี้เงินกับสวนอะกาเว่และทางเดินหิน", en: "Silver body framed by agave plants and stepping stones" },
-      },
-      {
-        src: "/images/rooms/camper/detail-19.jpg",
-        alt: { th: "มุมโครงสร้างพร้อมเก้าอี้ Adirondack และโคมไฟกลางสวน", en: "Wider setting with Adirondack chairs and garden lantern" },
-      },
+      { src: "/images/rooms/camper-van/273.png", alt: { th: "รถบ้าน — ภาพหน้าปก", en: "Camper Van — cover" } },
+      { src: "/images/rooms/camper-van/271.png", alt: { th: "รถบ้าน — มุมห้อง", en: "Camper Van — interior" } },
+      { src: "/images/rooms/camper-van/272.png", alt: { th: "รถบ้าน — มุมที่พัก", en: "Camper Van — view" } },
+      { src: "/images/rooms/camper-van/274.png", alt: { th: "รถบ้าน — มุมระเบียง", en: "Camper Van — deck" } },
+      { src: "/images/rooms/camper-van/275.png", alt: { th: "รถบ้าน — ภาพภายใน", en: "Camper Van — interior" } },
+      { src: "/images/rooms/camper-van/276.png", alt: { th: "รถบ้าน — มุมห้องนอน", en: "Camper Van — bedroom" } },
+      { src: "/images/rooms/camper-van/277.png", alt: { th: "รถบ้าน — มุมห้องน้ำ", en: "Camper Van — bathroom" } },
+      { src: "/images/rooms/camper-van/278.png", alt: { th: "รถบ้าน — รายละเอียด", en: "Camper Van — detail" } },
+      { src: "/images/rooms/camper-van/279.png", alt: { th: "รถบ้าน — มุมภายนอก", en: "Camper Van — exterior" } },
+      { src: "/images/rooms/camper-van/280.png", alt: { th: "รถบ้าน — มุมสวน", en: "Camper Van — garden" } },
+      { src: "/images/rooms/camper-van/281.png", alt: { th: "รถบ้าน — มุมกว้าง", en: "Camper Van — wide angle" } },
+      { src: "/images/rooms/camper-van/282.png", alt: { th: "รถบ้าน — รายละเอียดห้อง", en: "Camper Van — room detail" } },
+      { src: "/images/rooms/camper-van/283.png", alt: { th: "รถบ้าน — มุมพักผ่อน", en: "Camper Van — lounge" } },
+      { src: "/images/rooms/camper-van/284.png", alt: { th: "รถบ้าน — มุมยามเย็น", en: "Camper Van — evening" } },
+    ],
+    available: true,
+  },
+  {
+    id: "camper-train-1",
+    type: "train",
+    name: { th: "บ้านรถไฟ · Camper Train 1", en: "Camper Train 1" },
+    description: {
+      th: "ตู้รถไฟไทยโบราณดัดแปลงเป็นที่พัก ผนังไม้สัก เตียงคิงไซส์ 5 ฟุต ห้องน้ำในตัว ระเบียงด้านหน้าพร้อมอ่างแช่ขนาดใหญ่",
+      en: "A classic Thai railway carriage reborn as a glamping suite — teak panelling, king-size bed and a deck-side bathtub.",
+    },
+    priceWeekday: 4000,
+    priceWeekend: 4500,
+    startingPrice: 4500,
+    maxGuests: 2,
+    bedSize: { th: "King Size Bed 5 ฟุต", en: "King Size Bed (5 ft)" },
+    roomSize: { th: "52 ตร.ม.", en: "52 sqm" },
+    breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
+    extraBed: {
+      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      en: "1 extra bed available · THB 750 per person (breakfast included)",
+    },
+    services: [...SHARED_SERVICES],
+    checkIn: CHECK_IN,
+    checkOut: CHECK_OUT,
+    amenities: [
+      { th: "ผนังไม้สักดั้งเดิม", en: "Original teak panelling" },
+      { th: "เตียงคิงไซส์ 5 ฟุต", en: "King-size bed (5 ft)" },
+      { th: "อ่างแช่หน้าระเบียง", en: "Deck-side bathtub" },
+      { th: "ห้องน้ำในตัว", en: "Private ensuite" },
+    ],
+    images: [
+      { src: "/images/rooms/camper-train-1/285.png", alt: { th: "บ้านรถไฟ 1 — ภาพหน้าปก", en: "Camper Train 1 — cover" } },
+      { src: "/images/rooms/camper-train-1/286.png", alt: { th: "บ้านรถไฟ 1 — มุมห้อง", en: "Camper Train 1 — interior" } },
+      { src: "/images/rooms/camper-train-1/287.png", alt: { th: "บ้านรถไฟ 1 — มุมระเบียง", en: "Camper Train 1 — deck" } },
+      { src: "/images/rooms/camper-train-1/288.jpeg", alt: { th: "บ้านรถไฟ 1 — มุมห้องนอน", en: "Camper Train 1 — bedroom" } },
+      { src: "/images/rooms/camper-train-1/289.png", alt: { th: "บ้านรถไฟ 1 — อ่างแช่", en: "Camper Train 1 — bathtub" } },
+      { src: "/images/rooms/camper-train-1/290.png", alt: { th: "บ้านรถไฟ 1 — มุมห้องน้ำ", en: "Camper Train 1 — bathroom" } },
+      { src: "/images/rooms/camper-train-1/291.png", alt: { th: "บ้านรถไฟ 1 — มุมภายนอก", en: "Camper Train 1 — exterior" } },
+      { src: "/images/rooms/camper-train-1/292.png", alt: { th: "บ้านรถไฟ 1 — มุมกว้าง", en: "Camper Train 1 — wide angle" } },
+      { src: "/images/rooms/camper-train-1/293.png", alt: { th: "บ้านรถไฟ 1 — มุมสวน", en: "Camper Train 1 — garden" } },
+    ],
+    available: true,
+  },
+  {
+    id: "camper-train-2",
+    type: "train",
+    name: { th: "บ้านรถไฟ · Camper Train 2", en: "Camper Train 2" },
+    description: {
+      th: "ตู้รถไฟไทยโบราณดัดแปลงเป็นที่พัก ผนังไม้สัก เตียงคิงไซส์ 5 ฟุต ห้องน้ำในตัว ระเบียงด้านหน้าพร้อมอ่างแช่ขนาดใหญ่",
+      en: "A classic Thai railway carriage reborn as a glamping suite — teak panelling, king-size bed and a deck-side bathtub.",
+    },
+    priceWeekday: 4000,
+    priceWeekend: 4500,
+    startingPrice: 4500,
+    maxGuests: 2,
+    bedSize: { th: "King Size Bed 5 ฟุต", en: "King Size Bed (5 ft)" },
+    roomSize: { th: "52 ตร.ม.", en: "52 sqm" },
+    breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
+    extraBed: {
+      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      en: "1 extra bed available · THB 750 per person (breakfast included)",
+    },
+    services: [...SHARED_SERVICES],
+    checkIn: CHECK_IN,
+    checkOut: CHECK_OUT,
+    amenities: [
+      { th: "ผนังไม้สักดั้งเดิม", en: "Original teak panelling" },
+      { th: "เตียงคิงไซส์ 5 ฟุต", en: "King-size bed (5 ft)" },
+      { th: "อ่างแช่หน้าระเบียง", en: "Deck-side bathtub" },
+      { th: "ห้องน้ำในตัว", en: "Private ensuite" },
+    ],
+    images: [
+      { src: "/images/rooms/camper-train-2/295.png", alt: { th: "บ้านรถไฟ 2 — ภาพหน้าปก", en: "Camper Train 2 — cover" } },
+      { src: "/images/rooms/camper-train-2/296.png", alt: { th: "บ้านรถไฟ 2 — มุมห้อง", en: "Camper Train 2 — interior" } },
+      { src: "/images/rooms/camper-train-2/297.png", alt: { th: "บ้านรถไฟ 2 — มุมระเบียง", en: "Camper Train 2 — deck" } },
+      { src: "/images/rooms/camper-train-2/298.png", alt: { th: "บ้านรถไฟ 2 — มุมห้องนอน", en: "Camper Train 2 — bedroom" } },
+      { src: "/images/rooms/camper-train-2/299.png", alt: { th: "บ้านรถไฟ 2 — อ่างแช่", en: "Camper Train 2 — bathtub" } },
+      { src: "/images/rooms/camper-train-2/300.png", alt: { th: "บ้านรถไฟ 2 — มุมห้องน้ำ", en: "Camper Train 2 — bathroom" } },
+      { src: "/images/rooms/camper-train-2/301.png", alt: { th: "บ้านรถไฟ 2 — มุมภายนอก", en: "Camper Train 2 — exterior" } },
+      { src: "/images/rooms/camper-train-2/302.png", alt: { th: "บ้านรถไฟ 2 — มุมกว้าง", en: "Camper Train 2 — wide angle" } },
+      { src: "/images/rooms/camper-train-2/303.jpeg", alt: { th: "บ้านรถไฟ 2 — รายละเอียด", en: "Camper Train 2 — detail" } },
+      { src: "/images/rooms/camper-train-2/304.png", alt: { th: "บ้านรถไฟ 2 — มุมสวน", en: "Camper Train 2 — garden" } },
+      { src: "/images/rooms/camper-train-2/305.png", alt: { th: "บ้านรถไฟ 2 — มุมยามเย็น", en: "Camper Train 2 — evening" } },
+    ],
+    available: true,
+  },
+  {
+    id: "camper-train-3",
+    type: "train",
+    name: { th: "บ้านรถไฟ · Camper Train 3", en: "Camper Train 3" },
+    description: {
+      th: "ตู้รถไฟไทยโบราณดัดแปลงเป็นที่พัก ผนังไม้สัก เตียงคิงไซส์ 5 ฟุต ห้องน้ำในตัว ระเบียงด้านหน้าพร้อมอ่างแช่ขนาดใหญ่",
+      en: "A classic Thai railway carriage reborn as a glamping suite — teak panelling, king-size bed and a deck-side bathtub.",
+    },
+    priceWeekday: 4000,
+    priceWeekend: 4500,
+    startingPrice: 4500,
+    maxGuests: 2,
+    bedSize: { th: "King Size Bed 5 ฟุต", en: "King Size Bed (5 ft)" },
+    roomSize: { th: "52 ตร.ม.", en: "52 sqm" },
+    breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
+    extraBed: {
+      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      en: "1 extra bed available · THB 750 per person (breakfast included)",
+    },
+    services: [...SHARED_SERVICES],
+    checkIn: CHECK_IN,
+    checkOut: CHECK_OUT,
+    amenities: [
+      { th: "ผนังไม้สักดั้งเดิม", en: "Original teak panelling" },
+      { th: "เตียงคิงไซส์ 5 ฟุต", en: "King-size bed (5 ft)" },
+      { th: "อ่างแช่หน้าระเบียง", en: "Deck-side bathtub" },
+      { th: "ห้องน้ำในตัว", en: "Private ensuite" },
+    ],
+    images: [
+      { src: "/images/rooms/camper-train-3/307.png", alt: { th: "บ้านรถไฟ 3 — ภาพหน้าปก", en: "Camper Train 3 — cover" } },
+      { src: "/images/rooms/camper-train-3/308.png", alt: { th: "บ้านรถไฟ 3 — มุมห้อง", en: "Camper Train 3 — interior" } },
+      { src: "/images/rooms/camper-train-3/309.png", alt: { th: "บ้านรถไฟ 3 — มุมระเบียง", en: "Camper Train 3 — deck" } },
+      { src: "/images/rooms/camper-train-3/310.png", alt: { th: "บ้านรถไฟ 3 — มุมห้องนอน", en: "Camper Train 3 — bedroom" } },
+      { src: "/images/rooms/camper-train-3/311.png", alt: { th: "บ้านรถไฟ 3 — อ่างแช่", en: "Camper Train 3 — bathtub" } },
+      { src: "/images/rooms/camper-train-3/312.png", alt: { th: "บ้านรถไฟ 3 — มุมห้องน้ำ", en: "Camper Train 3 — bathroom" } },
+      { src: "/images/rooms/camper-train-3/313.png", alt: { th: "บ้านรถไฟ 3 — มุมภายนอก", en: "Camper Train 3 — exterior" } },
+      { src: "/images/rooms/camper-train-3/314.png", alt: { th: "บ้านรถไฟ 3 — มุมกว้าง", en: "Camper Train 3 — wide angle" } },
+      { src: "/images/rooms/camper-train-3/315.png", alt: { th: "บ้านรถไฟ 3 — มุมสวน", en: "Camper Train 3 — garden" } },
     ],
     available: true,
   },
 ];
+
+// Append shared breakfast photos to every room's gallery so guests see
+// the morning service when browsing any unit.
+export const rooms: Room[] = baseRooms.map((room) => ({
+  ...room,
+  images: [...room.images, ...SHARED_BREAKFAST_IMAGES],
+}));

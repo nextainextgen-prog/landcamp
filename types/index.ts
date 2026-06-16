@@ -18,7 +18,18 @@ export type Room = {
   description: Bilingual;
   priceWeekday: number;
   priceWeekend: number;
+  /** Price shown as "เริ่มต้นที่" in the popup — may differ from priceWeekday per business rule. */
+  startingPrice: number;
   maxGuests: number;
+  bedSize: Bilingual;
+  roomSize: Bilingual;
+  /** Optional layout line (e.g. "2 ห้องนอน 1 ห้องนั่งเล่น 2 ห้องน้ำ"). */
+  layout?: Bilingual;
+  breakfastIncluded: Bilingual;
+  extraBed: Bilingual;
+  services: Bilingual[];
+  checkIn: string;
+  checkOut: string;
   amenities: Bilingual[];
   images: { src: string; alt: Bilingual }[];
   available: boolean;

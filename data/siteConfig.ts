@@ -122,6 +122,7 @@ export const siteConfig = {
   nav: [
     { id: "atmosphere", labelTh: "บรรยากาศ", labelEn: "Atmosphere" },
     { id: "rooms", labelTh: "ห้องพัก", labelEn: "Rooms" },
+    { id: "wedding", labelTh: "งานแต่งงาน", labelEn: "Wedding" },
     { id: "menu", labelTh: "อาหาร", labelEn: "Menu" },
     { id: "reviews", labelTh: "รีวิว", labelEn: "Reviews" },
     { id: "contact", labelTh: "ติดต่อ", labelEn: "Contact" },

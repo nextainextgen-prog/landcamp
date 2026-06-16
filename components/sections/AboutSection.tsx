@@ -211,10 +211,10 @@ const STORY_SLIDES: StorySlide[] = [
     orientation: "portrait",
   },
   {
-    src: "/images/about/story/05-stone-villa.jpg",
-    alt: "Stone-walled villa entrance with adirondack chairs and outdoor bath",
+    src: "/images/about/story/05-stone-villa.png",
+    alt: "Stone-clad villa beside a natural stream with wooden bridge",
     title: { th: "วิลล่าหินกลางป่า", en: "Stone Villa" },
-    subtitle: { th: "Adirondack · Outdoor Tub", en: "Adirondack · Outdoor Tub" },
+    subtitle: { th: "Stream-side · Stone Walls", en: "Stream-side · Stone Walls" },
     rating: 5,
     orientation: "landscape",
   },
