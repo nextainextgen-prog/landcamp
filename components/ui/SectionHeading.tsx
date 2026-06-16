@@ -60,8 +60,8 @@ export function SectionHeading({
 
       <h2
         className={cn(
-          "font-display leading-[1.02]",
-          "text-[36px] sm:text-5xl md:text-6xl lg:text-[80px]",
+          "font-display leading-[1.05]",
+          "text-[28px] sm:text-[36px] lg:text-[44px]",
           isInk
             ? "text-[color:var(--color-forest-deep)]"
             : "text-[color:var(--color-bone)]",
