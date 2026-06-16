@@ -67,7 +67,7 @@ export function WeddingSection() {
               href={siteConfig.contact.lineUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center justify-center gap-3 self-start rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-7 py-4 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-500 shadow-[0_10px_24px_-10px_rgba(178,108,80,0.6)]"
+              className="mt-4 inline-flex items-center justify-center gap-3 self-start rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-7 py-4 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-500"
               style={{ fontFamily: "var(--font-inter)" }}
             >
               {t(weddingContent.ctaLabel)}

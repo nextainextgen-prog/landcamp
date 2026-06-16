@@ -28,7 +28,7 @@ export const weddingContent: {
     { th: "ที่พัก 6 หลังสำหรับครอบครัวและแขก", en: "6 villas for family and guests" },
     { th: "ทีมงานช่วยวางแผนเต็มรูปแบบ", en: "Full event planning support" },
   ],
-  ctaLabel: { th: "สอบถามรายละเอียดผ่าน Line", en: "Inquire via Line" },
+  ctaLabel: { th: "สอบถามรายละเอียด", en: "Inquire for details" },
   images: [
     { src: "/images/wedding/322.png", alt: { th: "งานแต่งงานยามพระอาทิตย์ตก", en: "Sunset wedding reception" } },
     { src: "/images/wedding/323.png", alt: { th: "พิธีแต่งงานยามค่ำคืน", en: "Evening ceremony" } },

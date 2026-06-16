@@ -175,7 +175,7 @@ export function MenuSection() {
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="mt-3 inline-flex items-center gap-3 rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] px-6 py-3 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-warm-clay)] transition-colors duration-300 shadow-[0_10px_24px_-12px_rgba(0,0,0,0.4)]"
+            className="mt-3 inline-flex items-center gap-3 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-6 py-3 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300"
             style={{ fontFamily: "var(--font-inter)" }}
           >
             {t({ th: "ดูเมนูทั้งหมด", en: "View Full Menu" })}

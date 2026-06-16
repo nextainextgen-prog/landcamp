@@ -400,7 +400,7 @@ export function ContactSection() {
                   e.stopPropagation();
                   openGoogleReview();
                 }}
-                className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-7 py-4 text-[11px] uppercase tracking-[0.32em] hover:bg-[color:var(--color-bone)] hover:text-[color:var(--color-forest-night)] transition-colors duration-500 shadow-[0_12px_28px_-12px_rgba(178,108,80,0.6)]"
+                className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-7 py-4 text-[11px] uppercase tracking-[0.32em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-500"
                 style={{ fontFamily: "var(--font-inter)" }}
               >
                 {t({ th: "ส่งรีวิวผ่าน Google", en: "Submit via Google" })}

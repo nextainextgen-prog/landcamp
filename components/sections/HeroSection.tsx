@@ -196,9 +196,9 @@ export function HeroSection() {
             <span
               className={cn(
                 "inline-flex items-center justify-center gap-3 rounded-full px-7 py-3.5 text-[11px] uppercase tracking-[0.32em]",
-                "bg-[color:var(--color-bone)] text-[color:var(--color-forest-night)]",
-                "hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)]",
-                "transition-colors duration-500 ease-out shadow-[0_18px_40px_-16px_rgba(0,0,0,0.55)]",
+                "bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)]",
+                "hover:bg-[color:var(--color-forest-deep)]",
+                "transition-colors duration-500 ease-out",
               )}
               style={{ fontFamily: "var(--font-inter)" }}
             >

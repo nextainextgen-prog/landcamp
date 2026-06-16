@@ -144,7 +144,7 @@ export function RoomsSection() {
                     href={siteConfig.contact.lineUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-5 py-3.5 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300 shadow-[0_8px_20px_-8px_rgba(178,108,80,0.6)]"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-5 py-3.5 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300"
                     style={{ fontFamily: "var(--font-inter)" }}
                   >
                     {t({ th: "จองเลย", en: "Book Now" })}

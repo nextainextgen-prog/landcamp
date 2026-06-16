@@ -102,8 +102,8 @@ export function Navbar() {
                 <span
                   className={cn(
                     "inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-[11px] uppercase tracking-[0.28em]",
-                    "bg-[color:var(--color-bone)] text-[color:var(--color-forest-night)]",
-                    "hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)]",
+                    "bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)]",
+                    "hover:bg-[color:var(--color-forest-deep)]",
                     "transition-colors duration-500 ease-out",
                   )}
                   style={{ fontFamily: "var(--font-inter)" }}

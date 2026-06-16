@@ -229,7 +229,7 @@ export function ReviewsSection() {
             href={GOOGLE_MAPS_REVIEWS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] px-7 py-3.5 text-[11px] uppercase tracking-[0.32em] hover:bg-[color:var(--color-warm-clay)] transition-colors duration-500 shadow-[0_12px_28px_-12px_rgba(0,0,0,0.35)]"
+            className="inline-flex items-center gap-3 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-7 py-3.5 text-[11px] uppercase tracking-[0.32em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-500"
             style={{ fontFamily: "var(--font-inter)" }}
           >
             {t({ th: "รีวิวเพิ่มเติม", en: "More reviews" })}
