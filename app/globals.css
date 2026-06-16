@@ -67,7 +67,10 @@ body {
   font-style: normal;
 }
 
-/* Thai text — never thin, never tight */
+/* Thai text — never thin, never tight.
+   font-size-adjust normalizes Plex Thai's x-height to match Inter's
+   so Thai glyphs sit at the same optical size as their Latin siblings
+   instead of looking visibly smaller at the same px value. */
 :lang(th),
 [lang="th"] {
   font-family: var(--font-thai), var(--font-sans);
@@ -75,6 +78,7 @@ body {
   letter-spacing: 0;
   line-height: 1.65;
   font-style: normal;
+  font-size-adjust: 0.52;
 }
 
 /* Thai headlines slightly heavier so they sit
@@ -101,11 +105,17 @@ body {
 /* Brand wordmark — Cormorant Garamond, upright
    only. Latin chars render in Cormorant; the
    CSS fallback chain hands Thai glyphs off to
-   Plex Thai automatically. */
-.font-serif {
+   Plex Thai automatically.
+   .font-serif * is required because :lang(th)
+   matches descendants directly and would beat
+   the inherited font-family from the parent
+   without this explicit re-assertion. */
+.font-serif,
+.font-serif * {
   font-family: var(--font-serif);
   font-style: normal;
   font-feature-settings: "liga", "dlig";
+  font-size-adjust: none;
 }
 
 /* Belt-and-braces: kill any stray italics that

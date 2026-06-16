@@ -14,7 +14,7 @@ export function Footer() {
   return (
     <footer
       role="contentinfo"
-      className="relative bg-[color:var(--color-forest-night)] text-[color:var(--color-bone)] pt-20 sm:pt-24 pb-10 sm:pb-12 overflow-hidden"
+      className="relative bg-[color:var(--color-forest-night)] text-[color:var(--color-bone)] pt-8 sm:pt-10 pb-10 sm:pb-12 overflow-hidden"
     >
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-14">
         {/* Top oversize wordmark */}

@@ -12,7 +12,7 @@ export const rooms: Room[] = [
     id: "villa-1bed",
     type: "villa-1bed",
     name: {
-      th: "วิลล่า 1",
+      th: "วิลล่า 1 · Villa 1",
       en: "Villa 1",
     },
     description: {
@@ -98,7 +98,7 @@ export const rooms: Room[] = [
     id: "villa-2bed",
     type: "villa-2bed",
     name: {
-      th: "วิลล่า 2",
+      th: "วิลล่า 2 · Villa 2",
       en: "Villa 2",
     },
     description: {

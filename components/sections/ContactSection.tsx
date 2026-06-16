@@ -84,7 +84,7 @@ export function ContactSection() {
     <section
       id="contact"
       aria-label={t({ th: "ติดต่อและคำถามที่พบบ่อย", en: "Contact and FAQ" })}
-      className="relative bg-[color:var(--color-forest-night)] text-[color:var(--color-bone)] py-24 sm:py-32 lg:py-40 overflow-hidden"
+      className="relative bg-[color:var(--color-forest-night)] text-[color:var(--color-bone)] pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-14 lg:pb-16 overflow-hidden"
     >
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-14">
         {/* ────────────────────────────────────────
