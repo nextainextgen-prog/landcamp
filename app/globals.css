@@ -68,17 +68,20 @@ body {
 }
 
 /* Thai text — never thin, never tight.
-   font-size-adjust normalizes Plex Thai's x-height to match Inter's
-   so Thai glyphs sit at the same optical size as their Latin siblings
-   instead of looking visibly smaller at the same px value. */
+   font-size-adjust pushes Plex Thai's rendered x-height past Inter's
+   so Thai glyphs read as the dominant size (not visibly smaller than
+   their Latin siblings at the same px value). The adjust raises only
+   the rendered glyph scale, not the computed font-size, so em-based
+   letter-spacing stays at the same absolute pixel value — chars get
+   bigger without spreading apart. */
 :lang(th),
 [lang="th"] {
   font-family: var(--font-thai), var(--font-sans);
   font-weight: 400;
   letter-spacing: 0;
-  line-height: 1.65;
+  line-height: 1.6;
   font-style: normal;
-  font-size-adjust: 0.52;
+  font-size-adjust: 0.66;
 }
 
 /* Thai headlines slightly heavier so they sit
