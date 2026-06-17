@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { motion, type PanInfo } from "framer-motion";
 import { useT } from "@/app/providers";
 import { useIsMobile } from "@/lib/useMediaQuery";
 import { cn } from "@/lib/cn";
@@ -17,11 +16,13 @@ export type CarouselSlide = {
 
 interface StoryCarouselProps {
   slides: CarouselSlide[];
-  autoPlayMs?: number;
   className?: string;
 }
 
-const EASE = [0.22, 1, 0.36, 1] as const;
+// Layout constants — referenced by both the slide widths (via Tailwind
+// arbitrary values) and the JS-computed transform so they stay in sync.
+const DESKTOP = { cardPct: 31, gapPx: 24, centerPct: 3.5 } as const;
+const MOBILE = { cardPct: 78, gapPx: 16, centerPct: 11 } as const;
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
@@ -72,205 +73,313 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
   );
 }
 
-export function StoryCarousel({
-  slides,
-  autoPlayMs = 4000,
-  className,
-}: StoryCarouselProps) {
+/**
+ * Horizontal story carousel.
+ *
+ * • Mobile  (<768px) — one card centered, peeks of prev/next on the
+ *   edges.
+ * • Desktop (≥768px) — three cards in a row, the centered one is the
+ *   active highlight.
+ *
+ * The track transform is computed in JS rather than via CSS custom
+ * properties because Chrome doesn't re-evaluate `calc()` inside
+ * `transform` when only a custom property changes — the value gets
+ * stuck on the initial computed result.
+ */
+export function StoryCarousel({ slides, className }: StoryCarouselProps) {
   const t = useT();
   const isMobile = useIsMobile();
   const total = slides.length;
   const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
-  const next = useCallback(() => setActive((i) => (i + 1) % total), [total]);
-  const prev = useCallback(
-    () => setActive((i) => (i - 1 + total) % total),
+  const trackRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
+  const lastOffsetRef = useRef(0);
+  const dragStartXRef = useRef(0);
+  const draggingRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+  const [dragDx, setDragDx] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [trackWidth, setTrackWidth] = useState(0);
+
+  // Track the live viewport width so the transform can be resolved to
+  // plain pixels — Chrome refuses to interpolate `calc()` expressions
+  // containing percentages across transitions, so we do the math
+  // ourselves and feed the transition pure px values.
+  //
+  // useLayoutEffect runs before the browser paints so the first frame
+  // already has the correct width baked in.
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.offsetWidth;
+      setTrackWidth((curr) => (curr === w ? curr : w));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const next = useCallback(
+    () => setActive((i) => Math.min(i + 1, total - 1)),
     [total],
   );
+  const prev = useCallback(() => setActive((i) => Math.max(i - 1, 0)), []);
 
   useEffect(() => {
-    if (paused || total <= 1) return;
-    const id = window.setInterval(next, autoPlayMs);
-    return () => window.clearInterval(id);
-  }, [next, autoPlayMs, paused, total]);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") next();
+      else if (e.key === "ArrowLeft") prev();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [next, prev]);
+
+  // Auto-advance every ~5.5s. Timer resets whenever `active` changes,
+  // so manual nav gets a fresh interval. Wraps back to slide 0 at the
+  // end (manual prev/next still clamp — autoplay loops, manual doesn't).
+  useEffect(() => {
+    if (total <= 1) return;
+    const id = window.setTimeout(() => {
+      setActive((i) => (i + 1) % total);
+    }, 5500);
+    return () => window.clearTimeout(id);
+  }, [active, total]);
 
   const toggleFav = (i: number) => {
-    setFavorites((prev) => {
-      const s = new Set(prev);
+    setFavorites((curr) => {
+      const s = new Set(curr);
       if (s.has(i)) s.delete(i);
       else s.add(i);
       return s;
     });
   };
 
-  const getOffset = (i: number) => {
-    let d = i - active;
-    if (d > total / 2) d -= total;
-    if (d < -total / 2) d += total;
-    return d;
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    draggingRef.current = true;
+    setIsDragging(true);
+    dragStartXRef.current = e.clientX;
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
   };
 
-  // Responsive layout values
-  const spacing = isMobile ? 64 : 130;
-  const maxVisible = isMobile ? 1 : 2;
-
-  const handleDragEnd = (
-    _: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo,
-  ) => {
-    const threshold = 60;
-    if (info.offset.x < -threshold) next();
-    else if (info.offset.x > threshold) prev();
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    setDragDx(e.clientX - dragStartXRef.current);
   };
 
+  const finishDrag = () => {
+    if (!draggingRef.current) return;
+    const trackWidth = trackRef.current?.offsetWidth ?? 1;
+    const threshold = Math.min(trackWidth * 0.15, 60);
+    if (dragDx < -threshold) next();
+    else if (dragDx > threshold) prev();
+    draggingRef.current = false;
+    setIsDragging(false);
+    setDragDx(0);
+  };
+
+  // Pre-resolve percentages to px against the actual track width. SSR
+  // and the first paint render with translate(0) because trackWidth is
+  // 0 until the ResizeObserver fires.
+  const layout = isMobile ? MOBILE : DESKTOP;
+  const cardWidthPx = (layout.cardPct / 100) * trackWidth;
+  const centerPx = (layout.centerPct / 100) * trackWidth;
+  const offsetPx = centerPx - active * (cardWidthPx + layout.gapPx) + dragDx;
+
+  // Snap the rail to the new offset via the Web Animations API. We
+  // gate through requestAnimationFrame so React Strict Mode's
+  // double-invoked effect collapses into a single animation call (the
+  // first frame request is cancelled by the second). Skipping inline
+  // transform on the rail keeps the imperatively-set value
+  // authoritative.
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return;
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const fromPx = lastOffsetRef.current;
+      const toPx = offsetPx;
+      lastOffsetRef.current = toPx;
+      el.getAnimations().forEach((a) => a.cancel());
+      // During a drag, follow the finger instantly.
+      if (isDragging) {
+        el.style.transform = `translate3d(${toPx}px, 0, 0)`;
+        return;
+      }
+      // On first paint there's nothing to interpolate from.
+      if (fromPx === toPx || fromPx === 0) {
+        el.style.transform = `translate3d(${toPx}px, 0, 0)`;
+        return;
+      }
+      const anim = el.animate(
+        [
+          { transform: `translate3d(${fromPx}px, 0, 0)` },
+          { transform: `translate3d(${toPx}px, 0, 0)` },
+        ],
+        {
+          duration: 500,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          fill: "forwards",
+        },
+      );
+      // Commit the final value to inline style so the next animation
+      // has a stable starting point and the value survives after the
+      // animation is GC'd by the browser.
+      anim.onfinish = () => {
+        el.style.transform = `translate3d(${toPx}px, 0, 0)`;
+        anim.cancel();
+      };
+    });
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [offsetPx, isDragging]);
+
+
+  // Tailwind arbitrary values can't reference `layout.cardPct` at build
+  // time, so the slide width is encoded as a responsive class instead.
   return (
     <div
       className={cn("relative w-full select-none", className)}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
       role="region"
       aria-roledescription="carousel"
-      aria-label={t({ th: "ภาพเรื่องราวของแลนด์แคมป์", en: "LandCamp story carousel" })}
+      aria-label={t({
+        th: "ภาพเรื่องราวของแลนด์แคมป์",
+        en: "LandCamp story carousel",
+      })}
     >
-      <motion.div
-        className="relative mx-auto h-[400px] sm:h-[480px] lg:h-[540px] flex items-center justify-center [perspective:1400px] touch-pan-y"
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.18}
-        onDragEnd={handleDragEnd}
-        onDragStart={() => setPaused(true)}
+      <div
+        ref={trackRef}
+        className="overflow-hidden"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={finishDrag}
+        onPointerCancel={finishDrag}
+        style={{ touchAction: "pan-y" }}
       >
-        {slides.map((slide, i) => {
-          const offset = getOffset(i);
-          const abs = Math.abs(offset);
-          const visible = abs <= maxVisible;
-          const isActive = offset === 0;
-
-          const x = offset * spacing;
-          const scale = isActive ? 1 : 1 - abs * (isMobile ? 0.14 : 0.11);
-          const rotate = offset * (isMobile ? 6 : 5);
-          const opacity = visible ? (isActive ? 1 : abs === 1 ? 0.7 : 0.4) : 0;
-
-          return (
-            <motion.button
-              key={slide.src}
-              type="button"
-              onClick={() => setActive(i)}
-              aria-label={t({
-                th: `เลือกรูปที่ ${i + 1} จาก ${total}`,
-                en: `Show slide ${i + 1} of ${total}`,
-              })}
-              aria-current={isActive}
-              aria-hidden={!visible}
-              tabIndex={visible ? 0 : -1}
-              animate={{
-                x: `${x}px`,
-                scale,
-                rotateZ: rotate,
-                opacity,
-                zIndex: 20 - abs,
-              }}
-              transition={{ duration: 0.75, ease: EASE }}
-              style={{ transformOrigin: "center bottom" }}
-              className="absolute h-full aspect-[3/4] max-h-[500px] rounded-[28px] overflow-hidden shadow-[0_36px_80px_-24px_rgba(20,30,20,0.55)] ring-1 ring-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--color-bone)] pointer-events-auto"
-            >
-              <Image
-                src={slide.src}
-                alt={slide.alt}
-                fill
-                sizes="(max-width: 640px) 80vw, (max-width: 1024px) 50vw, 380px"
-                className="object-cover pointer-events-none"
-                priority={i === 0}
-              />
+        <div
+          ref={railRef}
+          className="flex items-stretch will-change-transform"
+          style={{ gap: `${layout.gapPx}px` }}
+        >
+          {slides.map((slide, i) => {
+            const isActive = i === active;
+            return (
               <div
-                aria-hidden
-                className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none"
-              />
-              <span
-                role="button"
-                tabIndex={isActive ? 0 : -1}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFav(i);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toggleFav(i);
-                  }
-                }}
-                aria-label={t({
-                  th: favorites.has(i) ? "ยกเลิกชื่นชอบ" : "บันทึกเป็นชื่นชอบ",
-                  en: favorites.has(i) ? "Remove from favorites" : "Save to favorites",
-                })}
-                aria-pressed={favorites.has(i)}
-                className="absolute top-4 right-4 grid place-items-center h-10 w-10 rounded-full bg-black/35 backdrop-blur-md ring-1 ring-white/15 transition-all duration-300 hover:bg-black/55 hover:scale-105 active:scale-95"
-              >
-                <HeartIcon filled={favorites.has(i)} />
-              </span>
-              <div className="absolute inset-x-0 bottom-0 px-5 sm:px-6 pb-5 sm:pb-6 text-left text-white pointer-events-none">
-                {typeof slide.rating === "number" && (
-                  <div className="flex items-center gap-[3px] mb-2.5">
-                    {Array.from({ length: 5 }).map((_, k) => (
-                      <StarIcon key={k} filled={k < (slide.rating ?? 0)} />
-                    ))}
-                  </div>
+                key={slide.src}
+                className={cn(
+                  "relative shrink-0 aspect-[3/4] rounded-[24px] overflow-hidden",
+                  "basis-[78%] md:basis-[31%]",
+                  "shadow-[0_28px_60px_-30px_rgba(20,30,20,0.45)] ring-1 ring-white/10",
+                  "transition-[opacity,transform] duration-500 ease-out",
+                  isActive ? "opacity-100 scale-100" : "opacity-55 scale-[0.94]",
                 )}
-                <h4
-                  className="font-display font-medium text-[22px] sm:text-2xl leading-[1.15]"
-                  style={{ letterSpacing: "-0.01em" }}
-                >
-                  {t(slide.title)}
-                </h4>
-                <p
-                  className="mt-2 text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-white/75"
-                  style={{ fontFamily: "var(--font-inter)" }}
-                >
-                  {t(slide.subtitle)}
-                </p>
-              </div>
-            </motion.button>
-          );
-        })}
-      </motion.div>
+                aria-hidden={!isActive}
+              >
+                <Image
+                  src={slide.src}
+                  alt={slide.alt}
+                  fill
+                  sizes="(max-width: 767px) 78vw, 31vw"
+                  className="object-cover pointer-events-none"
+                  priority={i === 0}
+                  draggable={false}
+                />
 
-      <div className="mt-8 sm:mt-10 flex items-center justify-center gap-4 sm:gap-5">
+                <div
+                  aria-hidden
+                  className={cn(
+                    "absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none transition-opacity duration-500",
+                    isActive ? "opacity-100" : "opacity-50",
+                  )}
+                />
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFav(i);
+                  }}
+                  aria-label={t({
+                    th: favorites.has(i) ? "ยกเลิกชื่นชอบ" : "บันทึกเป็นชื่นชอบ",
+                    en: favorites.has(i) ? "Remove from favorites" : "Save to favorites",
+                  })}
+                  aria-pressed={favorites.has(i)}
+                  tabIndex={isActive ? 0 : -1}
+                  className="absolute top-4 right-4 grid place-items-center h-10 w-10 rounded-full bg-black/35 backdrop-blur-md ring-1 ring-white/15 transition-all duration-300 hover:bg-black/55 hover:scale-105 active:scale-95"
+                >
+                  <HeartIcon filled={favorites.has(i)} />
+                </button>
+
+                <div
+                  className={cn(
+                    "absolute inset-x-0 bottom-0 px-5 sm:px-6 pb-5 sm:pb-6 text-left text-white pointer-events-none transition-opacity duration-500",
+                    isActive ? "opacity-100" : "opacity-0",
+                  )}
+                >
+                  {typeof slide.rating === "number" && (
+                    <div className="flex items-center gap-[3px] mb-2.5">
+                      {Array.from({ length: 5 }).map((_, k) => (
+                        <StarIcon key={k} filled={k < (slide.rating ?? 0)} />
+                      ))}
+                    </div>
+                  )}
+                  <h4
+                    className="font-display font-medium text-[22px] sm:text-2xl leading-[1.15]"
+                    style={{ letterSpacing: "-0.01em" }}
+                  >
+                    {t(slide.title)}
+                  </h4>
+                  <p
+                    className="mt-2 text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-white/75"
+                    style={{ fontFamily: "var(--font-inter)" }}
+                  >
+                    {t(slide.subtitle)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Controls — prev / counter / next */}
+      <div className="mt-8 sm:mt-10 flex items-center justify-center gap-5 sm:gap-7">
         <button
           type="button"
           onClick={prev}
+          disabled={active === 0}
           aria-label={t({ th: "ก่อนหน้า", en: "Previous" })}
-          className="grid place-items-center h-11 w-11 rounded-full border border-[color:var(--color-forest-deep)]/25 text-[color:var(--color-forest-deep)] transition-all duration-300 hover:bg-[color:var(--color-forest-deep)] hover:text-[color:var(--color-bone)] hover:border-transparent hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)]"
+          className="grid place-items-center h-10 w-10 rounded-full border border-[color:var(--color-forest-deep)]/25 text-[color:var(--color-forest-deep)] transition-all duration-300 hover:bg-[color:var(--color-forest-deep)] hover:text-[color:var(--color-bone)] hover:border-transparent disabled:opacity-30 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)]"
         >
           <ChevronIcon direction="left" />
         </button>
 
-        <div className="flex items-center gap-2">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setActive(i)}
-              aria-label={t({ th: `ไปยังรูปที่ ${i + 1}`, en: `Go to slide ${i + 1}` })}
-              aria-current={i === active}
-              className={cn(
-                "h-1.5 rounded-full transition-all duration-500 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--color-bone)]",
-                i === active
-                  ? "w-8 bg-[color:var(--color-forest-deep)]"
-                  : "w-1.5 bg-[color:var(--color-forest-deep)]/25 hover:bg-[color:var(--color-forest-deep)]/50",
-              )}
-            />
-          ))}
-        </div>
+        <span
+          aria-live="polite"
+          className="text-[12px] sm:text-[13px] tracking-[0.3em] text-[color:var(--color-forest-deep)]/75 tabular-nums"
+          style={{ fontFamily: "var(--font-inter)" }}
+        >
+          <span className="text-[color:var(--color-forest-deep)] font-medium">
+            {String(active + 1).padStart(2, "0")}
+          </span>
+          <span aria-hidden className="mx-2 opacity-50">
+            /
+          </span>
+          <span>{String(total).padStart(2, "0")}</span>
+        </span>
 
         <button
           type="button"
           onClick={next}
+          disabled={active === total - 1}
           aria-label={t({ th: "ถัดไป", en: "Next" })}
-          className="grid place-items-center h-11 w-11 rounded-full border border-[color:var(--color-forest-deep)]/25 text-[color:var(--color-forest-deep)] transition-all duration-300 hover:bg-[color:var(--color-forest-deep)] hover:text-[color:var(--color-bone)] hover:border-transparent hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)]"
+          className="grid place-items-center h-10 w-10 rounded-full border border-[color:var(--color-forest-deep)]/25 text-[color:var(--color-forest-deep)] transition-all duration-300 hover:bg-[color:var(--color-forest-deep)] hover:text-[color:var(--color-bone)] hover:border-transparent disabled:opacity-30 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)]"
         >
           <ChevronIcon direction="right" />
         </button>

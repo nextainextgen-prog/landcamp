@@ -32,13 +32,13 @@ export function RoomsSection() {
       ref={sectionRef}
       id="rooms"
       aria-label={t({ th: "ห้องพักทั้งหมด", en: "All Rooms" })}
-      className="relative bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] py-24 sm:py-32 lg:py-40 overflow-hidden"
+      className="relative bg-[color:var(--color-bone)] text-[color:var(--color-ink)] py-24 sm:py-32 lg:py-40 overflow-hidden"
     >
       <div
         aria-hidden
-        className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        className="absolute inset-0 opacity-[0.035] pointer-events-none"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E")`,
         }}
       />
 
@@ -55,19 +55,19 @@ export function RoomsSection() {
             style={{ fontFamily: "var(--font-inter)" }}
           >
             <span className="text-[color:var(--color-warm-clay)]">04</span>
-            <span aria-hidden className="h-px w-10 bg-[color:var(--color-bone)]/40" />
-            <span className="text-[color:var(--color-bone)]/65">
+            <span aria-hidden className="h-px w-10 bg-[color:var(--color-forest-deep)]/35" />
+            <span className="text-[color:var(--color-forest-deep)]/65">
               {t({ th: "ห้องพัก", en: "Rooms" })}
             </span>
           </div>
 
-          <h2 className="font-display text-[32px] sm:text-[42px] lg:text-[52px] leading-[1.05] text-[color:var(--color-bone)] max-w-3xl">
+          <h2 className="font-display text-[32px] sm:text-[42px] lg:text-[52px] leading-[1.05] text-[color:var(--color-forest-deep)] max-w-3xl">
             {t({
               th: "เลือกห้องพักของคุณ",
               en: "Choose your stay",
             })}
           </h2>
-          <p className="max-w-xl text-sm sm:text-base leading-relaxed text-[color:var(--color-bone)]/70">
+          <p className="max-w-xl text-sm sm:text-base leading-relaxed text-[color:var(--color-ink)]/70">
             {t({
               th: "6 หลังให้เลือก — ดูภาพห้องเลื่อนอัตโนมัติ กดเข้าไปดูรายละเอียดทั้งหมด หรือจองทันทีผ่าน Line",
               en: "Six villas to choose from — photos auto-slide on each card, tap any to see the full details or book instantly via Line.",
@@ -83,7 +83,7 @@ export function RoomsSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-10% 0px" }}
               transition={{ duration: 0.8, ease: EASE, delay: i * 0.08 }}
-              className="relative bg-[color:var(--color-bone)] text-[color:var(--color-ink)] rounded-[22px] overflow-hidden group flex flex-col shadow-[0_30px_60px_-30px_rgba(0,0,0,0.5)]"
+              className="relative bg-[color:var(--color-bone)] text-[color:var(--color-ink)] rounded-[22px] overflow-hidden group flex flex-col ring-1 ring-[color:var(--color-forest-deep)]/8 shadow-[0_20px_45px_-22px_rgba(45,55,40,0.28)]"
             >
               <div className="relative w-full aspect-[16/10] overflow-hidden">
                 <RoomCardCarousel
@@ -121,8 +121,8 @@ export function RoomsSection() {
                     style={{ fontFamily: "var(--font-inter)" }}
                   >
                     {t({
-                      th: `${room.priceWeekday.toLocaleString()} ฿ / คืน`,
-                      en: `THB ${room.priceWeekday.toLocaleString()} / nt`,
+                      th: `${room.priceWeekday.toLocaleString("en-US")} ฿ / คืน`,
+                      en: `THB ${room.priceWeekday.toLocaleString("en-US")} / nt`,
                     })}
                   </span>
                 </header>
@@ -319,7 +319,7 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
             >
               {t({ th: "เริ่มต้นที่", en: "From" })}{" "}
               <span className="text-[color:var(--color-warm-clay)] font-medium">
-                {room.startingPrice.toLocaleString()}
+                {room.startingPrice.toLocaleString("en-US")}
               </span>{" "}
               {t({ th: "บาท / คืน", en: "THB / night" })}
             </p>
@@ -365,15 +365,15 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
               <SpecRow
                 label={t({ th: "ราคาวันธรรมดา", en: "Weekday rate" })}
                 value={t({
-                  th: `${room.priceWeekday.toLocaleString()} บาท / คืน`,
-                  en: `THB ${room.priceWeekday.toLocaleString()} / night`,
+                  th: `${room.priceWeekday.toLocaleString("en-US")} บาท / คืน`,
+                  en: `THB ${room.priceWeekday.toLocaleString("en-US")} / night`,
                 })}
               />
               <SpecRow
                 label={t({ th: "ราคาวันหยุด", en: "Weekend rate" })}
                 value={t({
-                  th: `${room.priceWeekend.toLocaleString()} บาท / คืน`,
-                  en: `THB ${room.priceWeekend.toLocaleString()} / night`,
+                  th: `${room.priceWeekend.toLocaleString("en-US")} บาท / คืน`,
+                  en: `THB ${room.priceWeekend.toLocaleString("en-US")} / night`,
                 })}
               />
             </dl>

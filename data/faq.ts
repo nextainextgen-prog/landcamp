@@ -30,8 +30,8 @@ export const faqItems: FAQItem[] = [
       en: "What is the starting price at LandCamp Villa Khao Yai?",
     },
     answer: {
-      th: "ราคาเริ่มต้น 4,500 บาทต่อคืน (วันธรรมดา) ส่วนวันหยุดเริ่มต้น 5,500 บาท ราคารวมอาหารเช้าสำหรับผู้เข้าพักทุกท่าน เด็กอายุ 1-10 ปีพักฟรี อายุ 12 ปีขึ้นไปคิดเพิ่ม 700 บาทต่อท่าน โปรโมชั่นปรับเปลี่ยนตามแต่ละเดือน",
-      en: "Rates start at THB 4,500 per night on weekdays and THB 5,500 on weekends. All stays include breakfast. Children aged 1-10 stay free; ages 12 and up are charged THB 700 per person. Monthly promotions may apply.",
+      th: "ราคาเริ่มต้น 4,500 บาทต่อคืน (วันธรรมดา) ส่วนวันหยุดเริ่มต้น 5,500 บาท ราคารวมอาหารเช้าสำหรับผู้เข้าพักทุกท่าน เด็กอายุไม่เกิน 11 ปี พักฟรี ตั้งแต่ 12 ปีขึ้นไปคิดเพิ่ม 700 บาทต่อท่าน โปรโมชั่นปรับเปลี่ยนตามแต่ละเดือน",
+      en: "Rates start at THB 4,500 per night on weekdays and THB 5,500 on weekends. All stays include breakfast. Children aged 11 and under stay free; ages 12 and up are charged THB 700 per person. Monthly promotions may apply.",
     },
   },
   {

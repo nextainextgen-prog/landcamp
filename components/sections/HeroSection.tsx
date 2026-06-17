@@ -242,8 +242,8 @@ export function HeroSection() {
             <span aria-hidden className="h-px w-8 bg-current opacity-50" />
             <span>
               {t({
-                th: `เริ่มต้นที่ ${siteConfig.inventory.priceFromTHB.toLocaleString()} บาท`,
-                en: `From THB ${siteConfig.inventory.priceFromTHB.toLocaleString()}`,
+                th: `เริ่มต้นที่ ${siteConfig.inventory.priceFromTHB.toLocaleString("en-US")} บาท`,
+                en: `From THB ${siteConfig.inventory.priceFromTHB.toLocaleString("en-US")}`,
               })}
             </span>
             <span aria-hidden className="h-px w-8 bg-current opacity-50" />

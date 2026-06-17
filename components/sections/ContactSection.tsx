@@ -82,7 +82,6 @@ export function ContactSection() {
 
   return (
     <section
-      id="contact"
       aria-label={t({ th: "ติดต่อและคำถามที่พบบ่อย", en: "Contact and FAQ" })}
       className="relative bg-[color:var(--color-forest-night)] text-[color:var(--color-bone)] pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-14 lg:pb-16 overflow-hidden"
     >
@@ -90,6 +89,7 @@ export function ContactSection() {
         {/* ────────────────────────────────────────
             FAQ — AEO critical
             ──────────────────────────────────────── */}
+        <div id="faq" className="scroll-mt-24">
         <SectionHeading
           number="09"
           tone="bone"
@@ -115,11 +115,12 @@ export function ContactSection() {
         >
           <FAQAccordion tone="bone" />
         </motion.div>
+        </div>
 
         {/* ────────────────────────────────────────
-            Contact + Line + Form
+            Contact + Line + Form — anchor target for nav "ติดต่อ"
             ──────────────────────────────────────── */}
-        <div className="mt-28 sm:mt-32 lg:mt-40 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+        <div id="contact" className="scroll-mt-24 mt-28 sm:mt-32 lg:mt-40 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
           {/* Heading + Line CTA + QR */}
           <div className="lg:col-span-5 flex flex-col gap-8">
             {/* Smaller, compact heading */}

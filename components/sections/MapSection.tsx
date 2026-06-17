@@ -37,12 +37,12 @@ export function MapSection() {
     <section
       id="location"
       aria-label={t({ th: "ที่ตั้งและการเดินทาง", en: "Location and directions" })}
-      className="relative bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] py-24 sm:py-32 lg:py-40 overflow-hidden"
+      className="relative bg-[color:var(--color-bone)] text-[color:var(--color-ink)] py-24 sm:py-32 lg:py-40 overflow-hidden"
     >
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-14">
         <SectionHeading
           number="07"
-          tone="bone"
+          tone="ink"
           eyebrow={t({ th: "ที่ตั้ง & การเดินทาง", en: "Location & Directions" })}
           title={
             <>
@@ -63,7 +63,7 @@ export function MapSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-15% 0px" }}
             transition={{ duration: 1, ease: EASE, delay: 0.15 }}
-            className="lg:col-span-7 relative rounded-[18px] overflow-hidden bg-[color:var(--color-forest-night)] border border-[color:var(--color-bone)]/10 aspect-[4/3] sm:aspect-[16/10] lg:aspect-auto lg:min-h-[560px]"
+            className="lg:col-span-7 relative rounded-[18px] overflow-hidden bg-[color:var(--color-forest-night)] ring-1 ring-[color:var(--color-forest-deep)]/12 shadow-[0_20px_45px_-22px_rgba(45,55,40,0.28)] aspect-[4/3] sm:aspect-[16/10] lg:aspect-auto lg:min-h-[560px]"
           >
             <iframe
               title="LandCamp Villa Khao Yai map"
@@ -91,7 +91,7 @@ export function MapSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-15% 0px" }}
             transition={{ duration: 1, ease: EASE, delay: 0.25 }}
-            className="lg:col-span-5 bg-[color:var(--color-bone)] text-[color:var(--color-ink)] rounded-[18px] p-7 sm:p-9 lg:p-10 flex flex-col gap-7"
+            className="lg:col-span-5 bg-[color:var(--color-bone)] text-[color:var(--color-ink)] rounded-[18px] ring-1 ring-[color:var(--color-forest-deep)]/10 shadow-[0_20px_45px_-22px_rgba(45,55,40,0.22)] p-7 sm:p-9 lg:p-10 flex flex-col gap-7"
           >
             <header>
               <span
@@ -183,7 +183,7 @@ export function MapSection() {
         {/* Directions */}
         <div className="mt-16 sm:mt-20">
           <p
-            className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-bone)]/65 flex items-center gap-3"
+            className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-forest-deep)]/65 flex items-center gap-3"
             style={{ fontFamily: "var(--font-inter)" }}
           >
             <span aria-hidden className="h-px w-10 bg-current opacity-60" />
@@ -198,7 +198,7 @@ export function MapSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-10% 0px" }}
                 transition={{ duration: 0.7, ease: EASE, delay: 0.1 + i * 0.08 }}
-                className="rounded-[14px] border border-[color:var(--color-bone)]/15 p-6 flex flex-col gap-3"
+                className="rounded-[14px] bg-[color:var(--color-bone)] ring-1 ring-[color:var(--color-forest-deep)]/12 shadow-[0_18px_40px_-22px_rgba(45,55,40,0.2)] p-6 flex flex-col gap-3"
               >
                 <span
                   className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
@@ -206,11 +206,11 @@ export function MapSection() {
                 >
                   {d.no}
                 </span>
-                <p className="text-[color:var(--color-bone)]/90 leading-relaxed text-[15px]">
+                <p className="text-[color:var(--color-ink)]/85 leading-relaxed text-[15px]">
                   {t({ th: d.th, en: d.en })}
                 </p>
                 <span
-                  className="mt-auto text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/55"
+                  className="mt-auto text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/60"
                   style={{ fontFamily: "var(--font-inter)" }}
                 >
                   {t(d.distance)}

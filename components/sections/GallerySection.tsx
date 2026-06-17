@@ -1,20 +1,13 @@
 "use client";
 
-import {
-  AnimatePresence,
-  motion,
-  useMotionValueEvent,
-  useScroll,
-  useSpring,
-  useVelocity,
-} from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "@/app/providers";
 import Image from "next/image";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-// 35 atmosphere photos
+// Atmosphere photos
 const ATMOSPHERE_IMAGES: { src: string; alt: string }[] = [
   { src: "/images/atmosphere/atmosphere-01.jpeg", alt: "Aerial view of Camper Van deck and stone garden" },
   { src: "/images/atmosphere/atmosphere-02.jpeg", alt: "Sunset deck at Camper Van" },
@@ -60,22 +53,6 @@ export function GallerySection() {
   const rowOne = useMemo(() => ATMOSPHERE_IMAGES.slice(0, 18), []);
   const rowTwo = useMemo(() => ATMOSPHERE_IMAGES.slice(18), []);
 
-  // Hidden scroll-to-accelerate — page scroll velocity boosts marquee speed.
-  // Springs decay smoothly back to base speed when the user stops scrolling.
-  const { scrollY } = useScroll();
-  const scrollVelocity = useVelocity(scrollY);
-  const smoothed = useSpring(scrollVelocity, {
-    damping: 50,
-    stiffness: 280,
-    mass: 0.3,
-  });
-  const [boost, setBoost] = useState(1);
-  useMotionValueEvent(smoothed, "change", (v) => {
-    // Map |velocity px/s| → playbackRate boost (1× idle, up to ~5×)
-    const next = 1 + Math.min(Math.abs(v) / 600, 4);
-    setBoost(next);
-  });
-
   useEffect(() => {
     document.body.style.overflow = lightbox ? "hidden" : "";
     return () => {
@@ -97,24 +74,6 @@ export function GallerySection() {
       aria-label={t({ th: "บรรยากาศของแลนด์แคมป์", en: "LandCamp Atmosphere" })}
       className="relative bg-[color:var(--color-bone)] py-20 sm:py-24 lg:py-28 overflow-hidden"
     >
-      {/* Marquee animation keyframes */}
-      <style jsx global>{`
-        @keyframes marquee-left {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .marquee-track {
-          display: flex;
-          gap: 1rem;
-          width: max-content;
-          animation: marquee-left linear infinite;
-        }
-        @media (min-width: 640px) {
-          .marquee-track { gap: 1.25rem; }
-        }
-        .marquee-track:hover { animation-play-state: paused; }
-      `}</style>
-
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-14">
         {/* Compact header */}
         <motion.div
@@ -147,22 +106,20 @@ export function GallerySection() {
         </motion.div>
       </div>
 
-      {/* Marquee rows — full bleed */}
+      {/* Draggable rows — full bleed */}
       <div className="mt-10 sm:mt-14 flex flex-col gap-4 sm:gap-5">
-        {/* Row 1 — scrolls left */}
-        <MarqueeRow
+        <DragRow
           images={rowOne}
-          duration={70}
-          boost={boost}
-          onClick={(img) => setLightbox(img)}
+          /* tile width ≈ 380px → ~5.5s per image → row speed ≈ 70 px/s */
+          speed={70}
+          direction={-1}
+          onOpen={(img) => setLightbox(img)}
         />
-
-        {/* Row 2 — scrolls left, slightly slower for parallax feel */}
-        <MarqueeRow
+        <DragRow
           images={rowTwo}
-          duration={90}
-          boost={boost}
-          onClick={(img) => setLightbox(img)}
+          speed={70}
+          direction={-1}
+          onOpen={(img) => setLightbox(img)}
         />
       </div>
 
@@ -217,32 +174,116 @@ export function GallerySection() {
   );
 }
 
-function MarqueeRow({
+/* ─────────────────────────────────────────────────────────────────
+   DragRow — infinite horizontal row that auto-pans while idle and
+   yields to manual swipe/drag. When the finger lifts, auto-pan
+   resumes seamlessly from the current offset.
+   ───────────────────────────────────────────────────────────────── */
+function DragRow({
   images,
-  duration,
-  boost,
-  onClick,
+  speed,
+  direction,
+  onOpen,
 }: {
   images: { src: string; alt: string }[];
-  duration: number;
-  boost: number;
-  onClick: (img: { src: string; alt: string }) => void;
+  /** Auto-pan velocity in px/s. ~70 px/s → ~5.5s for a 380px tile. */
+  speed: number;
+  /** -1 = left, 1 = right */
+  direction: -1 | 1;
+  onOpen: (img: { src: string; alt: string }) => void;
 }) {
-  // Duplicate the list so the loop appears seamless
-  const items = [...images, ...images];
+  const items = useMemo(() => [...images, ...images], [images]);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef(0);
+  const halfRef = useRef(0);
+  const stateRef = useRef<"auto" | "drag">("auto");
+  const dragStartXRef = useRef(0);
+  const dragStartOffsetRef = useRef(0);
+  // Drag intent: which pointer is committed to scrolling horizontally?
+  const pointerIdRef = useRef<number | null>(null);
+  const movedRef = useRef(false);
 
-  // Drive Web Animation playbackRate — buttery smooth, no animation-duration jumps
+  const wrap = (value: number, max: number) => {
+    if (max <= 0) return 0;
+    let v = value % max;
+    if (v > 0) v -= max; // keep value in (-max, 0]
+    return v;
+  };
+
+  // Single rAF loop: drives auto-pan and re-applies position after drag.
   useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    const anims = el.getAnimations();
-    if (anims.length === 0) return;
-    anims[0].playbackRate = boost;
-  }, [boost]);
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+
+      const track = trackRef.current;
+      if (track && halfRef.current > 0) {
+        if (stateRef.current === "auto") {
+          offsetRef.current += direction * speed * dt;
+          offsetRef.current = wrap(offsetRef.current, halfRef.current);
+        }
+        track.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [direction, speed]);
+
+  // Measure half-width of the duplicated track so we can wrap seamlessly.
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const measure = () => {
+      // Track holds two copies of the list; half = one copy width
+      halfRef.current = track.scrollWidth / 2;
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(track);
+    return () => ro.disconnect();
+  }, []);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    // Only commit on primary button / touch
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    pointerIdRef.current = e.pointerId;
+    dragStartXRef.current = e.clientX;
+    dragStartOffsetRef.current = offsetRef.current;
+    movedRef.current = false;
+    stateRef.current = "drag";
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (pointerIdRef.current !== e.pointerId) return;
+    const dx = e.clientX - dragStartXRef.current;
+    if (Math.abs(dx) > 4) movedRef.current = true;
+    if (halfRef.current > 0) {
+      offsetRef.current = wrap(dragStartOffsetRef.current + dx, halfRef.current);
+    }
+  };
+
+  const finishDrag = () => {
+    if (pointerIdRef.current === null) return;
+    pointerIdRef.current = null;
+    stateRef.current = "auto";
+  };
+
+  const onPointerUp = () => finishDrag();
+  const onPointerCancel = () => finishDrag();
+  const onPointerLeave = (e: React.PointerEvent) => {
+    if (pointerIdRef.current === e.pointerId) finishDrag();
+  };
 
   return (
-    <div className="relative overflow-hidden">
+    <div
+      ref={viewportRef}
+      className="relative overflow-hidden select-none"
+      style={{ touchAction: "pan-y" }}
+    >
       {/* Edge fade masks */}
       <div
         aria-hidden
@@ -255,14 +296,26 @@ function MarqueeRow({
 
       <div
         ref={trackRef}
-        className="marquee-track"
-        style={{ animationDuration: `${duration}s` }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
+        onPointerLeave={onPointerLeave}
+        className="flex gap-4 sm:gap-5 w-max will-change-transform cursor-grab active:cursor-grabbing"
       >
         {items.map((img, i) => (
           <button
             key={`${img.src}-${i}`}
             type="button"
-            onClick={() => onClick(img)}
+            onClick={() => {
+              // Swallow tap if the user was dragging
+              if (movedRef.current) {
+                movedRef.current = false;
+                return;
+              }
+              onOpen(img);
+            }}
+            draggable={false}
             className="relative flex-shrink-0 h-[200px] sm:h-[240px] lg:h-[280px] w-[260px] sm:w-[320px] lg:w-[380px] overflow-hidden rounded-[14px] bg-[color:var(--color-bone-soft)] group cursor-zoom-in"
           >
             <Image
@@ -270,7 +323,8 @@ function MarqueeRow({
               alt={img.alt}
               fill
               sizes="(max-width: 640px) 260px, (max-width: 1024px) 320px, 380px"
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+              draggable={false}
+              className="object-cover pointer-events-none transition-transform duration-700 ease-out group-hover:scale-[1.06]"
             />
           </button>
         ))}

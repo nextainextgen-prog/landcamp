@@ -17,13 +17,15 @@ export function Footer() {
       className="relative bg-[color:var(--color-forest-night)] text-[color:var(--color-bone)] pt-8 sm:pt-10 pb-10 sm:pb-12 overflow-hidden"
     >
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-14">
-        {/* Top oversize wordmark */}
+        {/* Top oversize wordmark — clamp size so it always sits inside
+            the container padding on mobile, where 22vw used to overflow. */}
         <motion.p
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-10% 0px" }}
           transition={{ duration: 1, ease: EASE }}
-          className="font-serif leading-[0.88] text-[22vw] sm:text-[18vw] lg:text-[15vw] xl:text-[220px] text-[color:var(--color-bone)] tracking-[-0.01em] mb-12 sm:mb-16"
+          className="font-serif leading-[0.88] text-[color:var(--color-bone)] tracking-[-0.02em] mb-12 sm:mb-16"
+          style={{ fontSize: "clamp(60px, 17vw, 220px)" }}
         >
           LandCamp
         </motion.p>

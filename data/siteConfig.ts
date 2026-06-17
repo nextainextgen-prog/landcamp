@@ -69,8 +69,8 @@ export const siteConfig = {
     pets: false,
     breakfastIncluded: true,
     childPolicy: {
-      th: "เด็กอายุ 1-10 ปี พักฟรี | อายุ 12 ปีขึ้นไป คิดเพิ่ม 700 บาท/ท่าน",
-      en: "Children 1-10 stay free | Ages 12+ charged 700 THB per person",
+      th: "เด็กอายุไม่เกิน 11 ปี พักฟรี | ตั้งแต่ 12 ปีขึ้นไป คิดเพิ่ม 700 บาท/ท่าน",
+      en: "Children 11 and under stay free | Ages 12+ charged 700 THB per person",
     },
   },
 

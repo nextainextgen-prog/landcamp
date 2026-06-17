@@ -2,10 +2,9 @@
 
 import type { SVGProps } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { useT } from "@/app/providers";
 import { StatCounter } from "@/components/ui/StatCounter";
-import type { CarouselSlide } from "@/components/ui/StoryCarousel";
+import { StoryCarousel, type CarouselSlide } from "@/components/ui/StoryCarousel";
 import { cn } from "@/lib/cn";
 
 const EASE_SOFT = [0.22, 1, 0.36, 1] as const;
@@ -132,10 +131,14 @@ function BreakfastIcon(props: SVGProps<SVGSVGElement>) {
 type Stat = {
   Icon: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
   label: { th: string; en: string };
-  value?: number;
+  value: number;
   decimals?: number;
   unit?: { th: string; en: string };
-  badge?: { th: string; en: string };
+};
+
+type Perk = {
+  Icon: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
+  label: { th: string; en: string };
 };
 
 const STATS: Stat[] = [
@@ -163,15 +166,16 @@ const STATS: Stat[] = [
     label: { th: "Google Rating", en: "Google rating" },
     Icon: StarOutlineIcon,
   },
+];
+
+const PERKS: Perk[] = [
   {
-    badge: { th: "ฟรี", en: "Free" },
-    label: { th: "ไวไฟทุกห้อง", en: "Wi-Fi in every villa" },
     Icon: WifiIcon,
+    label: { th: "ไวไฟฟรีทุกห้อง", en: "Free Wi-Fi in every villa" },
   },
   {
-    badge: { th: "ฟรี", en: "Free" },
-    label: { th: "อาหารเช้า", en: "Breakfast included" },
     Icon: BreakfastIcon,
+    label: { th: "อาหารเช้าฟรี ทุกการเข้าพัก", en: "Breakfast included with every stay" },
   },
 ];
 
@@ -274,68 +278,104 @@ export function AboutSection() {
         </motion.div>
 
         {/* ──────────────────────────────────────
-            Stats — icon row, replacing the headline
+            Stats card — 4 numeric stats + 2 perk chips, sitting on a
+            soft dotted backdrop for a tactile, paper-like feel.
             ────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-2% 0px" }}
           transition={{ duration: 0.9, ease: EASE_SOFT, delay: 0.1 }}
-          className="mt-10 sm:mt-12 lg:mt-14 grid grid-cols-2 md:grid-cols-6 gap-y-12 md:gap-y-0 border-t border-b border-[color:var(--color-ink)]/12 py-10 sm:py-12"
+          className="relative mt-10 sm:mt-12 lg:mt-14"
         >
-          {STATS.map((stat, i) => {
-            const Icon = stat.Icon;
-            return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 14 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-2% 0px" }}
-                transition={{
-                  duration: 0.7,
-                  ease: EASE_SOFT,
-                  delay: 0.15 + i * 0.07,
-                }}
-                className={cn(
-                  "group flex flex-col items-center text-center px-3 sm:px-4",
-                  i % 2 === 1
-                    ? "border-l border-[color:var(--color-ink)]/12"
-                    : "",
-                  i > 0
-                    ? "md:border-l md:border-[color:var(--color-ink)]/12"
-                    : "md:border-l-0",
-                )}
-              >
-                <Icon className="h-7 w-7 sm:h-8 sm:w-8 text-[color:var(--color-forest-deep)]/70 transition-colors duration-500 group-hover:text-[color:var(--color-warm-clay)]" />
-                <div className="mt-4 flex items-baseline gap-1.5 text-[color:var(--color-forest-deep)]">
-                  <span
-                    className="font-display text-[36px] sm:text-[44px] lg:text-5xl leading-none"
-                    style={{ letterSpacing: "-0.02em" }}
+          <div className="relative rounded-[1.75rem] sm:rounded-[2rem] bg-[color:var(--color-bone)] border border-[color:var(--color-ink)]/10 shadow-[0_24px_55px_-32px_rgba(26,24,20,0.28)] overflow-hidden">
+            <div className="grid grid-cols-2 md:grid-cols-4">
+              {STATS.map((stat, i) => {
+                const Icon = stat.Icon;
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 14 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-2% 0px" }}
+                    transition={{
+                      duration: 0.7,
+                      ease: EASE_SOFT,
+                      delay: 0.15 + i * 0.07,
+                    }}
+                    className={cn(
+                      "group flex flex-col items-center text-center px-4 py-8 sm:px-5 sm:py-10",
+                      // 2-col mobile dividers
+                      i % 2 === 1 && "border-l border-[color:var(--color-ink)]/10",
+                      i >= 2 && "border-t border-[color:var(--color-ink)]/10",
+                      // 4-col desktop dividers (override mobile rules)
+                      "md:border-t-0",
+                      i > 0
+                        ? "md:border-l md:border-[color:var(--color-ink)]/10"
+                        : "md:border-l-0",
+                    )}
                   >
-                    {stat.value !== undefined ? (
-                      <StatCounter value={stat.value} decimals={stat.decimals ?? 0} />
-                    ) : stat.badge ? (
-                      t(stat.badge)
-                    ) : null}
-                  </span>
-                  {stat.unit && (
+                    <Icon
+                      className="h-8 w-8 sm:h-9 sm:w-9 text-[color:var(--color-forest-deep)] transition-colors duration-500 group-hover:text-[color:var(--color-warm-clay)]"
+                      strokeWidth={1.6}
+                    />
+                    <div className="mt-4 flex items-baseline gap-1.5 text-[color:var(--color-forest-deep)]">
+                      <span
+                        className="font-display text-[36px] sm:text-[44px] lg:text-5xl leading-none"
+                        style={{ letterSpacing: "-0.02em" }}
+                      >
+                        <StatCounter value={stat.value} decimals={stat.decimals ?? 0} />
+                      </span>
+                      {stat.unit && (
+                        <span
+                          className="text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-[color:var(--color-forest-deep)]/65"
+                          style={{ fontFamily: "var(--font-inter)" }}
+                        >
+                          {t(stat.unit)}
+                        </span>
+                      )}
+                    </div>
                     <span
-                      className="text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-[color:var(--color-forest-deep)]/65"
+                      className="mt-3 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/55"
                       style={{ fontFamily: "var(--font-inter)" }}
                     >
-                      {t(stat.unit)}
+                      {t(stat.label)}
                     </span>
-                  )}
-                </div>
-                <span
-                  className="mt-3 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/55"
-                  style={{ fontFamily: "var(--font-inter)" }}
-                >
-                  {t(stat.label)}
-                </span>
-              </motion.div>
-            );
-          })}
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Perks row — inside the same card, divided from stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-5% 0px" }}
+              transition={{ duration: 0.8, ease: EASE_SOFT, delay: 0.15 }}
+              className="flex flex-wrap items-center justify-center gap-3 px-5 py-5 sm:px-7 sm:py-6 border-t border-[color:var(--color-ink)]/10 bg-[color:var(--color-bone-soft)]/40"
+            >
+              {PERKS.map((perk, i) => {
+                const Icon = perk.Icon;
+                return (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-2.5 rounded-full bg-[color:var(--color-bone)] border border-[color:var(--color-forest-deep)]/15 pl-3 pr-4 py-2 shadow-[0_4px_10px_-6px_rgba(26,24,20,0.18)]"
+                  >
+                    <Icon
+                      className="h-4 w-4 text-[color:var(--color-warm-clay)]"
+                      strokeWidth={1.8}
+                    />
+                    <span
+                      className="text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-[color:var(--color-forest-deep)]/80"
+                      style={{ fontFamily: "var(--font-inter)" }}
+                    >
+                      {t(perk.label)}
+                    </span>
+                  </span>
+                );
+              })}
+            </motion.div>
+          </div>
         </motion.div>
 
         {/* Description — sits between stats and image grid */}
@@ -344,7 +384,7 @@ export function AboutSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-5% 0px" }}
           transition={{ duration: 0.9, ease: EASE_SOFT, delay: 0.1 }}
-          className="mt-10 sm:mt-12 max-w-2xl text-[15px] sm:text-base leading-relaxed text-[color:var(--color-ink)]/70"
+          className="mt-8 sm:mt-10 max-w-2xl text-[15px] sm:text-base leading-relaxed text-[color:var(--color-ink)]/70"
         >
           {t({
             th: "วิลล่าสไตล์ Glamping 6 หลัง ใจกลางขุนเขาเขาใหญ่ ทุกหลังคัดสรรอย่างพิถีพิถัน เพื่อให้คุณได้พักผ่อนอย่างเป็นส่วนตัวที่สุด พร้อมประสบการณ์ที่เหนือกว่าโรงแรมทั่วไป",
@@ -353,68 +393,18 @@ export function AboutSection() {
         </motion.p>
 
         {/* ──────────────────────────────────────
-            Story grid — images sized to fit their natural orientation,
-            staggered pop-in reveal as the user scrolls into view.
-            Portrait cards span 2 rows; landscape cards auto-fill the
-            remaining slots via grid-auto-flow: dense.
+            Story carousel — peek-style horizontal slider replaces the
+            old 3-up grid so the user reaches the booking CTA faster.
             ────────────────────────────────────── */}
-        <div className="mt-12 sm:mt-14 lg:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-7 lg:[grid-auto-flow:dense]">
-          {STORY_SLIDES.map((slide, i) => (
-            <motion.figure
-              key={slide.src}
-              initial={{ opacity: 0, y: 60, scale: 0.92 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true, margin: "-8% 0px" }}
-              transition={{
-                type: "spring",
-                stiffness: 110,
-                damping: 16,
-                mass: 0.9,
-                delay: 0.08 + i * 0.1,
-              }}
-              className={cn(
-                "group",
-                slide.orientation === "portrait" && "lg:row-span-2",
-              )}
-            >
-              <div
-                className={cn(
-                  "relative overflow-hidden rounded-[1.25rem] bg-[color:var(--color-bone-soft)] shadow-[0_24px_55px_-26px_rgba(0,0,0,0.35)]",
-                  slide.orientation === "portrait" ? "aspect-[3/4]" : "aspect-[3/2]",
-                )}
-              >
-                <Image
-                  src={slide.src}
-                  alt={slide.alt}
-                  fill
-                  sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 30vw"
-                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
-                />
-              </div>
-              <figcaption className="mt-4 flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-display text-xl sm:text-2xl text-[color:var(--color-forest-deep)] leading-tight">
-                    {t(slide.title)}
-                  </h3>
-                  <p
-                    className="mt-1.5 text-[10px] sm:text-[11px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/55"
-                    style={{ fontFamily: "var(--font-inter)" }}
-                  >
-                    {t(slide.subtitle)}
-                  </p>
-                </div>
-                {slide.rating && (
-                  <span
-                    className="shrink-0 text-[#F5B400] text-sm tracking-widest drop-shadow-[0_1px_0_rgba(0,0,0,0.05)]"
-                    aria-label={`${slide.rating} stars`}
-                  >
-                    {"★".repeat(slide.rating)}
-                  </span>
-                )}
-              </figcaption>
-            </motion.figure>
-          ))}
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-8% 0px" }}
+          transition={{ duration: 0.9, ease: EASE_SOFT, delay: 0.1 }}
+          className="mt-12 sm:mt-14 lg:mt-16"
+        >
+          <StoryCarousel slides={STORY_SLIDES} />
+        </motion.div>
 
       </div>
     </section>
