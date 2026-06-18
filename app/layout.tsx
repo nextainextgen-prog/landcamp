@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Inter, IBM_Plex_Sans_Thai } from "next/font/google";
+import { Cormorant_Garamond, Inter, Noto_Sans_Thai } from "next/font/google";
 import { siteConfig } from "@/data/siteConfig";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { Providers } from "./providers";
@@ -12,8 +12,8 @@ const inter = Inter({
   display: "swap",
 });
 
-const plexThai = IBM_Plex_Sans_Thai({
-  variable: "--font-plex-thai",
+const notoThai = Noto_Sans_Thai({
+  variable: "--font-noto-thai",
   subsets: ["thai", "latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
@@ -98,7 +98,7 @@ export default function RootLayout({
   return (
     <html
       lang="th"
-      className={`${inter.variable} ${plexThai.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${inter.variable} ${notoThai.variable} ${cormorant.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[color:var(--color-bone)] text-[color:var(--color-ink)]">
         <StructuredData />

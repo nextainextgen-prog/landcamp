@@ -19,16 +19,16 @@
      Typography — minimal sans for body, with a
      brand serif (Cormorant Garamond, upright)
      reserved for the LandCamp wordmark.
-     Inter (Latin) + IBM Plex Sans Thai are
+     Inter (Latin) + Noto Sans Thai are
      metric-friendly siblings; Cormorant is the
      editorial accent.
      ────────────────────────────────────────── */
   --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
-  --font-thai: var(--font-plex-thai), "IBM Plex Sans Thai", sans-serif;
-  --font-display: var(--font-inter), var(--font-plex-thai), "Inter",
-    "IBM Plex Sans Thai", system-ui, sans-serif;
+  --font-thai: var(--font-noto-thai), "Noto Sans Thai", sans-serif;
+  --font-display: var(--font-inter), var(--font-noto-thai), "Inter",
+    "Noto Sans Thai", system-ui, sans-serif;
   --font-serif: var(--font-cormorant), "Cormorant Garamond",
-    var(--font-plex-thai), "IBM Plex Sans Thai", serif;
+    var(--font-noto-thai), "Noto Sans Thai", serif;
 
   /* ──────────────────────────────────────────
      Motion
@@ -68,7 +68,7 @@ body {
 }
 
 /* Thai text — never thin, never tight.
-   font-size-adjust pushes Plex Thai's rendered x-height past Inter's
+   font-size-adjust pushes Noto Sans Thai's rendered x-height past Inter's
    so Thai glyphs read as the dominant size (not visibly smaller than
    their Latin siblings at the same px value). The adjust raises only
    the rendered glyph scale, not the computed font-size, so em-based
@@ -108,7 +108,7 @@ body {
 /* Brand wordmark — Cormorant Garamond, upright
    only. Latin chars render in Cormorant; the
    CSS fallback chain hands Thai glyphs off to
-   Plex Thai automatically.
+   Noto Sans Thai automatically.
    .font-serif * is required because :lang(th)
    matches descendants directly and would beat
    the inherited font-family from the parent
