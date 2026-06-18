@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useT } from "@/app/providers";
 import { useIsMobile } from "@/lib/useMediaQuery";
@@ -74,12 +74,18 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
 }
 
 /**
- * Horizontal story carousel.
+ * Horizontal story carousel with seamless infinite loop.
  *
  * • Mobile  (<768px) — one card centered, peeks of prev/next on the
  *   edges.
  * • Desktop (≥768px) — three cards in a row, the centered one is the
  *   active highlight.
+ *
+ * Infinite loop works by rendering the slides three times and anchoring
+ * the active index inside the middle copy. When the user (or autoplay)
+ * walks into a clone zone we let the animation play out, then silently
+ * rebase the index to the equivalent position in the middle copy. The
+ * rebase swap skips animation so it's invisible.
  *
  * The track transform is computed in JS rather than via CSS custom
  * properties because Chrome doesn't re-evaluate `calc()` inside
@@ -90,7 +96,13 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
   const t = useT();
   const isMobile = useIsMobile();
   const total = slides.length;
-  const [active, setActive] = useState(0);
+
+  // Render three copies so the user can walk off either edge without
+  // hitting empty space. Active index lives in the middle copy.
+  const tripled = useMemo(() => [...slides, ...slides, ...slides], [slides]);
+  const MIDDLE = total;
+
+  const [active, setActive] = useState(MIDDLE);
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
   const trackRef = useRef<HTMLDivElement>(null);
@@ -99,17 +111,20 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
   const dragStartXRef = useRef(0);
   const draggingRef = useRef(false);
   const rafRef = useRef<number | null>(null);
+  // After the rebase setActive, the next transform update must snap
+  // without animation so the jump from clone zone back to middle copy
+  // stays invisible.
+  const skipAnimRef = useRef(false);
   const [dragDx, setDragDx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [trackWidth, setTrackWidth] = useState(0);
+
+  const realIndex = ((active % total) + total) % total;
 
   // Track the live viewport width so the transform can be resolved to
   // plain pixels — Chrome refuses to interpolate `calc()` expressions
   // containing percentages across transitions, so we do the math
   // ourselves and feed the transition pure px values.
-  //
-  // useLayoutEffect runs before the browser paints so the first frame
-  // already has the correct width baked in.
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -123,11 +138,8 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
     return () => ro.disconnect();
   }, []);
 
-  const next = useCallback(
-    () => setActive((i) => Math.min(i + 1, total - 1)),
-    [total],
-  );
-  const prev = useCallback(() => setActive((i) => Math.max(i - 1, 0)), []);
+  const next = useCallback(() => setActive((i) => i + 1), []);
+  const prev = useCallback(() => setActive((i) => i - 1), []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -138,13 +150,12 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [next, prev]);
 
-  // Auto-advance every ~5.5s. Timer resets whenever `active` changes,
-  // so manual nav gets a fresh interval. Wraps back to slide 0 at the
-  // end (manual prev/next still clamp — autoplay loops, manual doesn't).
+  // Autoplay — advance every ~5.5s. Wraps automatically because next()
+  // increments an unbounded virtual index.
   useEffect(() => {
     if (total <= 1) return;
     const id = window.setTimeout(() => {
-      setActive((i) => (i + 1) % total);
+      setActive((i) => i + 1);
     }, 5500);
     return () => window.clearTimeout(id);
   }, [active, total]);
@@ -173,8 +184,8 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
 
   const finishDrag = () => {
     if (!draggingRef.current) return;
-    const trackWidth = trackRef.current?.offsetWidth ?? 1;
-    const threshold = Math.min(trackWidth * 0.15, 60);
+    const tw = trackRef.current?.offsetWidth ?? 1;
+    const threshold = Math.min(tw * 0.15, 60);
     if (dragDx < -threshold) next();
     else if (dragDx > threshold) prev();
     draggingRef.current = false;
@@ -206,6 +217,13 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
       const toPx = offsetPx;
       lastOffsetRef.current = toPx;
       el.getAnimations().forEach((a) => a.cancel());
+
+      // After a rebase the user shouldn't see motion — snap silently.
+      if (skipAnimRef.current) {
+        skipAnimRef.current = false;
+        el.style.transform = `translate3d(${toPx}px, 0, 0)`;
+        return;
+      }
       // During a drag, follow the finger instantly.
       if (isDragging) {
         el.style.transform = `translate3d(${toPx}px, 0, 0)`;
@@ -227,18 +245,28 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
           fill: "forwards",
         },
       );
-      // Commit the final value to inline style so the next animation
-      // has a stable starting point and the value survives after the
-      // animation is GC'd by the browser.
       anim.onfinish = () => {
         el.style.transform = `translate3d(${toPx}px, 0, 0)`;
         anim.cancel();
+        // Rebase out of the clone zones back into the middle copy.
+        // setActive's functional form sees the freshest value.
+        setActive((curr) => {
+          if (curr < MIDDLE || curr >= 2 * MIDDLE) {
+            const real = ((curr % total) + total) % total;
+            const target = MIDDLE + real;
+            if (target !== curr) {
+              skipAnimRef.current = true;
+              return target;
+            }
+          }
+          return curr;
+        });
       };
     });
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [offsetPx, isDragging]);
+  }, [offsetPx, isDragging, MIDDLE, total]);
 
 
   // Tailwind arbitrary values can't reference `layout.cardPct` at build
@@ -267,11 +295,12 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
           className="flex items-stretch will-change-transform"
           style={{ gap: `${layout.gapPx}px` }}
         >
-          {slides.map((slide, i) => {
+          {tripled.map((slide, i) => {
             const isActive = i === active;
+            const slideRealIndex = i % total;
             return (
               <div
-                key={slide.src}
+                key={`${slide.src}-${i}`}
                 className={cn(
                   "relative shrink-0 aspect-[3/4] rounded-[24px] overflow-hidden",
                   "basis-[78%] md:basis-[31%]",
@@ -287,7 +316,7 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
                   fill
                   sizes="(max-width: 767px) 78vw, 31vw"
                   className="object-cover pointer-events-none"
-                  priority={i === 0}
+                  priority={i === MIDDLE}
                   draggable={false}
                 />
 
@@ -303,17 +332,17 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleFav(i);
+                    toggleFav(slideRealIndex);
                   }}
                   aria-label={t({
-                    th: favorites.has(i) ? "ยกเลิกชื่นชอบ" : "บันทึกเป็นชื่นชอบ",
-                    en: favorites.has(i) ? "Remove from favorites" : "Save to favorites",
+                    th: favorites.has(slideRealIndex) ? "ยกเลิกชื่นชอบ" : "บันทึกเป็นชื่นชอบ",
+                    en: favorites.has(slideRealIndex) ? "Remove from favorites" : "Save to favorites",
                   })}
-                  aria-pressed={favorites.has(i)}
+                  aria-pressed={favorites.has(slideRealIndex)}
                   tabIndex={isActive ? 0 : -1}
                   className="absolute top-4 right-4 grid place-items-center h-10 w-10 rounded-full bg-black/35 backdrop-blur-md ring-1 ring-white/15 transition-all duration-300 hover:bg-black/55 hover:scale-105 active:scale-95"
                 >
-                  <HeartIcon filled={favorites.has(i)} />
+                  <HeartIcon filled={favorites.has(slideRealIndex)} />
                 </button>
 
                 <div
@@ -353,9 +382,8 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
         <button
           type="button"
           onClick={prev}
-          disabled={active === 0}
           aria-label={t({ th: "ก่อนหน้า", en: "Previous" })}
-          className="grid place-items-center h-10 w-10 rounded-full border border-[color:var(--color-forest-deep)]/25 text-[color:var(--color-forest-deep)] transition-all duration-300 hover:bg-[color:var(--color-forest-deep)] hover:text-[color:var(--color-bone)] hover:border-transparent disabled:opacity-30 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)]"
+          className="grid place-items-center h-10 w-10 rounded-full border border-[color:var(--color-forest-deep)]/25 text-[color:var(--color-forest-deep)] transition-all duration-300 hover:bg-[color:var(--color-forest-deep)] hover:text-[color:var(--color-bone)] hover:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)]"
         >
           <ChevronIcon direction="left" />
         </button>
@@ -366,7 +394,7 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
           style={{ fontFamily: "var(--font-ui)" }}
         >
           <span className="text-[color:var(--color-forest-deep)] font-medium">
-            {String(active + 1).padStart(2, "0")}
+            {String(realIndex + 1).padStart(2, "0")}
           </span>
           <span aria-hidden className="mx-2 opacity-50">
             /
@@ -377,9 +405,8 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
         <button
           type="button"
           onClick={next}
-          disabled={active === total - 1}
           aria-label={t({ th: "ถัดไป", en: "Next" })}
-          className="grid place-items-center h-10 w-10 rounded-full border border-[color:var(--color-forest-deep)]/25 text-[color:var(--color-forest-deep)] transition-all duration-300 hover:bg-[color:var(--color-forest-deep)] hover:text-[color:var(--color-bone)] hover:border-transparent disabled:opacity-30 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)]"
+          className="grid place-items-center h-10 w-10 rounded-full border border-[color:var(--color-forest-deep)]/25 text-[color:var(--color-forest-deep)] transition-all duration-300 hover:bg-[color:var(--color-forest-deep)] hover:text-[color:var(--color-bone)] hover:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)]"
         >
           <ChevronIcon direction="right" />
         </button>

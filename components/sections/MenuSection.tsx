@@ -124,24 +124,6 @@ export function MenuSection() {
       aria-label={t({ th: "อาหารและเครื่องดื่ม", en: "Food and drinks" })}
       className="relative bg-[color:var(--color-bone)] py-20 sm:py-24 lg:py-28 overflow-hidden"
     >
-      {/* Marquee animation keyframes */}
-      <style jsx global>{`
-        @keyframes menu-marquee-left {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .menu-marquee-track {
-          display: flex;
-          gap: 1rem;
-          width: max-content;
-          animation: menu-marquee-left linear infinite;
-        }
-        @media (min-width: 640px) {
-          .menu-marquee-track { gap: 1.25rem; }
-        }
-        .menu-marquee-track:hover { animation-play-state: paused; }
-      `}</style>
-
       <div className="mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-14">
         {/* Compact header */}
         <motion.div
@@ -224,6 +206,17 @@ export function MenuSection() {
   );
 }
 
+/**
+ * Auto-scrolling marquee row with drag / swipe support.
+ *
+ * The track is rendered twice end-to-end so we can wrap modulo
+ * `halfWidth` without ever exposing a seam. An rAF loop pushes the
+ * track left at a constant px/s rate (derived from `duration` so the
+ * speed matches the old CSS marquee) and pauses while the user is
+ * dragging or hovering. On release the loop simply resumes from the
+ * current offset, so the auto-scroll continues from wherever the
+ * finger let go.
+ */
 function MarqueeRow({
   images,
   duration,
@@ -233,36 +226,101 @@ function MarqueeRow({
   duration: number;
   boost: number;
 }) {
-  // Duplicate so loop is seamless
   const items = useMemo(() => [...images, ...images], [images]);
   const trackRef = useRef<HTMLDivElement>(null);
+
+  // Live values held in refs so the rAF loop can read fresh state
+  // without re-subscribing every frame.
+  const offsetRef = useRef(0);
+  const halfWidthRef = useRef(0);
+  const draggingRef = useRef(false);
+  const hoveringRef = useRef(false);
+  const boostRef = useRef(boost);
+  const dragStartXRef = useRef(0);
+  const dragStartOffsetRef = useRef(0);
+
+  useEffect(() => {
+    boostRef.current = boost;
+  }, [boost]);
 
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
-    const anims = el.getAnimations();
-    if (anims.length === 0) return;
-    anims[0].playbackRate = boost;
-  }, [boost]);
 
-  // Seek the running marquee animation by ~1/8 of the loop per click.
-  // The animation is set to iterate infinitely with duration in ms — modulo it
-  // back into range so the loop never jumps to a hard edge.
-  const nudge = (direction: 1 | -1) => {
+    const measure = () => {
+      // The track is rendered twice — half the scroll width is exactly
+      // one cycle. Wrapping modulo that distance hides the seam.
+      halfWidthRef.current = el.scrollWidth / 2;
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+
+    let raf = 0;
+    let lastT: number | null = null;
+
+    const tick = (t: number) => {
+      if (lastT === null) lastT = t;
+      const dt = (t - lastT) / 1000;
+      lastT = t;
+
+      if (!draggingRef.current && !hoveringRef.current && halfWidthRef.current > 0) {
+        // Match the original CSS marquee: one halfWidth-wide cycle per
+        // `duration` seconds. boost scales with scroll velocity.
+        const speed = (halfWidthRef.current / duration) * boostRef.current;
+        let nextOffset = offsetRef.current - speed * dt;
+        if (nextOffset <= -halfWidthRef.current) {
+          nextOffset += halfWidthRef.current;
+        }
+        offsetRef.current = nextOffset;
+        el.style.transform = `translate3d(${nextOffset}px, 0, 0)`;
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [duration]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
     const el = trackRef.current;
     if (!el) return;
-    const anim = el.getAnimations()[0];
-    if (!anim) return;
-    const timing = anim.effect?.getComputedTiming();
-    const durMs = typeof timing?.duration === "number" ? timing.duration : duration * 1000;
-    const step = durMs / 8;
-    const cur = typeof anim.currentTime === "number" ? anim.currentTime : 0;
-    const next = ((cur + direction * step) % durMs + durMs) % durMs;
-    anim.currentTime = next;
+    draggingRef.current = true;
+    dragStartXRef.current = e.clientX;
+    dragStartOffsetRef.current = offsetRef.current;
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    const el = trackRef.current;
+    if (!el) return;
+    const half = halfWidthRef.current;
+    if (half <= 0) return;
+    const dx = e.clientX - dragStartXRef.current;
+    // Normalize into (-half, 0] so the visible content never jumps.
+    let next = (dragStartOffsetRef.current + dx) % half;
+    if (next > 0) next -= half;
+    offsetRef.current = next;
+    el.style.transform = `translate3d(${next}px, 0, 0)`;
+  };
+
+  const finishDrag = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    // On touch the synthetic mouseenter can stick after release — clear
+    // it explicitly so the rAF loop resumes auto-scrolling.
+    if (e.pointerType !== "mouse") hoveringRef.current = false;
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
   };
 
   return (
-    <div className="relative overflow-hidden group/row">
+    <div className="relative overflow-hidden">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-y-0 left-0 w-12 sm:w-24 z-10 bg-gradient-to-r from-[color:var(--color-bone)] to-transparent"
@@ -272,32 +330,20 @@ function MarqueeRow({
         className="pointer-events-none absolute inset-y-0 right-0 w-12 sm:w-24 z-10 bg-gradient-to-l from-[color:var(--color-bone)] to-transparent"
       />
 
-      {/* Nav buttons */}
-      <button
-        type="button"
-        onClick={() => nudge(-1)}
-        aria-label="Scroll left"
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-[color:var(--color-forest-deep)]/85 backdrop-blur-md text-[color:var(--color-bone)] flex items-center justify-center shadow-[0_8px_22px_-8px_rgba(0,0,0,0.4)] opacity-70 sm:opacity-0 group-hover/row:opacity-100 hover:bg-[color:var(--color-warm-clay)] transition-all duration-300"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 sm:h-5 sm:w-5">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        onClick={() => nudge(1)}
-        aria-label="Scroll right"
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-[color:var(--color-forest-deep)]/85 backdrop-blur-md text-[color:var(--color-bone)] flex items-center justify-center shadow-[0_8px_22px_-8px_rgba(0,0,0,0.4)] opacity-70 sm:opacity-0 group-hover/row:opacity-100 hover:bg-[color:var(--color-warm-clay)] transition-all duration-300"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 sm:h-5 sm:w-5">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </button>
-
       <div
         ref={trackRef}
-        className="menu-marquee-track"
-        style={{ animationDuration: `${duration}s` }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={finishDrag}
+        onPointerCancel={finishDrag}
+        onPointerEnter={(e) => {
+          if (e.pointerType === "mouse") hoveringRef.current = true;
+        }}
+        onPointerLeave={(e) => {
+          if (e.pointerType === "mouse") hoveringRef.current = false;
+        }}
+        className="flex gap-4 sm:gap-5 w-max will-change-transform cursor-grab active:cursor-grabbing select-none"
+        style={{ touchAction: "pan-y" }}
       >
         {items.map((img, i) => (
           <div
@@ -309,7 +355,8 @@ function MarqueeRow({
               alt={img.alt}
               fill
               sizes="(max-width: 640px) 260px, (max-width: 1024px) 320px, 380px"
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06] pointer-events-none"
+              draggable={false}
             />
           </div>
         ))}
