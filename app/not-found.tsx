@@ -26,7 +26,7 @@ export default function NotFound() {
         <Link
           href="/"
           className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/70 hover:text-[color:var(--color-bone)] transition-colors"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           กลับสู่หน้าหลัก
         </Link>
@@ -37,7 +37,7 @@ export default function NotFound() {
           <div className="lg:col-span-7">
             <span
               className="text-[10px] sm:text-[11px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               404 · Page Not Found
             </span>
@@ -57,7 +57,7 @@ export default function NotFound() {
               <Link
                 href="/"
                 className="inline-flex items-center justify-center gap-3 rounded-full bg-[color:var(--color-bone)] text-[color:var(--color-forest-night)] px-8 py-4 text-[11px] uppercase tracking-[0.32em] hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)] transition-colors duration-500 shadow-[0_18px_38px_-18px_rgba(0,0,0,0.45)]"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 กลับสู่หน้าหลัก
                 <span aria-hidden className="inline-block h-px w-5 bg-current opacity-70" />
@@ -67,7 +67,7 @@ export default function NotFound() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-3 rounded-full border border-[color:var(--color-bone)]/35 text-[color:var(--color-bone)]/90 px-8 py-4 text-[11px] uppercase tracking-[0.32em] hover:border-[color:var(--color-bone)] hover:text-[color:var(--color-bone)] transition-colors"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 ติดต่อผ่าน Line
               </a>
@@ -89,13 +89,13 @@ export default function NotFound() {
       <footer className="relative z-10 mx-auto w-full max-w-[1440px] px-6 sm:px-10 lg:px-14 py-10 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center border-t border-[color:var(--color-bone)]/12">
         <p
           className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/45"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           © {new Date().getFullYear()} {siteConfig.brand.nameFull}
         </p>
         <p
           className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/45"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           Line {siteConfig.contact.line} · {siteConfig.contact.phone}
         </p>

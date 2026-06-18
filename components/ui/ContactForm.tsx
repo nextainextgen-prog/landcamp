@@ -80,7 +80,7 @@ export function ContactForm() {
       >
         <span
           className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           {t({ th: "ส่งสำเร็จ", en: "Received" })}
         </span>
@@ -142,7 +142,7 @@ export function ContactForm() {
         <p
           role="alert"
           className="text-sm text-[color:var(--color-warm-clay)]"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           {errorMessage}
         </p>
@@ -157,7 +157,7 @@ export function ContactForm() {
           "hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)]",
           state === "submitting" && "opacity-60 cursor-wait",
         )}
-        style={{ fontFamily: "var(--font-inter)" }}
+        style={{ fontFamily: "var(--font-ui)" }}
       >
         {state === "submitting"
           ? t({ th: "กำลังส่ง…", en: "Sending…" })
@@ -187,7 +187,7 @@ function FormField({
     <label className="flex flex-col gap-2">
       <span
         className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/65"
-        style={{ fontFamily: "var(--font-inter)" }}
+        style={{ fontFamily: "var(--font-ui)" }}
       >
         {label}
         {required && <span className="text-[color:var(--color-warm-clay)] ml-1">*</span>}

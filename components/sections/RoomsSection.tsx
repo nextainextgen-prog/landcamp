@@ -52,7 +52,7 @@ export function RoomsSection() {
         >
           <div
             className="flex items-center gap-4 text-[10px] sm:text-[11px] uppercase tracking-[0.42em]"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             <span className="text-[color:var(--color-warm-clay)]">04</span>
             <span aria-hidden className="h-px w-10 bg-[color:var(--color-forest-deep)]/35" />
@@ -102,7 +102,7 @@ export function RoomsSection() {
 
                 <span
                   className="absolute top-4 left-4 z-10 bg-[color:var(--color-forest-deep)]/85 backdrop-blur-md text-[color:var(--color-bone)] px-3 py-1.5 rounded-full text-[10px] uppercase tracking-[0.28em]"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({
                     th: `พักได้ ${room.maxGuests} ท่าน`,
@@ -118,7 +118,7 @@ export function RoomsSection() {
                   </h3>
                   <span
                     className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--color-warm-clay)] whitespace-nowrap"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    style={{ fontFamily: "var(--font-ui)" }}
                   >
                     {t({
                       th: `${room.priceWeekday.toLocaleString("en-US")} ฿ / คืน`,
@@ -136,7 +136,7 @@ export function RoomsSection() {
                     type="button"
                     onClick={() => setActiveRoom(room)}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-full border-2 border-[color:var(--color-forest-deep)] text-[color:var(--color-forest-deep)] px-5 py-3.5 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] hover:text-[color:var(--color-bone)] transition-colors duration-300"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    style={{ fontFamily: "var(--font-ui)" }}
                   >
                     {t({ th: "ดูรายละเอียด", en: "View Details" })}
                   </button>
@@ -145,7 +145,7 @@ export function RoomsSection() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-5 py-3.5 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    style={{ fontFamily: "var(--font-ui)" }}
                   >
                     {t({ th: "จองเลย", en: "Book Now" })}
                     <span aria-hidden>→</span>
@@ -303,7 +303,7 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
           <header className="px-6 sm:px-8 lg:px-10 pt-6 sm:pt-8 pb-5 border-b border-[color:var(--color-ink)]/10">
             <span
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               LandCamp · {t({ th: "รายละเอียดห้องพัก", en: "Room details" })}
             </span>
@@ -315,7 +315,7 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
             </h3>
             <p
               className="mt-2 text-[11px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/55"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "เริ่มต้นที่", en: "From" })}{" "}
               <span className="text-[color:var(--color-warm-clay)] font-medium">
@@ -329,7 +329,7 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
           <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8 border-b border-[color:var(--color-ink)]/10">
             <h4
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-5"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "ข้อมูลห้องพัก", en: "Room information" })}
             </h4>
@@ -383,7 +383,7 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
           <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8 border-b border-[color:var(--color-ink)]/10">
             <h4
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-5"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "บริการ", en: "Services" })}
             </h4>
@@ -401,7 +401,7 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
           <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8 border-b border-[color:var(--color-ink)]/10">
             <h4
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-3"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "ค่าเตียงเสริม", en: "Extra bed" })}
             </h4>
@@ -414,7 +414,7 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
           <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8">
             <h4
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-5"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "ภาพห้องพัก", en: "Gallery" })}
             </h4>
@@ -447,7 +447,7 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 inline-flex items-center justify-center rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] px-6 py-3.5 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-warm-clay)] transition-colors duration-500"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "จองห้องนี้ผ่าน Line", en: "Reserve this room" })}
             </a>
@@ -455,7 +455,7 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
               type="button"
               onClick={onClose}
               className="inline-flex items-center justify-center rounded-full border border-[color:var(--color-ink)]/20 px-6 py-3.5 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-ink)]/5 transition-colors"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "ปิดหน้าต่าง", en: "Close" })}
             </button>
@@ -564,7 +564,7 @@ function SpecRow({ label, value }: { label: string; value: string }) {
     <div className="flex flex-col gap-1 border-b border-[color:var(--color-ink)]/8 pb-3 last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0">
       <dt
         className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/50"
-        style={{ fontFamily: "var(--font-inter)" }}
+        style={{ fontFamily: "var(--font-ui)" }}
       >
         {label}
       </dt>

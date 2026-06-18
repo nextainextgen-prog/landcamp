@@ -122,7 +122,7 @@ export function FullMenuModal({ onClose }: { onClose: () => void }) {
           <header className="text-center pb-6 border-b border-[color:var(--color-ink)]/15">
             <p
               className="text-[10px] uppercase tracking-[0.46em] text-[color:var(--color-warm-clay)]"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               LandCamp Villa Khao Yai
             </p>
@@ -164,7 +164,7 @@ export function FullMenuModal({ onClose }: { onClose: () => void }) {
                       />
                       <span
                         className="text-[14px] sm:text-[15px] tabular-nums text-[color:var(--color-warm-clay)] whitespace-nowrap"
-                        style={{ fontFamily: "var(--font-inter)" }}
+                        style={{ fontFamily: "var(--font-ui)" }}
                       >
                         {item.price} ฿
                       </span>
@@ -179,7 +179,7 @@ export function FullMenuModal({ onClose }: { onClose: () => void }) {
           <footer className="mt-12 pt-6 border-t border-[color:var(--color-ink)]/15 text-center">
             <p
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               Landcamp · Villa Khaoyai
             </p>

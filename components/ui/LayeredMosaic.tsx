@@ -108,7 +108,7 @@ function LayeredTile({
       />
       {image.caption && (
         <span className="absolute inset-x-3 bottom-3 inline-block translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 ease-out text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)] bg-[color:var(--color-forest-night)]/65 backdrop-blur-sm rounded-full px-3 py-1.5 text-center"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           {image.caption}
         </span>

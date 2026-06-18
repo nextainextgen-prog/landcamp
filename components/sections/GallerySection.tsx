@@ -85,7 +85,7 @@ export function GallerySection() {
         >
           <div
             className="flex items-center gap-3 text-[10px] sm:text-[11px] uppercase tracking-[0.4em]"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             <span className="text-[color:var(--color-warm-clay)]">03</span>
             <span aria-hidden className="h-px w-8 bg-[color:var(--color-forest-deep)]/40" />

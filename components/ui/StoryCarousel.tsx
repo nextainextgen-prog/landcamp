@@ -337,7 +337,7 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
                   </h4>
                   <p
                     className="mt-2 text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-white/75"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    style={{ fontFamily: "var(--font-ui)" }}
                   >
                     {t(slide.subtitle)}
                   </p>
@@ -363,7 +363,7 @@ export function StoryCarousel({ slides, className }: StoryCarouselProps) {
         <span
           aria-live="polite"
           className="text-[12px] sm:text-[13px] tracking-[0.3em] text-[color:var(--color-forest-deep)]/75 tabular-nums"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           <span className="text-[color:var(--color-forest-deep)] font-medium">
             {String(active + 1).padStart(2, "0")}

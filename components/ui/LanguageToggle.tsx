@@ -40,7 +40,7 @@ export function LanguageToggle({
         tone,
         className,
       )}
-      style={{ fontFamily: "var(--font-inter)" }}
+      style={{ fontFamily: "var(--font-ui)" }}
     >
       <motion.span
         aria-hidden

@@ -133,7 +133,7 @@ export function ContactSection() {
             >
               <div
                 className="flex items-center gap-3 text-[10px] sm:text-[11px] uppercase tracking-[0.4em]"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 <span className="text-[color:var(--color-warm-clay)]">10</span>
                 <span aria-hidden className="h-px w-8 bg-[color:var(--color-bone)]/40" />
@@ -181,7 +181,7 @@ export function ContactSection() {
               <div className="flex flex-col gap-2">
                 <span
                   className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "สแกนเพื่อแอด Line", en: "Scan to add on Line" })}
                 </span>
@@ -193,7 +193,7 @@ export function ContactSection() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/80 hover:text-[color:var(--color-warm-clay)] transition-colors"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "หรือคลิกที่นี่", en: "Or tap here" })}
                   <span aria-hidden className="inline-block h-px w-5 bg-current opacity-60" />
@@ -205,7 +205,7 @@ export function ContactSection() {
             <div className="flex flex-col gap-4">
               <span
                 className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-bone)]/55"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 {t({ th: "ติดตามเราได้ที่", en: "Follow us on" })}
               </span>
@@ -278,7 +278,7 @@ export function ContactSection() {
           >
             <span
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "เขียนรีวิวให้เรา", en: "Leave us a review" })}
             </span>
@@ -306,7 +306,7 @@ export function ContactSection() {
               <div className="flex flex-col gap-3 mb-7">
                 <label
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/65"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "ให้คะแนน", en: "Your rating" })}
                 </label>
@@ -333,7 +333,7 @@ export function ContactSection() {
                   ))}
                   <span
                     className="ml-3 text-[11px] uppercase tracking-[0.32em] text-[color:var(--color-warm-clay)]"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    style={{ fontFamily: "var(--font-ui)" }}
                   >
                     {t({ th: "5 / 5 · ยอดเยี่ยม", en: "5 / 5 · Excellent" })}
                   </span>
@@ -345,7 +345,7 @@ export function ContactSection() {
                 <label className="flex flex-col gap-2">
                   <span
                     className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/65"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    style={{ fontFamily: "var(--font-ui)" }}
                   >
                     {t({ th: "ชื่อของคุณ", en: "Your name" })}
                   </span>
@@ -360,7 +360,7 @@ export function ContactSection() {
                 <label className="flex flex-col gap-2">
                   <span
                     className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/65"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    style={{ fontFamily: "var(--font-ui)" }}
                   >
                     {t({ th: "ห้องที่เข้าพัก", en: "Room stayed" })}
                   </span>
@@ -378,7 +378,7 @@ export function ContactSection() {
               <label className="flex flex-col gap-2 mb-7">
                 <span
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/65"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "เล่าประสบการณ์ของคุณ", en: "Share your experience" })}
                 </span>
@@ -402,7 +402,7 @@ export function ContactSection() {
                   openGoogleReview();
                 }}
                 className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-7 py-4 text-[11px] uppercase tracking-[0.32em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-500"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 {t({ th: "ส่งรีวิวผ่าน Google", en: "Submit via Google" })}
                 <span aria-hidden>→</span>
@@ -410,7 +410,7 @@ export function ContactSection() {
 
               <p
                 className="mt-4 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/45 text-center"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 {t({
                   th: "* รีวิวจะถูกส่งไปที่ Google Maps · LandCamp Villa Khao Yai",

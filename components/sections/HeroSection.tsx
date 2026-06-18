@@ -134,7 +134,7 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: EASE_SOFT, delay: 0.05 }}
           className="mt-12 sm:mt-16 lg:mt-20 flex items-center gap-3 text-[10px] sm:text-[11px] uppercase tracking-[0.4em] text-[color:var(--color-bone)]/85"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           <span aria-hidden className="h-px w-8 sm:w-12 bg-current opacity-70" />
           {t({
@@ -200,7 +200,7 @@ export function HeroSection() {
                 "hover:bg-[color:var(--color-forest-deep)]",
                 "transition-colors duration-500 ease-out",
               )}
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "จองที่พัก", en: "Reserve" })}
               <span aria-hidden className="inline-block h-px w-5 bg-current opacity-70" />
@@ -210,7 +210,7 @@ export function HeroSection() {
           <a
             href="#rooms"
             className="inline-flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/90 hover:text-[color:var(--color-warm-clay)] transition-colors px-2 sm:px-0"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             {t({ th: "สำรวจห้องพัก", en: "Explore Rooms" })}
             <span aria-hidden className="inline-block h-px w-6 bg-current opacity-60" />
@@ -231,7 +231,7 @@ export function HeroSection() {
 
           <div
             className="hidden md:flex items-center gap-6 text-[10px] uppercase tracking-[0.38em] text-[color:var(--color-bone)]/80"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             <span>
               {t({

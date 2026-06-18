@@ -68,7 +68,7 @@ export function ReviewsSection() {
           >
             <div
               className="flex items-center gap-3 text-[10px] sm:text-[11px] uppercase tracking-[0.4em]"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               <span className="text-[color:var(--color-warm-clay)]">08</span>
               <span aria-hidden className="h-px w-8 bg-[color:var(--color-forest-deep)]/40" />
@@ -105,7 +105,7 @@ export function ReviewsSection() {
               </span>
               <span
                 className="ml-1 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/55"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 / 5
               </span>
@@ -114,7 +114,7 @@ export function ReviewsSection() {
               <Stars value={5} />
               <span
                 className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/60"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 <StatCounter value={siteConfig.rating.count} />+ Google reviews
               </span>
@@ -161,13 +161,13 @@ export function ReviewsSection() {
                 <div className="flex flex-col min-w-0">
                   <span
                     className="text-[13px] text-[color:var(--color-forest-deep)] font-medium truncate"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    style={{ fontFamily: "var(--font-ui)" }}
                   >
                     {r.reviewerName}
                   </span>
                   <span className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-[color:var(--color-ink)]/55">
                     <Stars value={r.rating} size="xs" />
-                    <span style={{ fontFamily: "var(--font-inter)" }}>
+                    <span style={{ fontFamily: "var(--font-ui)" }}>
                       {PLATFORM_LABEL[r.platform]}
                     </span>
                   </span>
@@ -175,7 +175,7 @@ export function ReviewsSection() {
                 <time
                   dateTime={r.date}
                   className="ml-auto text-[9px] uppercase tracking-[0.3em] text-[color:var(--color-ink)]/45 self-start whitespace-nowrap"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {new Date(r.date).toLocaleDateString("en-GB", {
                     month: "short",
@@ -230,7 +230,7 @@ export function ReviewsSection() {
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-7 py-3.5 text-[11px] uppercase tracking-[0.32em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-500"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             {t({ th: "รีวิวเพิ่มเติม", en: "More reviews" })}
             <span aria-hidden>→</span>

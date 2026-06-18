@@ -47,7 +47,7 @@ export function SectionHeading({
             ? "text-[color:var(--color-forest-deep)]/65"
             : "text-[color:var(--color-bone)]/65",
         )}
-        style={{ fontFamily: "var(--font-inter)" }}
+        style={{ fontFamily: "var(--font-ui)" }}
       >
         {number && (
           <span className={cn("opacity-80", isInk ? "text-[color:var(--color-warm-clay)]" : "text-[color:var(--color-warm-clay)]")}>

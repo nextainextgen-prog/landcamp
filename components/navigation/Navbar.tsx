@@ -77,7 +77,7 @@ export function Navbar() {
                 key={item.id}
                 href={`#${item.id}`}
                 className="group relative text-[12px] uppercase tracking-[0.28em] text-[color:var(--color-bone)]/85 hover:text-[color:var(--color-bone)] transition-colors"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 <span>{t({ th: item.labelTh, en: item.labelEn })}</span>
                 <span
@@ -106,7 +106,7 @@ export function Navbar() {
                     "hover:bg-[color:var(--color-forest-deep)]",
                     "transition-colors duration-500 ease-out",
                   )}
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "จองเลย", en: "Book Now" })}
                   <span aria-hidden className="inline-block h-px w-5 bg-current opacity-60" />
@@ -207,7 +207,7 @@ export function Navbar() {
                     </span>
                     <span
                       className="text-[10px] uppercase tracking-[0.4em] text-[color:var(--color-bone)]/45 group-hover:text-[color:var(--color-warm-clay)] transition-colors"
-                      style={{ fontFamily: "var(--font-inter)" }}
+                      style={{ fontFamily: "var(--font-ui)" }}
                     >
                       0{idx + 1}
                     </span>
@@ -223,14 +223,14 @@ export function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full text-center rounded-full bg-[color:var(--color-bone)] text-[color:var(--color-forest-night)] px-6 py-4 text-[12px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)] transition-colors duration-500"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "จองผ่าน Line @landcamp", en: "Book via Line @landcamp" })}
                 </a>
 
                 <div
                   className="flex items-center justify-between text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/60"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   <a href={`tel:${siteConfig.contact.phoneE164}`}>
                     {siteConfig.contact.phone}

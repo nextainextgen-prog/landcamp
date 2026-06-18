@@ -36,7 +36,7 @@ export function WeddingSection() {
           >
             <div
               className="flex items-center gap-4 text-[10px] sm:text-[11px] uppercase tracking-[0.42em]"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               <span className="text-[color:var(--color-warm-clay)]">05</span>
               <span aria-hidden className="h-px w-10 bg-[color:var(--color-ink)]/30" />
@@ -68,7 +68,7 @@ export function WeddingSection() {
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 inline-flex items-center justify-center gap-3 self-start rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-7 py-4 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-500"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t(weddingContent.ctaLabel)}
               <span aria-hidden>→</span>

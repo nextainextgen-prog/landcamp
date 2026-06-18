@@ -38,7 +38,7 @@ export function ScrollIndicator({
     >
       <span
         className="text-[10px] uppercase tracking-[0.42em] opacity-75"
-        style={{ fontFamily: "var(--font-inter)" }}
+        style={{ fontFamily: "var(--font-ui)" }}
       >
         {t({ th: "เลื่อนลง", en: "Scroll" })}
       </span>

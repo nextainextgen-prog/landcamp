@@ -268,7 +268,7 @@ export function AboutSection() {
           viewport={{ once: true, margin: "-5% 0px" }}
           transition={{ duration: 0.9, ease: EASE_SOFT }}
           className="flex items-center gap-4 text-[10px] sm:text-[11px] uppercase tracking-[0.42em]"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           <span className="text-[color:var(--color-warm-clay)]">02</span>
           <span aria-hidden className="h-px w-10 bg-[color:var(--color-forest-deep)]/40" />
@@ -329,7 +329,7 @@ export function AboutSection() {
                       {stat.unit && (
                         <span
                           className="text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-[color:var(--color-forest-deep)]/65"
-                          style={{ fontFamily: "var(--font-inter)" }}
+                          style={{ fontFamily: "var(--font-ui)" }}
                         >
                           {t(stat.unit)}
                         </span>
@@ -337,7 +337,7 @@ export function AboutSection() {
                     </div>
                     <span
                       className="mt-3 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/55"
-                      style={{ fontFamily: "var(--font-inter)" }}
+                      style={{ fontFamily: "var(--font-ui)" }}
                     >
                       {t(stat.label)}
                     </span>
@@ -367,7 +367,7 @@ export function AboutSection() {
                     />
                     <span
                       className="text-[10px] sm:text-[11px] uppercase tracking-[0.28em] text-[color:var(--color-forest-deep)]/80"
-                      style={{ fontFamily: "var(--font-inter)" }}
+                      style={{ fontFamily: "var(--font-ui)" }}
                     >
                       {t(perk.label)}
                     </span>

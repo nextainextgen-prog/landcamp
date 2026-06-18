@@ -51,7 +51,7 @@ export function Wordmark({
           s.sub,
           s.gap,
         )}
-        style={{ fontFamily: "var(--font-inter)" }}
+        style={{ fontFamily: "var(--font-ui)" }}
       >
         Villa Khao Yai
       </span>

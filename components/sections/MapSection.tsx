@@ -78,7 +78,7 @@ export function MapSection() {
               target="_blank"
               rel="noopener noreferrer"
               className="absolute bottom-4 right-4 z-10 inline-flex items-center gap-2 rounded-full bg-[color:var(--color-bone)] text-[color:var(--color-forest-night)] px-5 py-2.5 text-[10px] uppercase tracking-[0.32em] hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)] transition-colors duration-500"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "เปิดใน Google Maps", en: "Open in Maps" })}
               <span aria-hidden className="inline-block h-px w-4 bg-current opacity-70" />
@@ -96,7 +96,7 @@ export function MapSection() {
             <header>
               <span
                 className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 {t({ th: "ติดต่อโดยตรง", en: "Direct contact" })}
               </span>
@@ -111,7 +111,7 @@ export function MapSection() {
               <div>
                 <dt
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/55 mb-1.5"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "ที่อยู่", en: "Address" })}
                 </dt>
@@ -122,7 +122,7 @@ export function MapSection() {
               <div>
                 <dt
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/55 mb-1.5"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "พิกัด", en: "Coordinates" })}
                 </dt>
@@ -134,7 +134,7 @@ export function MapSection() {
               <div>
                 <dt
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/55 mb-1.5"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "Line / โทร", en: "Line / Phone" })}
                 </dt>
@@ -161,7 +161,7 @@ export function MapSection() {
               <div>
                 <span
                   className="block text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/55 mb-1"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "เช็คอิน", en: "Check-in" })}
                 </span>
@@ -170,7 +170,7 @@ export function MapSection() {
               <div>
                 <span
                   className="block text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/55 mb-1"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "เช็คเอาท์", en: "Check-out" })}
                 </span>
@@ -184,7 +184,7 @@ export function MapSection() {
         <div className="mt-16 sm:mt-20">
           <p
             className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-forest-deep)]/65 flex items-center gap-3"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             <span aria-hidden className="h-px w-10 bg-current opacity-60" />
             {t({ th: "เส้นทางจากกรุงเทพ", en: "From Bangkok" })}
@@ -202,7 +202,7 @@ export function MapSection() {
               >
                 <span
                   className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {d.no}
                 </span>
@@ -211,7 +211,7 @@ export function MapSection() {
                 </p>
                 <span
                   className="mt-auto text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/60"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t(d.distance)}
                 </span>

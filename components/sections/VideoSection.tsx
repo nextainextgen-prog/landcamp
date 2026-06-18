@@ -155,7 +155,7 @@ function VideoCard({
         {/* Tag top-left */}
         <span
           className="absolute top-3 left-3 z-10 bg-black/45 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[10px] uppercase tracking-[0.28em]"
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           {t(video.tag)}
         </span>
@@ -201,7 +201,7 @@ function VideoCard({
         <div className="absolute bottom-4 left-4 right-4 z-10 text-white">
           <p
             className="text-[11px] uppercase tracking-[0.3em] text-white/75"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             {video.handle}
           </p>
@@ -234,7 +234,7 @@ export function VideoSection() {
         >
           <div
             className="flex items-center gap-3 text-[10px] sm:text-[11px] uppercase tracking-[0.4em]"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             <span className="text-[color:var(--color-warm-clay)]">05</span>
             <span aria-hidden className="h-px w-8 bg-[color:var(--color-bone)]/40" />
@@ -286,7 +286,7 @@ export function VideoSection() {
             "mt-8 sm:mt-10 text-center text-[12px] sm:text-sm",
             "text-[color:var(--color-bone)]/55 max-w-xl mx-auto",
           )}
-          style={{ fontFamily: "var(--font-inter)" }}
+          style={{ fontFamily: "var(--font-ui)" }}
         >
           {t({
             th: "เลื่อนซ้าย-ขวาเพื่อดูเพิ่ม · แตะวิดีโอเพื่อหยุด / เล่น",

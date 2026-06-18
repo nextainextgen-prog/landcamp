@@ -153,7 +153,7 @@ export function MenuSection() {
         >
           <div
             className="flex items-center gap-3 text-[10px] sm:text-[11px] uppercase tracking-[0.4em]"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             <span className="text-[color:var(--color-warm-clay)]">06</span>
             <span aria-hidden className="h-px w-8 bg-[color:var(--color-forest-deep)]/40" />
@@ -176,7 +176,7 @@ export function MenuSection() {
             type="button"
             onClick={() => setMenuOpen(true)}
             className="mt-3 inline-flex items-center gap-3 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-6 py-3 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             {t({ th: "ดูเมนูทั้งหมด", en: "View Full Menu" })}
             <span aria-hidden>→</span>
@@ -191,7 +191,7 @@ export function MenuSection() {
             <div className="mx-auto max-w-[1440px] w-full px-6 sm:px-10 lg:px-14">
               <span
                 className="inline-flex items-center gap-3 text-[10px] sm:text-[11px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/70"
-                style={{ fontFamily: "var(--font-inter)" }}
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 <span aria-hidden className="h-px w-6 bg-[color:var(--color-warm-clay)]" />
                 {t(row.label)}

@@ -49,7 +49,7 @@ export function Footer() {
           <div className="md:col-span-3">
             <h4
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-5"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "เมนูหลัก", en: "Explore" })}
             </h4>
@@ -71,7 +71,7 @@ export function Footer() {
           <div className="md:col-span-4">
             <h4
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-5"
-              style={{ fontFamily: "var(--font-inter)" }}
+              style={{ fontFamily: "var(--font-ui)" }}
             >
               {t({ th: "ติดต่อ", en: "Contact" })}
             </h4>
@@ -108,7 +108,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/60 hover:text-[color:var(--color-bone)] transition-colors"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   Facebook
                 </a>
@@ -117,7 +117,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/60 hover:text-[color:var(--color-bone)] transition-colors"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   Instagram
                 </a>
@@ -126,7 +126,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/60 hover:text-[color:var(--color-bone)] transition-colors"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   Maps
                 </a>
@@ -138,13 +138,13 @@ export function Footer() {
         <div className="mt-16 border-t border-[color:var(--color-bone)]/12 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <p
             className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/45"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             © {year} LandCamp Villa Khao Yai. {t({ th: "สงวนลิขสิทธิ์", en: "All rights reserved." })}
           </p>
           <p
             className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/40"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             {t({
               th: "ออกแบบและพัฒนาด้วยใจ ที่ปากช่อง",

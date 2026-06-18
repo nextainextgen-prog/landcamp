@@ -48,7 +48,7 @@ export function FAQAccordion({ tone = "bone", className }: FAQAccordionProps) {
               <div className="flex items-baseline gap-4 flex-1">
                 <span
                   className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] pt-1"
-                  style={{ fontFamily: "var(--font-inter)" }}
+                  style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {String(i + 1).padStart(2, "0")}
                 </span>

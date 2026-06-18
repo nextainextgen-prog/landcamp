@@ -25,6 +25,12 @@
      ────────────────────────────────────────── */
   --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
   --font-thai: var(--font-noto-thai), "Noto Sans Thai", sans-serif;
+  /* UI label stack — Inter for Latin, Noto Sans Thai for Thai.
+     Use this in inline styles instead of var(--font-inter) so Thai
+     glyphs resolve to Noto rather than the OS fallback (Thonburi /
+     Tahoma). */
+  --font-ui: var(--font-inter), var(--font-noto-thai), "Inter",
+    "Noto Sans Thai", system-ui, sans-serif;
   --font-display: var(--font-inter), var(--font-noto-thai), "Inter",
     "Noto Sans Thai", system-ui, sans-serif;
   --font-serif: var(--font-cormorant), "Cormorant Garamond",
