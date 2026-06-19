@@ -156,7 +156,9 @@ export function HeroSection() {
           })}
         </motion.p>
 
-        {/* CTA cluster — centered, primary + ghost */}
+        {/* CTA cluster — centered, primary + ghost matched on width
+            (min-w) and height (transparent border on primary mirrors
+            ghost's 1px outline) so they sit as a balanced pair. */}
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -170,7 +172,8 @@ export function HeroSection() {
           >
             <span
               className={cn(
-                "inline-flex items-center justify-center rounded-full px-9 sm:px-10 py-[15px] text-[15px] font-semibold",
+                "inline-flex items-center justify-center rounded-full px-6 py-[15px] min-w-[200px] text-[15px] font-semibold",
+                "border border-transparent",
                 "bg-[#a68459] text-white",
                 "hover:bg-[#b8966c] hover:-translate-y-[2px]",
                 "transition-all duration-300 ease-out",
@@ -184,7 +187,7 @@ export function HeroSection() {
           <a
             href="#rooms"
             className={cn(
-              "inline-flex items-center justify-center gap-2 rounded-full px-9 sm:px-10 py-[15px] text-[15px]",
+              "inline-flex items-center justify-center gap-2 rounded-full px-6 py-[15px] min-w-[200px] text-[15px]",
               "border border-[color:var(--color-bone)]/40 bg-[color:var(--color-bone)]/[0.05] text-[color:var(--color-bone)]",
               "hover:bg-[color:var(--color-bone)]/[0.14] hover:border-[color:var(--color-bone)]",
               "transition-all duration-300",

@@ -109,7 +109,6 @@ export function Navbar() {
                   style={{ fontFamily: "var(--font-ui)" }}
                 >
                   {t({ th: "จองเลย", en: "Book Now" })}
-                  <span aria-hidden className="inline-block h-px w-5 bg-current opacity-60" />
                 </span>
               </MagneticButton>
             </div>
