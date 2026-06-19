@@ -6,13 +6,11 @@ import { useRef } from "react";
 import { siteConfig } from "@/data/siteConfig";
 import { useLocale, useT } from "@/app/providers";
 import { usePrefersReducedMotion } from "@/lib/useMediaQuery";
-import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { cn } from "@/lib/cn";
 
-const HEADLINE_TH = ["LandCamp", "Villa khaoyai"];
-
-const HEADLINE_EN = ["LandCamp", "Villa khaoyai"];
+const HEADLINE_TH = ["LandCamp", "Villa Khao Yai"];
+const HEADLINE_EN = ["LandCamp", "Villa Khao Yai"];
 
 const EASE_SOFT = [0.22, 1, 0.36, 1] as const;
 
@@ -62,7 +60,7 @@ export function HeroSection() {
       ref={ref}
       id="hero"
       aria-label={t({ th: "หน้าหลัก", en: "Hero" })}
-      className="relative min-h-[100svh] w-full overflow-hidden bg-[color:var(--color-forest-night)] text-[color:var(--color-bone)]"
+      className="relative min-h-[100svh] w-full overflow-hidden bg-[color:var(--color-forest-night)] text-[color:var(--color-bone)] flex items-center justify-center text-center"
     >
       {/* ──────────────────────────────────────
           Full-bleed image with parallax + zoom
@@ -81,33 +79,14 @@ export function HeroSection() {
         />
       </motion.div>
 
-      {/* Top darken — keeps navbar legible */}
-      <div
-        aria-hidden
-        className="absolute inset-x-0 top-0 h-[260px] pointer-events-none z-[2]"
-        style={{
-          background:
-            "linear-gradient(to bottom, rgba(20,25,18,0.55) 0%, rgba(20,25,18,0.22) 55%, rgba(20,25,18,0) 100%)",
-        }}
-      />
-
-      {/* Left-side dark scrim — keeps the headline + body crisp on photo */}
+      {/* Radial vignette + soft top/bottom darken — copies the index.html
+          spec so the centered headline reads with the same balance. */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none z-[2]"
         style={{
           background:
-            "linear-gradient(100deg, rgba(20,25,18,0.62) 0%, rgba(20,25,18,0.38) 32%, rgba(20,25,18,0.08) 58%, rgba(20,25,18,0) 75%)",
-        }}
-      />
-
-      {/* Bottom darken — for scroll cue + brand strip */}
-      <div
-        aria-hidden
-        className="absolute inset-x-0 bottom-0 h-[40%] pointer-events-none z-[2]"
-        style={{
-          background:
-            "linear-gradient(to top, rgba(20,25,18,0.72) 0%, rgba(20,25,18,0.35) 45%, rgba(20,25,18,0) 100%)",
+            "radial-gradient(120% 80% at 50% 55%, rgba(16,18,12,0.15) 0%, rgba(16,18,12,0.55) 60%, rgba(16,18,12,0.82) 100%), linear-gradient(180deg, rgba(16,18,12,0.55) 0%, rgba(16,18,12,0) 28%, rgba(16,18,12,0.35) 70%, rgba(16,18,12,0.92) 100%)",
         }}
       />
 
@@ -121,22 +100,19 @@ export function HeroSection() {
       />
 
       {/* ──────────────────────────────────────
-          CONTENT — left-aligned over the image
+          CONTENT — centered over the image
           ────────────────────────────────────── */}
       <motion.div
         style={{ y: yContent, opacity: opacityContent }}
-        className="relative z-10 mx-auto flex flex-col min-h-[100svh] max-w-[1440px] px-6 sm:px-10 lg:px-14"
+        className="relative z-10 mx-auto w-full max-w-[880px] px-6 pt-[120px] sm:pt-[140px] flex flex-col items-center"
       >
-        <div className="h-[84px] flex-shrink-0" />
-
         <motion.p
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: EASE_SOFT, delay: 0.05 }}
-          className="mt-12 sm:mt-16 lg:mt-20 flex items-center gap-3 text-[10px] sm:text-[11px] uppercase tracking-[0.4em] text-[color:var(--color-bone)]/85"
+          className="text-[11px] sm:text-[11.5px] uppercase tracking-[0.32em] font-medium text-[color:var(--color-warm-clay)]/90"
           style={{ fontFamily: "var(--font-ui)" }}
         >
-          <span aria-hidden className="h-px w-8 sm:w-12 bg-current opacity-70" />
           {t({
             th: "เขาใหญ่ · ที่พักไพรเวท",
             en: "Khao Yai · Private Sanctuary",
@@ -153,12 +129,11 @@ export function HeroSection() {
             },
           }}
           className={cn(
-            "mt-4 sm:mt-6 font-serif font-medium text-[color:var(--color-bone)]",
-            "sm:max-w-[16ch] md:max-w-[18ch] lg:max-w-[20ch]",
-            "drop-shadow-[0_2px_24px_rgba(0,0,0,0.35)]",
-            "leading-[0.95] text-[40px] sm:text-[58px] md:text-[74px] lg:text-[96px] xl:text-[116px]",
+            "mt-7 font-serif font-medium text-[color:var(--color-bone)]",
+            "drop-shadow-[0_2px_30px_rgba(0,0,0,0.4)]",
+            "leading-[1.08] text-[42px] sm:text-[64px] md:text-[80px] lg:text-[96px] xl:text-[104px]",
           )}
-          style={{ letterSpacing: "-0.01em" }}
+          style={{ letterSpacing: "-0.005em" }}
         >
           {headline.map((line, i) => (
             <span key={i} className="block overflow-hidden pb-1">
@@ -173,7 +148,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: EASE_SOFT, delay: 1.0 }}
-          className="mt-7 sm:mt-8 max-w-md text-sm sm:text-[15px] leading-relaxed text-[color:var(--color-bone)]/82"
+          className="mt-6 max-w-[620px] mx-auto text-[15px] sm:text-base lg:text-[18px] leading-relaxed font-light text-[color:var(--color-bone)]/90"
         >
           {t({
             th: "วิลล่าสไตล์ Glamping 6 หลัง ใจกลางขุนเขาเขาใหญ่ ทุกมุมมองสงวนไว้ให้คุณคนเดียว",
@@ -181,12 +156,12 @@ export function HeroSection() {
           })}
         </motion.p>
 
-        {/* CTA cluster */}
+        {/* CTA cluster — centered, primary + ghost */}
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: EASE_SOFT, delay: 1.3 }}
-          className="mt-8 sm:mt-9 flex flex-row items-center gap-4 sm:gap-5"
+          className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4"
         >
           <MagneticButton
             href={siteConfig.contact.lineUrl}
@@ -195,64 +170,65 @@ export function HeroSection() {
           >
             <span
               className={cn(
-                "inline-flex items-center justify-center gap-3 rounded-full px-7 py-3.5 text-[11px] uppercase tracking-[0.32em]",
-                "bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)]",
-                "hover:bg-[color:var(--color-forest-deep)]",
-                "transition-colors duration-500 ease-out",
+                "inline-flex items-center justify-center rounded-full px-9 sm:px-10 py-[15px] text-[15px] font-semibold",
+                "bg-[#a68459] text-white",
+                "hover:bg-[#b8966c] hover:-translate-y-[2px]",
+                "transition-all duration-300 ease-out",
               )}
-              style={{ fontFamily: "var(--font-ui)" }}
+              style={{ fontFamily: "var(--font-ui)", letterSpacing: "0.02em" }}
             >
               {t({ th: "จองที่พัก", en: "Reserve" })}
-              <span aria-hidden className="inline-block h-px w-5 bg-current opacity-70" />
             </span>
           </MagneticButton>
 
           <a
             href="#rooms"
-            className="inline-flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/90 hover:text-[color:var(--color-warm-clay)] transition-colors px-2 sm:px-0"
-            style={{ fontFamily: "var(--font-ui)" }}
+            className={cn(
+              "inline-flex items-center justify-center gap-2 rounded-full px-9 sm:px-10 py-[15px] text-[15px]",
+              "border border-[color:var(--color-bone)]/40 bg-[color:var(--color-bone)]/[0.05] text-[color:var(--color-bone)]",
+              "hover:bg-[color:var(--color-bone)]/[0.14] hover:border-[color:var(--color-bone)]",
+              "transition-all duration-300",
+            )}
+            style={{ fontFamily: "var(--font-ui)", letterSpacing: "0.02em" }}
           >
             {t({ th: "สำรวจห้องพัก", en: "Explore Rooms" })}
-            <span aria-hidden className="inline-block h-px w-6 bg-current opacity-60" />
+            <span aria-hidden>→</span>
           </a>
         </motion.div>
+      </motion.div>
 
-        {/* Push the bottom row down */}
-        <div className="flex-1 min-h-[40px]" />
-
-        {/* Bottom row — scroll indicator + brand strip */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: EASE_SOFT, delay: 1.7 }}
-          className="pb-8 sm:pb-10 lg:pb-12 flex items-end justify-between gap-6"
+      {/* Scroll indicator — centered at bottom, SCROLL text + thin
+          animated line. Inlined here so the structure matches the
+          index.html reference exactly. */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1, ease: EASE_SOFT, delay: 1.7 }}
+        className="absolute bottom-8 sm:bottom-9 left-1/2 -translate-x-1/2 z-[4] flex flex-col items-center gap-2.5 text-[color:var(--color-bone)]/40"
+        aria-hidden
+      >
+        <span
+          className="text-[10px] font-medium"
+          style={{ fontFamily: "var(--font-ui)", letterSpacing: "0.4em" }}
         >
-          <ScrollIndicator href="#about" tone="bone" />
-
-          <div
-            className="hidden md:flex items-center gap-6 text-[10px] uppercase tracking-[0.38em] text-[color:var(--color-bone)]/80"
-            style={{ fontFamily: "var(--font-ui)" }}
-          >
-            <span>
-              {t({
-                th: "ปากช่อง · นครราชสีมา",
-                en: "Pak Chong · Nakhon Ratchasima",
-              })}
-            </span>
-            <span aria-hidden className="h-px w-8 bg-current opacity-50" />
-            <span>
-              {t({
-                th: `เริ่มต้นที่ ${siteConfig.inventory.priceFromTHB.toLocaleString("en-US")} บาท`,
-                en: `From THB ${siteConfig.inventory.priceFromTHB.toLocaleString("en-US")}`,
-              })}
-            </span>
-            <span aria-hidden className="h-px w-8 bg-current opacity-50" />
-            <span>
-              {siteConfig.rating.value} / 5 · {siteConfig.rating.count}{" "}
-              {t({ th: "รีวิว", en: "reviews" })}
-            </span>
-          </div>
-        </motion.div>
+          SCROLL
+        </span>
+        <span className="relative block w-px h-[34px] overflow-hidden bg-gradient-to-b from-[#b5835a] to-transparent">
+          <span className="absolute top-0 left-0 w-full h-3 bg-[color:var(--color-bone)] hero-scroll-dot" />
+        </span>
+        <style jsx>{`
+          @keyframes hero-scroll-dot {
+            0% {
+              transform: translateY(-14px);
+            }
+            100% {
+              transform: translateY(40px);
+            }
+          }
+          .hero-scroll-dot {
+            animation: hero-scroll-dot 1.8s infinite;
+          }
+        `}</style>
       </motion.div>
     </section>
   );
