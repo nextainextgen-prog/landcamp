@@ -68,3 +68,22 @@ export type Lead = {
   message?: string;
   source?: string;
 };
+
+export type {
+  Customer,
+  AdminRole,
+  AdminUser,
+} from "./customer";
+
+export type {
+  Booking,
+  BookingStatus,
+  RoomAvailability,
+} from "./booking";
+
+export type {
+  Payment,
+  PaymentKind,
+  PaymentStatus,
+  Notification,
+} from "./payment";
