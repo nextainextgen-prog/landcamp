@@ -15,7 +15,6 @@ import {
   Switch,
   Table,
   TextField,
-  useOverlayState,
 } from "@heroui/react";
 import type {
   PaymentAccount,
@@ -91,7 +90,7 @@ export function AccountsCard({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const modal = useOverlayState();
+  const [modalOpen, setModalOpen] = useState(false);
   const formId = useId();
 
   const rows = useMemo(() => accounts, [accounts]);
@@ -100,7 +99,7 @@ export function AccountsCard({
     setEditing(null);
     setForm(EMPTY_FORM);
     setError(null);
-    modal.open();
+    setModalOpen(true);
   }
 
   function openEdit(account: PaymentAccount) {
@@ -113,7 +112,11 @@ export function AccountsCard({
       is_active: account.is_active,
     });
     setError(null);
-    modal.open();
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
   }
 
   async function toggleActive(account: PaymentAccount, next: boolean) {
@@ -194,7 +197,7 @@ export function AccountsCard({
           ? list.map((a) => (a.id === editing.id ? saved : a))
           : [...list, saved],
       );
-      modal.close();
+      closeModal();
     } catch {
       setError("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
@@ -282,16 +285,16 @@ export function AccountsCard({
         )}
       </Card.Content>
 
-      <Modal state={modal}>
-        <Modal.Backdrop />
-        <Modal.Container size="md">
-          <Modal.Dialog>
-            <Modal.Header>
-              <Modal.Heading>
-                {editing ? "แก้ไขบัญชี" : "เพิ่มบัญชีใหม่"}
-              </Modal.Heading>
-            </Modal.Header>
-            <Modal.Body>
+      <Modal isOpen={modalOpen} onOpenChange={setModalOpen}>
+        <Modal.Backdrop>
+          <Modal.Container size="md">
+            <Modal.Dialog>
+              <Modal.Header>
+                <Modal.Heading>
+                  {editing ? "แก้ไขบัญชี" : "เพิ่มบัญชีใหม่"}
+                </Modal.Heading>
+              </Modal.Header>
+              <Modal.Body>
               <Form id={formId} onSubmit={onSubmit} className="flex flex-col gap-4">
                 <Select
                   selectedKey={form.type}
@@ -381,26 +384,27 @@ export function AccountsCard({
                   </p>
                 ) : null}
               </Form>
-            </Modal.Body>
-            <Modal.Footer className="flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                onPress={modal.close}
-                isDisabled={submitting}
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                variant="primary"
-                type="submit"
-                form={formId}
-                isDisabled={submitting}
-              >
-                {submitting ? "กำลังบันทึก…" : "บันทึก"}
-              </Button>
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
+              </Modal.Body>
+              <Modal.Footer className="flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  onPress={closeModal}
+                  isDisabled={submitting}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  form={formId}
+                  isDisabled={submitting}
+                >
+                  {submitting ? "กำลังบันทึก…" : "บันทึก"}
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
       </Modal>
     </Card>
   );
