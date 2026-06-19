@@ -62,7 +62,11 @@ export function DepositCard({
             isSelected={enabled}
             onChange={setEnabled}
             aria-label="เปิดตัวเลือกมัดจำ"
-          />
+          >
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+          </Switch>
         </div>
 
         {enabled ? (
