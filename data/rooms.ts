@@ -44,7 +44,7 @@ const baseRooms: Room[] = [
     roomSize: { th: "40 ตร.ม.", en: "40 sqm" },
     breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
     extraBed: {
-      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้า)",
       en: "1 extra bed available · THB 750 per person (breakfast included)",
     },
     services: [...SHARED_SERVICES],
@@ -93,7 +93,7 @@ const baseRooms: Room[] = [
     },
     breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
     extraBed: {
-      th: "เสริมเตียงได้ 2 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      th: "เสริมเตียงได้ 2 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้า)",
       en: "Up to 2 extra beds · THB 750 per person (breakfast included)",
     },
     services: [...SHARED_SERVICES],
@@ -179,7 +179,7 @@ const baseRooms: Room[] = [
     roomSize: { th: "52 ตร.ม.", en: "52 sqm" },
     breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
     extraBed: {
-      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้า)",
       en: "1 extra bed available · THB 750 per person (breakfast included)",
     },
     services: [...SHARED_SERVICES],
@@ -220,7 +220,7 @@ const baseRooms: Room[] = [
     roomSize: { th: "52 ตร.ม.", en: "52 sqm" },
     breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
     extraBed: {
-      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้า)",
       en: "1 extra bed available · THB 750 per person (breakfast included)",
     },
     services: [...SHARED_SERVICES],
@@ -263,7 +263,7 @@ const baseRooms: Room[] = [
     roomSize: { th: "52 ตร.ม.", en: "52 sqm" },
     breakfastIncluded: { th: "ห้องพักรวมอาหารเช้า", en: "Breakfast included" },
     extraBed: {
-      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้าค่ะ)",
+      th: "เสริมเตียงได้ 1 ที่ ราคา 750 บาท / ท่าน (ราคาเตียงเสริมรวมอาหารเช้า)",
       en: "1 extra bed available · THB 750 per person (breakfast included)",
     },
     services: [...SHARED_SERVICES],
