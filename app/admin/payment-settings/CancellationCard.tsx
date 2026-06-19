@@ -113,7 +113,11 @@ export function CancellationCard({
             isSelected={enabled}
             onChange={setEnabled}
             aria-label="เปิดนโยบายยกเลิก"
-          />
+          >
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+          </Switch>
         </div>
 
         {enabled ? (

@@ -247,7 +247,11 @@ export function AccountsCard({
                           isDisabled={busyId === account.id}
                           onChange={(next) => toggleActive(account, next)}
                           aria-label={`เปิดใช้งาน ${account.name}`}
-                        />
+                        >
+                          <Switch.Control>
+                            <Switch.Thumb />
+                          </Switch.Control>
+                        </Switch>
                       </Table.Cell>
                       <Table.Cell>
                         <div className="flex gap-2">
@@ -364,7 +368,11 @@ export function AccountsCard({
                       setForm((f) => ({ ...f, is_active: next }))
                     }
                     aria-label="เปิดใช้งานบัญชีนี้"
-                  />
+                  >
+                    <Switch.Control>
+                      <Switch.Thumb />
+                    </Switch.Control>
+                  </Switch>
                 </div>
 
                 {error ? (
