@@ -7,6 +7,7 @@ import { useT } from "@/app/providers";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { MagneticButton } from "@/components/ui/MagneticButton";
+import { NavAuth } from "./NavAuth";
 import { cn } from "@/lib/cn";
 
 const SCROLL_THRESHOLD = 60;
@@ -92,6 +93,10 @@ export function Navbar() {
           <div className="flex items-center gap-3 lg:gap-5">
             <div className="hidden md:block">
               <LanguageToggle variant="light" />
+            </div>
+
+            <div className="hidden md:block">
+              <NavAuth variant="desktop" />
             </div>
 
             <div className="hidden md:block">
@@ -216,6 +221,8 @@ export function Navbar() {
 
               <div className="mt-auto px-6 pb-10 space-y-6">
                 <LanguageToggle variant="light" />
+
+                <NavAuth variant="mobile" />
 
                 <a
                   href={siteConfig.contact.lineUrl}
