@@ -30,3 +30,5 @@ export function createSupabaseAdminClient(): SupabaseClient {
     },
   });
 }
+
+export { createSupabaseAdminClient as createAdminClient };

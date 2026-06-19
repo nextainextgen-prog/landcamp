@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   }
 
   const result = validatePaymentAccountInput(body);
-  if (!result.ok) return errorResponse("validation failed", 400, result.fields);
+  if (!result.ok) return errorResponse("validation failed", 400, result.errors);
 
   let supabase;
   try {

@@ -57,7 +57,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const result = validatePaymentSettingsInput(body);
-  if (!result.ok) return errorResponse("validation failed", 400, result.fields);
+  if (!result.ok) return errorResponse("validation failed", 400, result.errors);
 
   if (Object.keys(result.data).length === 0) {
     return errorResponse("no fields to update", 400);

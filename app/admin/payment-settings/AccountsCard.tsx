@@ -42,7 +42,7 @@ type FormState = PaymentAccountInput;
 
 const EMPTY_FORM: FormState = {
   type: "promptpay_phone",
-  name: "",
+  account_name: "",
   bank: null,
   account_number: "",
   is_active: true,
@@ -66,7 +66,7 @@ function accountNumberHint(type: PaymentAccountType): string {
 }
 
 function validate(input: FormState): string | null {
-  if (!input.name.trim()) return "กรุณากรอกชื่อบัญชี";
+  if (!input.account_name.trim()) return "กรุณากรอกชื่อบัญชี";
   if (bankRequired(input.type) && !input.bank?.trim())
     return "กรุณากรอกชื่อธนาคาร";
   const digits = input.account_number.replace(/\D/g, "");
@@ -107,7 +107,7 @@ export function AccountsCard({
     setEditing(account);
     setForm({
       type: account.type,
-      name: account.name,
+      account_name: account.account_name,
       bank: account.bank,
       account_number: account.account_number,
       is_active: account.is_active,
@@ -143,7 +143,7 @@ export function AccountsCard({
   async function deleteAccount(account: PaymentAccount) {
     if (
       typeof window !== "undefined" &&
-      !window.confirm(`ลบบัญชี "${account.name}" ใช่หรือไม่?`)
+      !window.confirm(`ลบบัญชี "${account.account_name}" ใช่หรือไม่?`)
     )
       return;
     setBusyId(account.id);
@@ -188,7 +188,7 @@ export function AccountsCard({
             body: JSON.stringify(payload),
           });
       if (!res.ok) throw new Error("failed");
-      const saved = (await res.json()) as PaymentAccount;
+      const saved = ((await res.json()) as { account: PaymentAccount }).account;
       setAccounts((list) =>
         editing
           ? list.map((a) => (a.id === editing.id ? saved : a))
@@ -236,7 +236,7 @@ export function AccountsCard({
                   {rows.map((account) => (
                     <Table.Row key={account.id}>
                       <Table.Cell>{TYPE_LABEL[account.type]}</Table.Cell>
-                      <Table.Cell>{account.name}</Table.Cell>
+                      <Table.Cell>{account.account_name}</Table.Cell>
                       <Table.Cell>{account.bank ?? "—"}</Table.Cell>
                       <Table.Cell className="font-mono">
                         {account.account_number}
@@ -246,7 +246,7 @@ export function AccountsCard({
                           isSelected={account.is_active}
                           isDisabled={busyId === account.id}
                           onChange={(next) => toggleActive(account, next)}
-                          aria-label={`เปิดใช้งาน ${account.name}`}
+                          aria-label={`เปิดใช้งาน ${account.account_name}`}
                         />
                       </Table.Cell>
                       <Table.Cell>
@@ -319,8 +319,8 @@ export function AccountsCard({
 
                 <TextField
                   isRequired
-                  value={form.name}
-                  onChange={(value) => setForm((f) => ({ ...f, name: value }))}
+                  value={form.account_name}
+                  onChange={(value) => setForm((f) => ({ ...f, account_name: value }))}
                 >
                   <Label>ชื่อบัญชี</Label>
                   <Input placeholder="เช่น คุณสมชาย ใจดี" />

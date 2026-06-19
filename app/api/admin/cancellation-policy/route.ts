@@ -2,17 +2,19 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { requireAdmin } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type {
-  CancellationPolicy,
-  CancellationTier,
-} from "@/types/payment-settings";
+import type { CancellationPolicyTier } from "@/types/payment-settings";
+
+type CancellationPolicyResponse = {
+  enabled: boolean;
+  tiers: CancellationPolicyTier[];
+};
 import { validateCancellationPolicyInput } from "@/lib/validators/payment-settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const POLICY_TABLE = "cancellation_policy";
-const TIERS_TABLE = "cancellation_tiers";
+const TIERS_TABLE = "cancellation_policy_tiers";
 const SINGLETON_ID = 1;
 
 function errorResponse(
@@ -30,7 +32,7 @@ type PolicyRow = { id: number; enabled: boolean };
 
 async function loadPolicy(
   supabase: ReturnType<typeof createAdminClient>,
-): Promise<{ policy: PolicyRow | null; tiers: CancellationTier[]; error?: string }> {
+): Promise<{ policy: PolicyRow | null; tiers: CancellationPolicyTier[]; error?: string }> {
   const { data: policy, error: policyErr } = await supabase
     .from(POLICY_TABLE)
     .select("*")
@@ -46,7 +48,7 @@ async function loadPolicy(
 
   return {
     policy: (policy as PolicyRow | null) ?? null,
-    tiers: (tiers ?? []) as CancellationTier[],
+    tiers: (tiers ?? []) as CancellationPolicyTier[],
   };
 }
 
@@ -65,7 +67,7 @@ export async function GET() {
   if (error) return errorResponse(error, 500);
   if (!policy) return errorResponse("cancellation policy row not found", 404);
 
-  const payload: CancellationPolicy = { enabled: policy.enabled, tiers };
+  const payload: CancellationPolicyResponse = { enabled: policy.enabled, tiers };
   return NextResponse.json({ policy: payload });
 }
 
@@ -81,7 +83,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const result = validateCancellationPolicyInput(body);
-  if (!result.ok) return errorResponse("validation failed", 400, result.fields);
+  if (!result.ok) return errorResponse("validation failed", 400, result.errors);
 
   let supabase;
   try {
@@ -121,6 +123,6 @@ export async function PUT(req: NextRequest) {
   if (error) return errorResponse(error, 500);
   if (!policy) return errorResponse("cancellation policy row not found", 404);
 
-  const payload: CancellationPolicy = { enabled: policy.enabled, tiers };
+  const payload: CancellationPolicyResponse = { enabled: policy.enabled, tiers };
   return NextResponse.json({ policy: payload });
 }

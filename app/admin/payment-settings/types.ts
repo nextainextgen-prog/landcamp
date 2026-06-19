@@ -12,7 +12,7 @@ export type PaymentAccountType =
 export type PaymentAccount = {
   id: string;
   type: PaymentAccountType;
-  name: string;
+  account_name: string;
   bank: string | null;
   account_number: string;
   is_active: boolean;
@@ -22,7 +22,7 @@ export type PaymentAccount = {
 
 export type PaymentAccountInput = {
   type: PaymentAccountType;
-  name: string;
+  account_name: string;
   bank: string | null;
   account_number: string;
   is_active: boolean;

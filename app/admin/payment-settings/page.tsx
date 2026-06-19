@@ -23,14 +23,18 @@ async function getBaseUrl(): Promise<string> {
   return `${proto}://${host}`;
 }
 
-async function safeGet<T>(url: string, fallback: T): Promise<T> {
+async function safeGet<T>(
+  url: string,
+  fallback: T,
+  pick: (json: unknown) => T,
+): Promise<T> {
   try {
     const res = await fetch(url, {
       cache: "no-store",
       headers: { accept: "application/json" },
     });
     if (!res.ok) return fallback;
-    return (await res.json()) as T;
+    return pick(await res.json());
   } catch {
     return fallback;
   }
@@ -53,14 +57,22 @@ const DEFAULT_POLICY: CancellationPolicy = {
 export default async function PaymentSettingsPage() {
   const base = await getBaseUrl();
   const [accounts, settings, policy] = await Promise.all([
-    safeGet<PaymentAccount[]>(`${base}/api/admin/payment-accounts`, []),
+    safeGet<PaymentAccount[]>(
+      `${base}/api/admin/payment-accounts`,
+      [],
+      (json) => (json as { accounts: PaymentAccount[] }).accounts ?? [],
+    ),
     safeGet<PaymentSettings>(
       `${base}/api/admin/payment-settings`,
       DEFAULT_SETTINGS,
+      (json) =>
+        (json as { settings: PaymentSettings }).settings ?? DEFAULT_SETTINGS,
     ),
     safeGet<CancellationPolicy>(
       `${base}/api/admin/cancellation-policy`,
       DEFAULT_POLICY,
+      (json) =>
+        (json as { policy: CancellationPolicy }).policy ?? DEFAULT_POLICY,
     ),
   ]);
 
