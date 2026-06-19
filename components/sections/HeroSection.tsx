@@ -110,7 +110,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: EASE_SOFT, delay: 0.05 }}
-          className="text-[11px] sm:text-[11.5px] uppercase tracking-[0.32em] font-medium text-[color:var(--color-warm-clay)]/90"
+          className="text-[11px] sm:text-[11.5px] uppercase tracking-[0.32em] font-medium text-[color:var(--color-bone)]"
           style={{ fontFamily: "var(--font-ui)" }}
         >
           {t({
@@ -151,8 +151,13 @@ export function HeroSection() {
           className="mt-6 max-w-[620px] mx-auto text-[15px] sm:text-base lg:text-[18px] leading-relaxed font-light text-[color:var(--color-bone)]/90"
         >
           {t({
-            th: "วิลล่าสไตล์ Glamping 6 หลัง ใจกลางขุนเขาเขาใหญ่ ทุกมุมมองสงวนไว้ให้คุณคนเดียว",
-            en: "Six glamping villas tucked into the forests of Khao Yai — every vista, reserved for you alone.",
+            th: "วิลล่าสไตล์ Glamping 6 หลัง ใจกลางขุนเขาเขาใหญ่",
+            en: "Six glamping villas tucked into the forests of Khao Yai",
+          })}
+          <br />
+          {t({
+            th: "ทุกมุมมองสงวนไว้ให้คุณคนเดียว",
+            en: "every vista, reserved for you alone.",
           })}
         </motion.p>
 
