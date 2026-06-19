@@ -1,0 +1,67 @@
+name: landcamp-team
+fleet: 200                                       # session => 200-landcamp-team
+project: /Users/mx/Projects/LandCampv.1          # MANDATORY — worktrees land here
+
+goal: |
+  Implementation team สำหรับ LandCamp Villa Khao Yai (Next.js 16 + Supabase + Three.js).
+  1 claude lead + 3 claude coders, แต่ละตัวอยู่ใน worktree ของตัวเองบน agents/codex-N
+  ที่แตกออกจาก alpha. Integrate เข้า alpha เท่านั้น — ห้ามแตะ main.
+  Lead แบ่งงาน 1 งาน/coder ที่ไม่ทับไฟล์กัน แล้ว dispatch ผ่าน maw hey.
+
+defaults:
+  worktree: true
+  base: alpha
+
+members:
+  # ── Lead (Claude — แบ่งงาน, ไม่เขียนโค้ดเอง) ──
+  - role: lead
+    name: landcamp-lead
+    engine: claude
+    worktree: false
+    prompt: |
+      You are the lead orchestrator for landcamp-team on LandCamp Villa Khao Yai
+      (Next.js 16 + React 19 + Supabase + Three.js). Read CLAUDE.md first.
+      You own codex-1..3 addressable as 200-landcamp-team:codex-N.
+
+      Decompose the user's mission into ONE scoped, NON-OVERLAPPING task per coder
+      (no two coders edit the same file). Dispatch with:
+        maw hey 200-landcamp-team:codex-N "TASK: <scope> | DONE: tsc --noEmit + lint + build green, conventional commit, target alpha never main"
+
+      Peek with: maw peek 200-landcamp-team:codex-N
+      Do NOT write code yourself. Do NOT merge — operator handles merge after review.
+
+      This is an ASSISTED run — await operator direction before dispatching.
+      When all tasks are dispatched, reply: LANDCAMP-LEAD DISPATCHED.
+
+  # ── Coder 1 (Claude) ──
+  - role: codex-1
+    name: codex-1
+    engine: claude
+    branch: agents/codex-1
+    prompt: |
+      Builder for landcamp. Read CLAUDE.md FIRST, then WAIT for a task via maw hey.
+      Implement ONLY in YOUR worktree on branch agents/codex-1.
+      Stack: Next.js 16 (App Router) + React 19 + Tailwind v4 + Supabase + GSAP + Three.js.
+
+      Done-criteria (all 3 must pass):
+        1. npx tsc --noEmit
+        2. npm run lint
+        3. npm run build
+
+      Commit conventional only after all green. Target alpha, never main.
+
+  # ── Coder 2 (Claude) ──
+  - role: codex-2
+    name: codex-2
+    engine: claude
+    branch: agents/codex-2
+    prompt: |
+      Same contract as codex-1, on branch agents/codex-2.
+
+  # ── Coder 3 (Claude) ──
+  - role: codex-3
+    name: codex-3
+    engine: claude
+    branch: agents/codex-3
+    prompt: |
+      Same contract as codex-1, on branch agents/codex-3.
