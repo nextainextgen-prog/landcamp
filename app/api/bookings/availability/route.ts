@@ -2,13 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { checkAvailability } from "@/lib/booking/availability";
-import { calculateTotal } from "@/lib/booking/pricing";
+import { calculateBookingTotal } from "@/lib/booking/pricing";
 import { AvailabilityQuerySchema } from "@/lib/schemas/booking";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Room = { id: string; base_price: number };
+type Room = { id: string; price_weekday: number; price_weekend: number };
 
 function createSupabaseAdminClient(): SupabaseClient | null {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,21 +17,6 @@ function createSupabaseAdminClient(): SupabaseClient | null {
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-}
-
-function diffNights(checkIn: string, checkOut: string): number {
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const start = Date.UTC(
-    Number(checkIn.slice(0, 4)),
-    Number(checkIn.slice(5, 7)) - 1,
-    Number(checkIn.slice(8, 10)),
-  );
-  const end = Date.UTC(
-    Number(checkOut.slice(0, 4)),
-    Number(checkOut.slice(5, 7)) - 1,
-    Number(checkOut.slice(8, 10)),
-  );
-  return Math.round((end - start) / msPerDay);
 }
 
 export async function GET(request: NextRequest) {
@@ -77,18 +62,17 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const nights = diffNights(checkIn, checkOut);
-  const pricing = calculateTotal({
-    basePrice: Number(room.base_price ?? room.price_weekday ?? 0),
-    nights,
-    adults: 1,
-    children: 0,
+  const pricing = calculateBookingTotal({
+    priceWeekday: Number(room.price_weekday ?? 0),
+    priceWeekend: Number(room.price_weekend ?? room.price_weekday ?? 0),
+    checkIn,
+    checkOut,
     extraBed: false,
   });
 
   return NextResponse.json({
     available: true,
-    nights,
-    totalAmount: pricing.total,
+    nights: pricing.nights,
+    totalAmount: pricing.totalAmount,
   });
 }

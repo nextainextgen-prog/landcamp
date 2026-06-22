@@ -18,7 +18,9 @@ export type AvailabilityQuery = z.infer<typeof AvailabilityQuerySchema>;
 export const CreateBookingSchema = z
   .object({
     roomId: z.string().uuid(),
-    customerId: z.string().uuid(),
+    // Optional: the server resolves the customer from the session and treats
+    // that as the source of truth. When provided it must match (defence in depth).
+    customerId: z.string().uuid().optional(),
     checkIn: isoDate,
     checkOut: isoDate,
     adults: z.number().int().min(1),

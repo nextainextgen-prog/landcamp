@@ -148,7 +148,36 @@ create policy "payments self select via booking"
   );
 
 -- ─────────────────────────────────────────────
--- 4. notifications
+-- 4. admin_users
+--    Created before notifications / room_availability because their RLS
+--    policies reference this table; Postgres needs it to exist first.
+-- ─────────────────────────────────────────────
+create table if not exists public.admin_users (
+  user_id     uuid primary key references auth.users(id) on delete cascade,
+  role        text not null check (role in ('super_admin','reception','housekeeping')),
+  is_active   boolean not null default true,
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists admin_users_active_idx
+  on public.admin_users (is_active);
+
+alter table public.admin_users enable row level security;
+
+drop policy if exists "admin_users self read" on public.admin_users;
+create policy "admin_users self read"
+  on public.admin_users
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.admin_users a
+      where a.user_id = auth.uid() and a.is_active = true
+    )
+  );
+
+-- ─────────────────────────────────────────────
+-- 5. notifications
 -- ─────────────────────────────────────────────
 create table if not exists public.notifications (
   id          uuid primary key default gen_random_uuid(),
@@ -177,7 +206,7 @@ create policy "notifications admin read"
   );
 
 -- ─────────────────────────────────────────────
--- 5. room_availability
+-- 6. room_availability
 -- ─────────────────────────────────────────────
 create table if not exists public.room_availability (
   id          uuid primary key default gen_random_uuid(),
@@ -203,32 +232,5 @@ create policy "room_availability admin read"
     exists (
       select 1 from public.admin_users
       where user_id = auth.uid() and is_active = true
-    )
-  );
-
--- ─────────────────────────────────────────────
--- 6. admin_users
--- ─────────────────────────────────────────────
-create table if not exists public.admin_users (
-  user_id     uuid primary key references auth.users(id) on delete cascade,
-  role        text not null check (role in ('super_admin','reception','housekeeping')),
-  is_active   boolean not null default true,
-  created_at  timestamptz not null default now()
-);
-
-create index if not exists admin_users_active_idx
-  on public.admin_users (is_active);
-
-alter table public.admin_users enable row level security;
-
-drop policy if exists "admin_users self read" on public.admin_users;
-create policy "admin_users self read"
-  on public.admin_users
-  for select
-  to authenticated
-  using (
-    exists (
-      select 1 from public.admin_users a
-      where a.user_id = auth.uid() and a.is_active = true
     )
   );
