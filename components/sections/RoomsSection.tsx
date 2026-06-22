@@ -7,6 +7,8 @@ import { siteConfig } from "@/data/siteConfig";
 import { useT } from "@/app/providers";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
+import { BookingModal } from "@/components/booking/BookingModal";
+import { loadBookingIntent, type BookingIntent } from "@/lib/booking/intent";
 import type { Room } from "@/types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -16,6 +18,8 @@ const SLIDE_DURATION_MS = 4000;
 export function RoomsSection() {
   const t = useT();
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
+  const [bookingRoom, setBookingRoom] = useState<Room | null>(null);
+  const [bookingIntent, setBookingIntent] = useState<BookingIntent | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   // Carousel timers only start once the section enters the viewport.
   const inView = useInView(sectionRef, { once: true, margin: "-10% 0px" });
@@ -26,6 +30,32 @@ export function RoomsSection() {
       document.body.style.overflow = "";
     };
   }, [activeRoom]);
+
+  // After a Google OAuth round-trip we land back here; reopen the booking
+  // modal for the room the guest was mid-way through, pre-filled. Deferred to
+  // a macrotask so state isn't set synchronously in the effect and the open
+  // happens after hydration settles (no SSR mismatch).
+  useEffect(() => {
+    const intent = loadBookingIntent();
+    if (!intent) return;
+    const room = rooms.find((r) => r.id === intent.slug);
+    if (!room) return;
+    const id = window.setTimeout(() => {
+      setBookingIntent(intent);
+      setBookingRoom(room);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  function openBooking(room: Room) {
+    setBookingIntent(null);
+    setBookingRoom(room);
+  }
+
+  function closeBooking() {
+    setBookingRoom(null);
+    setBookingIntent(null);
+  }
 
   return (
     <section
@@ -140,16 +170,15 @@ export function RoomsSection() {
                   >
                     {t({ th: "ดูรายละเอียด", en: "View Details" })}
                   </button>
-                  <a
-                    href={siteConfig.contact.lineUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => openBooking(room)}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-5 py-3.5 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300"
                     style={{ fontFamily: "var(--font-ui)" }}
                   >
-                    {t({ th: "จองเลย", en: "Book Now" })}
+                    {t({ th: "จองออนไลน์", en: "Book Now" })}
                     <span aria-hidden>→</span>
-                  </a>
+                  </button>
                 </div>
               </div>
             </motion.article>
@@ -158,7 +187,27 @@ export function RoomsSection() {
       </div>
 
       <AnimatePresence>
-        {activeRoom && <RoomModal room={activeRoom} onClose={() => setActiveRoom(null)} />}
+        {activeRoom && (
+          <RoomModal
+            room={activeRoom}
+            onClose={() => setActiveRoom(null)}
+            onBook={() => {
+              const r = activeRoom;
+              setActiveRoom(null);
+              openBooking(r);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {bookingRoom && (
+          <BookingModal
+            room={bookingRoom}
+            initialIntent={bookingIntent}
+            onClose={closeBooking}
+          />
+        )}
       </AnimatePresence>
     </section>
   );
@@ -244,7 +293,15 @@ function RoomCardCarousel({
 /* ──────────────────────────────────────────
    Room Detail Modal — comprehensive spec view
    ────────────────────────────────────────── */
-function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
+function RoomModal({
+  room,
+  onClose,
+  onBook,
+}: {
+  room: Room;
+  onClose: () => void;
+  onBook: () => void;
+}) {
   const t = useT();
   const [lightbox, setLightbox] = useState<number | null>(null);
 
@@ -442,23 +499,23 @@ function RoomModal({ room, onClose }: { room: Room; onClose: () => void }) {
           </div>
 
           <footer className="px-6 sm:px-8 lg:px-10 pb-6 sm:pb-8 flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={onBook}
+              className="flex-1 inline-flex items-center justify-center rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] px-6 py-3.5 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-warm-clay)] transition-colors duration-500"
+              style={{ fontFamily: "var(--font-ui)" }}
+            >
+              {t({ th: "จองห้องนี้", en: "Reserve this room" })}
+            </button>
             <a
               href={siteConfig.contact.lineUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 inline-flex items-center justify-center rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] px-6 py-3.5 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-warm-clay)] transition-colors duration-500"
-              style={{ fontFamily: "var(--font-ui)" }}
-            >
-              {t({ th: "จองห้องนี้ผ่าน Line", en: "Reserve this room" })}
-            </a>
-            <button
-              type="button"
-              onClick={onClose}
               className="inline-flex items-center justify-center rounded-full border border-[color:var(--color-ink)]/20 px-6 py-3.5 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-ink)]/5 transition-colors"
               style={{ fontFamily: "var(--font-ui)" }}
             >
-              {t({ th: "ปิดหน้าต่าง", en: "Close" })}
-            </button>
+              {t({ th: "สอบถามผ่าน Line", en: "Ask via Line" })}
+            </a>
           </footer>
         </div>
       </motion.div>
