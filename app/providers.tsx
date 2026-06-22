@@ -4,9 +4,8 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import type { Locale } from "@/types";
@@ -20,6 +19,33 @@ type LanguageContextValue = {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 const STORAGE_KEY = "landcamp:locale";
+const DEFAULT_LOCALE: Locale = "th";
+
+// ── Locale persisted in localStorage, exposed as an external store so React
+// can read it without a setState-in-effect (SSR-safe via getServerSnapshot). ──
+const localeListeners = new Set<() => void>();
+
+function readStoredLocale(): Locale {
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  return saved === "th" || saved === "en" ? saved : DEFAULT_LOCALE;
+}
+
+function subscribeLocale(callback: () => void) {
+  localeListeners.add(callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    localeListeners.delete(callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function writeStoredLocale(l: Locale) {
+  window.localStorage.setItem(STORAGE_KEY, l);
+  document.documentElement.lang = l;
+  // `storage` events don't fire in the originating tab, so notify locally.
+  localeListeners.forEach((listener) => listener());
+}
 
 export function useLocale() {
   const ctx = useContext(LanguageContext);
@@ -47,22 +73,19 @@ export function useT() {
  * provider is required. We only need the language context here.
  */
 export function Providers({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("th");
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (saved === "th" || saved === "en") setLocaleState(saved);
-  }, []);
+  const locale = useSyncExternalStore(
+    subscribeLocale,
+    readStoredLocale,
+    () => DEFAULT_LOCALE,
+  );
 
   const setLocale = useCallback((l: Locale) => {
-    setLocaleState(l);
-    localStorage.setItem(STORAGE_KEY, l);
-    document.documentElement.lang = l;
+    writeStoredLocale(l);
   }, []);
 
   const toggle = useCallback(() => {
-    setLocale(locale === "th" ? "en" : "th");
-  }, [locale, setLocale]);
+    writeStoredLocale(readStoredLocale() === "th" ? "en" : "th");
+  }, []);
 
   const value = useMemo(
     () => ({ locale, setLocale, toggle }),

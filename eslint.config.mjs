@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Sibling agent worktrees carry their own build output (`.worktrees/codex-N/.next`)
+    // which the root `.next/**` pattern doesn't match — ignore them wholesale.
+    ".worktrees/**",
+    "**/.next/**",
   ]),
 ]);
 
