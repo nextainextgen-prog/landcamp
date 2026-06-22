@@ -16,6 +16,8 @@ export interface Payment {
   status: PaymentStatus;
   paid_at: string | null;
   slip_url: string | null;
+  trans_ref: string | null;
+  verified_at: string | null;
   created_at: string;
 }
 

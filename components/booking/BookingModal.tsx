@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 
 import { useT } from "@/app/providers";
@@ -17,17 +17,28 @@ import type { Room } from "@/types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+type Phase = "form" | "payment" | "confirmed";
 type SubmitState = "idle" | "submitting" | "error";
+type SlipState = "idle" | "verifying" | "error";
 
-type BookingResult = {
+type BookingCreated = {
+  id: string;
   bookingCode: string;
   nights: number;
   totalAmount: number;
   expiresAt: string;
 };
 
+type PaymentInfo = {
+  qrDataUrl: string;
+  payload: string;
+  amount: number;
+  kind: string;
+  depositPercent: number | null;
+  account: { name: string; type: string; bank: string | null; number: string };
+};
+
 function todayISO(): string {
-  // Local date is fine for the input min; the server validates Bangkok-today.
   const now = new Date();
   const tz = now.getTimezoneOffset() * 60000;
   return new Date(now.getTime() - tz).toISOString().slice(0, 10);
@@ -35,6 +46,15 @@ function todayISO(): string {
 
 function thb(n: number): string {
   return n.toLocaleString("en-US");
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 export function BookingModal({
@@ -61,9 +81,15 @@ export function BookingModal({
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
+  const [phase, setPhase] = useState<Phase>("form");
   const [submit, setSubmit] = useState<SubmitState>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [result, setResult] = useState<BookingResult | null>(null);
+
+  const [booking, setBooking] = useState<BookingCreated | null>(null);
+  const [payment, setPayment] = useState<PaymentInfo | null>(null);
+  const [paymentError, setPaymentError] = useState("");
+  const [slip, setSlip] = useState<SlipState>("idle");
+  const [slipError, setSlipError] = useState("");
 
   // Lock background scroll + Escape to close.
   useEffect(() => {
@@ -132,6 +158,44 @@ export function BookingModal({
     return { slug: room.id, checkIn, checkOut, adults, children, extraBed, notes: notes || undefined };
   }
 
+  // Fetch the PromptPay QR for the freshly-created booking.
+  async function loadQr(bookingId: string) {
+    setPaymentError("");
+    try {
+      const res = await fetch("/api/payments/qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
+      });
+      const data = (await res.json()) as Partial<PaymentInfo> & {
+        qr?: { image: string; mime: string; payload: string };
+        error?: string;
+        code?: string;
+      };
+      if (!res.ok || !data.qr) {
+        setPaymentError(
+          data.code === "no_promptpay_account"
+            ? t({
+                th: "ระบบชำระเงินยังไม่พร้อม — ทีมงานจะติดต่อกลับเพื่อรับชำระ",
+                en: "Payment isn't set up yet — our team will contact you to collect payment.",
+              })
+            : data.error ?? t({ th: "สร้าง QR ไม่สำเร็จ", en: "Couldn't generate the QR." }),
+        );
+        return;
+      }
+      setPayment({
+        qrDataUrl: `data:${data.qr.mime};base64,${data.qr.image}`,
+        payload: data.qr.payload,
+        amount: data.amount ?? 0,
+        kind: data.kind ?? "full",
+        depositPercent: data.depositPercent ?? null,
+        account: data.account ?? { name: "", type: "", bank: null, number: "" },
+      });
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : "network error");
+    }
+  }
+
   async function handleSubmit() {
     if (!canSubmit) return;
 
@@ -162,7 +226,7 @@ export function BookingModal({
           notes: notes || undefined,
         }),
       });
-      const data = (await res.json()) as Partial<BookingResult> & { error?: string };
+      const data = (await res.json()) as Partial<BookingCreated> & { error?: string };
       if (!res.ok) {
         setSubmit("error");
         setErrorMsg(
@@ -173,16 +237,52 @@ export function BookingModal({
         return;
       }
       clearBookingIntent();
-      setResult({
+      const created: BookingCreated = {
+        id: data.id!,
         bookingCode: data.bookingCode!,
         nights: data.nights ?? 0,
         totalAmount: data.totalAmount ?? pricing?.totalAmount ?? 0,
         expiresAt: data.expiresAt ?? "",
-      });
+      };
+      setBooking(created);
       setSubmit("idle");
+      setPhase("payment");
+      await loadQr(created.id);
     } catch (err) {
       setSubmit("error");
       setErrorMsg(err instanceof Error ? err.message : "network error");
+    }
+  }
+
+  async function handleSlipFile(file: File) {
+    if (!booking) return;
+    setSlip("verifying");
+    setSlipError("");
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      const res = await fetch("/api/payments/slip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking.id, base64: dataUrl }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string; code?: string; expected?: number; got?: number };
+      if (res.ok && data.ok) {
+        setPhase("confirmed");
+        return;
+      }
+      setSlip("error");
+      const map: Record<string, string> = {
+        duplicate: t({ th: "สลิปนี้ถูกใช้ไปแล้ว", en: "This slip has already been used." }),
+        amount_mismatch: t({
+          th: `ยอดในสลิปไม่ตรง (ต้องโอน ${thb(data.expected ?? payment?.amount ?? 0)} บาท)`,
+          en: `Slip amount doesn't match (expected ${thb(data.expected ?? payment?.amount ?? 0)} THB).`,
+        }),
+        verify_failed: t({ th: "อ่านสลิปไม่สำเร็จ ลองถ่ายใหม่ให้ชัด", en: "Couldn't read the slip — try a clearer image." }),
+      };
+      setSlipError(map[data.code ?? ""] ?? data.error ?? t({ th: "ตรวจสลิปไม่สำเร็จ", en: "Slip verification failed." }));
+    } catch (err) {
+      setSlip("error");
+      setSlipError(err instanceof Error ? err.message : "network error");
     }
   }
 
@@ -248,8 +348,18 @@ export function BookingModal({
             </p>
           </header>
 
-          {result ? (
-            <Confirmation result={result} room={room} onClose={onClose} />
+          {phase === "confirmed" && booking ? (
+            <Confirmation booking={booking} room={room} onClose={onClose} />
+          ) : phase === "payment" && booking ? (
+            <PaymentStep
+              booking={booking}
+              payment={payment}
+              paymentError={paymentError}
+              slip={slip}
+              slipError={slipError}
+              onUpload={handleSlipFile}
+              onClose={onClose}
+            />
           ) : (
             <div className="px-6 sm:px-8 py-6 flex flex-col gap-6">
               {/* Dates */}
@@ -345,11 +455,7 @@ export function BookingModal({
               </Field>
 
               {/* Price + availability */}
-              <PriceSummary
-                pricing={pricing}
-                availability={availability}
-                datesValid={datesValid}
-              />
+              <PriceSummary pricing={pricing} availability={availability} datesValid={datesValid} />
 
               {errorMsg && (
                 <p className="text-[13px] text-red-700 bg-red-50 rounded-lg px-3 py-2">{errorMsg}</p>
@@ -358,7 +464,7 @@ export function BookingModal({
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={!canSubmit && authReady && !!user}
+                disabled={authReady && !!user && !canSubmit}
                 className="w-full inline-flex items-center justify-center rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-6 py-4 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ fontFamily: "var(--font-ui)" }}
               >
@@ -383,13 +489,126 @@ export function BookingModal({
   );
 }
 
+/* ── payment step: QR + slip upload ────────── */
+function PaymentStep({
+  booking,
+  payment,
+  paymentError,
+  slip,
+  slipError,
+  onUpload,
+  onClose,
+}: {
+  booking: BookingCreated;
+  payment: PaymentInfo | null;
+  paymentError: string;
+  slip: SlipState;
+  slipError: string;
+  onUpload: (file: File) => void;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="px-6 sm:px-8 py-6 flex flex-col gap-5">
+      <div className="flex flex-col gap-1 text-center">
+        <span className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--color-ink)]/55" style={{ fontFamily: "var(--font-ui)" }}>
+          {t({ th: "รหัสการจอง", en: "Booking code" })} · {booking.bookingCode}
+        </span>
+        <h4 className="font-display text-2xl text-[color:var(--color-forest-deep)]">
+          {t({ th: "สแกนเพื่อชำระเงิน", en: "Scan to pay" })}
+        </h4>
+      </div>
+
+      {paymentError ? (
+        <div className="rounded-[14px] bg-[color:var(--color-bone-soft)] px-5 py-6 text-center text-sm text-[color:var(--color-ink)]/75 leading-relaxed">
+          {paymentError}
+        </div>
+      ) : !payment ? (
+        <div className="rounded-[14px] bg-[color:var(--color-bone-soft)] px-5 py-10 text-center text-sm text-[color:var(--color-ink)]/55">
+          {t({ th: "กำลังสร้าง QR…", en: "Generating QR…" })}
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR from EasySlip */}
+            <img
+              src={payment.qrDataUrl}
+              alt={t({ th: "QR พร้อมเพย์", en: "PromptPay QR" })}
+              className="h-56 w-56 rounded-[14px] bg-white p-3 shadow-[0_8px_24px_-12px_rgba(45,55,40,0.4)]"
+            />
+            <div className="text-center">
+              <p className="font-display text-3xl text-[color:var(--color-forest-deep)]">
+                {thb(payment.amount)} {t({ th: "บาท", en: "THB" })}
+              </p>
+              <p className="text-[12px] text-[color:var(--color-ink)]/55">
+                {payment.kind === "deposit"
+                  ? t({ th: `มัดจำ ${payment.depositPercent ?? ""}%`, en: `Deposit ${payment.depositPercent ?? ""}%` })
+                  : t({ th: "ชำระเต็มจำนวน", en: "Full payment" })}
+                {" · "}
+                {payment.account.name} {payment.account.number}
+              </p>
+            </div>
+          </div>
+
+          <div className="h-px bg-[color:var(--color-ink)]/10" />
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-[color:var(--color-ink)]/70 text-center leading-relaxed">
+              {t({
+                th: "โอนแล้วอัปโหลดสลิปเพื่อยืนยันอัตโนมัติ",
+                en: "After paying, upload your slip for instant verification.",
+              })}
+            </p>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onUpload(f);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={slip === "verifying"}
+              className="w-full inline-flex items-center justify-center rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] px-6 py-4 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-warm-clay)] transition-colors disabled:opacity-50"
+              style={{ fontFamily: "var(--font-ui)" }}
+            >
+              {slip === "verifying"
+                ? t({ th: "กำลังตรวจสลิป…", en: "Verifying slip…" })
+                : t({ th: "อัปโหลดสลิป", en: "Upload slip" })}
+            </button>
+            {slipError && (
+              <p className="text-[13px] text-red-700 bg-red-50 rounded-lg px-3 py-2">{slipError}</p>
+            )}
+          </div>
+        </>
+      )}
+
+      <button
+        type="button"
+        onClick={onClose}
+        className="self-center text-[11px] uppercase tracking-[0.3em] text-[color:var(--color-ink)]/45 hover:text-[color:var(--color-ink)]/70 transition-colors"
+        style={{ fontFamily: "var(--font-ui)" }}
+      >
+        {t({ th: "ชำระภายหลัง", en: "Pay later" })}
+      </button>
+    </div>
+  );
+}
+
 /* ── confirmation screen ───────────────────── */
 function Confirmation({
-  result,
+  booking,
   room,
   onClose,
 }: {
-  result: BookingResult;
+  booking: BookingCreated;
   room: Room;
   onClose: () => void;
 }) {
@@ -402,26 +621,26 @@ function Confirmation({
         </svg>
       </div>
       <h4 className="font-display text-2xl text-[color:var(--color-forest-deep)]">
-        {t({ th: "จองสำเร็จ!", en: "Booking confirmed!" })}
+        {t({ th: "ชำระเงินสำเร็จ!", en: "Payment confirmed!" })}
       </h4>
       <p className="text-sm text-[color:var(--color-ink)]/70 leading-relaxed">
         {t({
-          th: `เราล็อกห้อง ${room.name.th} ไว้ให้คุณแล้ว กรุณาชำระเงินภายใน 15 นาที`,
-          en: `We've held ${room.name.en} for you. Please complete payment within 15 minutes.`,
+          th: `การจอง ${room.name.th} ของคุณได้รับการยืนยันแล้ว`,
+          en: `Your booking for ${room.name.en} is confirmed.`,
         })}
       </p>
       <div className="w-full rounded-[14px] bg-[color:var(--color-bone-soft)] px-5 py-4 flex flex-col gap-2 text-sm">
-        <Row label={t({ th: "รหัสการจอง", en: "Booking code" })} value={result.bookingCode} mono />
-        <Row label={t({ th: "จำนวนคืน", en: "Nights" })} value={String(result.nights)} />
+        <Row label={t({ th: "รหัสการจอง", en: "Booking code" })} value={booking.bookingCode} mono />
+        <Row label={t({ th: "จำนวนคืน", en: "Nights" })} value={String(booking.nights)} />
         <Row
           label={t({ th: "ยอดรวม", en: "Total" })}
-          value={`${thb(result.totalAmount)} ${t({ th: "บาท", en: "THB" })}`}
+          value={`${thb(booking.totalAmount)} ${t({ th: "บาท", en: "THB" })}`}
         />
       </div>
       <p className="text-[12px] text-[color:var(--color-ink)]/50 leading-relaxed">
         {t({
-          th: "ระบบชำระเงินออนไลน์กำลังจะมา — ระหว่างนี้ทีมงานจะติดต่อกลับเพื่อยืนยันการชำระเงิน",
-          en: "Online payment is coming soon — our team will contact you to confirm payment.",
+          th: "ดูรายละเอียดการจองได้ที่หน้าบัญชีของคุณ",
+          en: "You can view this booking in your account.",
         })}
       </p>
       <button
