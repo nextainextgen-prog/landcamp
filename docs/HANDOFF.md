@@ -69,6 +69,7 @@ b493373 feat(payment): manual-transfer flow with admin slip review (Sprint 3 red
 สรุป: Sprint 1–3 + Sprint 5 (หลังบ้าน) + ยกเครื่อง UX/UI หลังบ้าน (สี CI) + ระบบ login/จัดการผู้ใช้แอดมิน + ROADMAP step 1 (ความปลอดภัย) ฝั่งโค้ด
 
 ## 6. ค้างอยู่ — owner ต้องทำเอง (ผมทำแทนไม่ได้)
+00. **LINE Login** (ลำดับ 2.0): (ก) รัน migration **013_line_auth** (customers.line_user_id/line_friend/auth_provider + ตาราง line_settings) · (ข) สร้าง LINE **Login channel + Messaging (OA) channel ใน provider เดียวกัน** + ลิงก์กัน, ตั้ง Callback `https://<domain>/auth/line/callback` (+ localhost) · (ค) ไปที่ `/admin/settings` กรอก Channel ID/Secret + OA token + Basic ID — ไม่ต้องแก้ใน code · Google ยังใช้ได้คู่กัน (ลูกค้าเลือกได้ทั้ง 2, เน้น LINE)
 0. **รัน migration 011** ใน SQL Editor (ตาราง CMS `site_content` + `site_content_versions`) — ไฟล์ `supabase/migrations/011_site_content.sql` · ต้องรันก่อน หน้า `/admin/content` ถึงจะบันทึก/เผยแพร่ได้ (ถ้ายังไม่รันจะขึ้นแบนเนอร์เตือน)
 1. **รัน migration 010** ใน SQL Editor (ลบตาราง `admin_users` เก่า + policy ที่อ้างถึง) — ไฟล์ `supabase/migrations/010_retire_admin_users.sql`
 2. **เพิ่ม env บน Vercel** (Production + Preview): `ADMIN_SESSION_SECRET`, `CRON_SECRET` (ค่าอยู่ใน `.env.local` แล้ว) — ต้อง redeploy หลังเพิ่ม
