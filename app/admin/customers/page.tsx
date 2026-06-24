@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PageHeader } from "@/components/admin/ui";
 import { CustomersList, type CustomerRow } from "./CustomersList";
 
 export const dynamic = "force-dynamic";
@@ -53,10 +54,7 @@ export default async function AdminCustomersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">ลูกค้า</h1>
-        <p className="text-sm text-neutral-500">รายชื่อลูกค้าและประวัติการจอง</p>
-      </header>
+      <PageHeader title="ลูกค้า" description="รายชื่อลูกค้าและประวัติการจอง" />
       {errorMsg ? (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           โหลดข้อมูลไม่สำเร็จ: {errorMsg}

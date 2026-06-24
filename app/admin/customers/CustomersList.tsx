@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DataTable, EmptyState } from "@/components/admin/ui";
 
 export type CustomerRow = {
   id: string;
@@ -37,43 +38,38 @@ export function CustomersList({ initialRows }: { initialRows: CustomerRow[] }) {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="ค้นหาชื่อ / อีเมล / เบอร์โทร"
-        className="w-full max-w-sm rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+        className="w-full max-w-sm rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[color:var(--color-forest-deep)] focus:ring-1 focus:ring-[color:var(--color-forest-deep)]/30"
       />
 
       {rows.length === 0 ? (
-        <div className="rounded-md border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500">
-          ไม่พบลูกค้า
-        </div>
+        <EmptyState>ไม่พบลูกค้า</EmptyState>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">ชื่อ</th>
-                <th className="px-4 py-3 font-medium">ติดต่อ</th>
-                <th className="px-4 py-3 font-medium text-center">จอง</th>
-                <th className="px-4 py-3 font-medium text-right">ยอดใช้จ่าย</th>
-                <th className="px-4 py-3 font-medium">จองล่าสุด</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-neutral-100">
-                  <td className="px-4 py-3 font-medium text-neutral-800">{r.name}</td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    <div>{r.email}</div>
-                    {r.phone && <div className="text-xs text-neutral-400">{r.phone}</div>}
-                  </td>
-                  <td className="px-4 py-3 text-center">{r.bookings_count}</td>
-                  <td className="px-4 py-3 text-right font-medium">
-                    ฿{r.total_spent.toLocaleString("en-US")}
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">{thaiDate(r.last_booking)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          head={
+            <tr>
+              <th className="px-5 py-3 font-medium">ชื่อ</th>
+              <th className="px-5 py-3 font-medium">ติดต่อ</th>
+              <th className="px-5 py-3 text-center font-medium">จอง</th>
+              <th className="px-5 py-3 text-right font-medium">ยอดใช้จ่าย</th>
+              <th className="px-5 py-3 font-medium">จองล่าสุด</th>
+            </tr>
+          }
+        >
+          {rows.map((r) => (
+            <tr key={r.id} className="hover:bg-[color:var(--color-bone-soft)]/30">
+              <td className="px-5 py-3 font-medium text-[color:var(--color-forest-deep)]">{r.name}</td>
+              <td className="px-5 py-3 text-[color:var(--color-ink)]/70">
+                <div>{r.email}</div>
+                {r.phone && <div className="text-xs text-[color:var(--color-ink)]/45">{r.phone}</div>}
+              </td>
+              <td className="px-5 py-3 text-center text-[color:var(--color-ink)]/70">{r.bookings_count}</td>
+              <td className="px-5 py-3 text-right font-medium text-[color:var(--color-forest-deep)]">
+                ฿{r.total_spent.toLocaleString("en-US")}
+              </td>
+              <td className="px-5 py-3 text-[color:var(--color-ink)]/70">{thaiDate(r.last_booking)}</td>
+            </tr>
+          ))}
+        </DataTable>
       )}
     </div>
   );

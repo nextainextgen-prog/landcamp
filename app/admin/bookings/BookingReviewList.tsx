@@ -129,8 +129,8 @@ export function BookingReviewList({ initialRows }: { initialRows: ReviewRow[] })
             onClick={() => setFilter(f.key)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               filter === f.key
-                ? "bg-neutral-900 text-white"
-                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                ? "bg-[color:var(--color-warm-clay)] text-white"
+                : "bg-[color:var(--color-bone-soft)] text-[color:var(--color-ink)]/65 hover:bg-[color:var(--color-bone-soft)]/70"
             }`}
           >
             {f.label}
@@ -144,7 +144,7 @@ export function BookingReviewList({ initialRows }: { initialRows: ReviewRow[] })
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="ค้นหา รหัสจอง / ชื่อลูกค้า / เบอร์โทร"
-        className="w-full max-w-sm rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+        className="w-full max-w-sm rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[color:var(--color-forest-deep)] focus:ring-1 focus:ring-[color:var(--color-forest-deep)]/30"
       />
 
       {visible.length === 0 ? (
@@ -160,7 +160,7 @@ export function BookingReviewList({ initialRows }: { initialRows: ReviewRow[] })
               : null;
             const busy = busyId === r.id;
             return (
-              <li key={r.id} className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+              <li key={r.id} className="rounded-xl border border-[color:var(--color-forest-deep)]/10 bg-white p-4 shadow-[0_14px_36px_-26px_rgba(45,55,40,0.35)]">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

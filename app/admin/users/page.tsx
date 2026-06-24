@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PageHeader } from "@/components/admin/ui";
 import { UsersManager, type AdminAccount } from "./UsersManager";
 
 export const dynamic = "force-dynamic";
@@ -26,12 +27,10 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">จัดการผู้ใช้</h1>
-        <p className="text-sm text-neutral-500">
-          เพิ่มผู้ดูแล กำหนดสิทธิ์การเข้าถึงแต่ละเมนู และตั้งรหัสผ่าน
-        </p>
-      </header>
+      <PageHeader
+        title="จัดการผู้ใช้"
+        description="เพิ่มผู้ดูแล กำหนดสิทธิ์การเข้าถึงแต่ละเมนู และตั้งรหัสผ่าน"
+      />
       {errorMsg ? (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           โหลดข้อมูลไม่สำเร็จ: {errorMsg}

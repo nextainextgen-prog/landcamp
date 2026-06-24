@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PageHeader } from "@/components/admin/ui";
 import { RevenueReport, type RevenueBooking, type MonthRow } from "./RevenueReport";
 
 export const dynamic = "force-dynamic";
@@ -52,12 +53,10 @@ export default async function AdminRevenuePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">รายงานรายได้</h1>
-        <p className="text-sm text-neutral-500">
-          รายได้จากการจองที่ยืนยันแล้ว (confirmed / completed)
-        </p>
-      </header>
+      <PageHeader
+        title="รายงานรายได้"
+        description="รายได้จากการจองที่ยืนยันแล้ว (confirmed / completed)"
+      />
       {errorMsg ? (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           โหลดข้อมูลไม่สำเร็จ: {errorMsg}

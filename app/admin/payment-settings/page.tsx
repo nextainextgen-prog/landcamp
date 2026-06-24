@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireSection } from "@/lib/admin/guard";
+import { PageHeader } from "@/components/admin/ui";
 import { AccountsCard } from "./AccountsCard";
 import { DepositCard } from "./DepositCard";
 import { CancellationCard } from "./CancellationCard";
@@ -87,14 +88,10 @@ export default async function PaymentSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          ตั้งค่าการเงิน
-        </h1>
-        <p className="text-sm text-neutral-500">
-          จัดการบัญชีรับเงิน เงินมัดจำ และนโยบายการยกเลิก
-        </p>
-      </header>
+      <PageHeader
+        title="ตั้งค่าการเงิน"
+        description="จัดการบัญชีรับเงิน เงินมัดจำ และนโยบายการยกเลิก"
+      />
 
       <AccountsCard initialAccounts={accounts} />
       <DepositCard initialSettings={settings} />
