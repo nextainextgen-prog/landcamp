@@ -8,6 +8,7 @@ export const SECTIONS = [
   { key: "revenue", label: "รายได้" },
   { key: "customers", label: "ลูกค้า" },
   { key: "payment-settings", label: "ตั้งค่าการเงิน" },
+  { key: "settings", label: "ตั้งค่าระบบ" },
   { key: "users", label: "จัดการผู้ใช้" },
 ] as const;
 
