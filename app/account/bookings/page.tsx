@@ -18,6 +18,7 @@ type BookingRow = {
   status: BookingStatus;
   total_amount: number;
   room_id: string;
+  room_name: string;
   adults: number;
   children: number;
 };
@@ -59,7 +60,16 @@ export default async function AccountBookingsPage() {
       )
       .eq("customer_id", customer.id)
       .order("created_at", { ascending: false });
-    bookings = (data ?? []) as BookingRow[];
+    const rows = (data ?? []) as Omit<BookingRow, "room_name">[];
+
+    // Resolve room names (rooms are publicly readable).
+    const roomIds = [...new Set(rows.map((r) => r.room_id))];
+    const { data: rooms } = roomIds.length
+      ? await supabase.from("rooms").select("id, name_th").in("id", roomIds)
+      : { data: [] };
+    const roomName = new Map((rooms ?? []).map((r) => [r.id as string, r.name_th as string]));
+
+    bookings = rows.map((r) => ({ ...r, room_name: roomName.get(r.room_id) ?? "—" }));
   }
 
   return (
@@ -129,12 +139,7 @@ function BookingsList({ bookings }: { bookings: BookingRow[] }) {
                     {b.booking_code}
                   </Link>
                 </td>
-                <td className="px-5 py-4 text-[color:var(--color-ink)]/80">
-                  {/* TODO: resolve to room name post-seed */}
-                  <span className="font-mono text-xs text-[color:var(--color-ink)]/60">
-                    {b.room_id.slice(0, 8)}
-                  </span>
-                </td>
+                <td className="px-5 py-4 text-[color:var(--color-ink)]/80">{b.room_name}</td>
                 <td className="px-5 py-4 text-[color:var(--color-ink)]/80">
                   {formatThaiDate(b.check_in)} – {formatThaiDate(b.check_out)}
                 </td>
@@ -176,9 +181,7 @@ function BookingsList({ bookings }: { bookings: BookingRow[] }) {
                 {formatThaiDate(b.check_in)} – {formatThaiDate(b.check_out)}
               </div>
               <div className="mt-1 text-xs text-[color:var(--color-ink)]/55">
-                {/* TODO: resolve to room name post-seed */}
-                ห้อง:{" "}
-                <span className="font-mono">{b.room_id.slice(0, 8)}</span>
+                ห้อง: {b.room_name}
                 <span className="mx-2">·</span>
                 {b.adults} ผู้ใหญ่
                 {b.children > 0 ? ` · ${b.children} เด็ก` : null}

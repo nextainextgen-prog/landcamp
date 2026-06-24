@@ -139,10 +139,26 @@ export async function POST(request: NextRequest) {
     verifyNote = err instanceof Error ? err.message : "verification error";
   }
 
-  // Persist slip + verdict. trans_ref has a unique index; if this slip was
+  // Upload the slip image to private Storage (bucket "slips") instead of
+  // bloating the DB with base64. Store the object path in slip_url.
+  let slipPath: string | null = null;
+  try {
+    const mimeMatch = slipDataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+    const ext = (mimeMatch?.[1].split("/")[1] ?? "jpg").replace("jpeg", "jpg");
+    const bytes = Buffer.from(base64Only ?? "", "base64");
+    const path = `${booking.id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await admin.storage
+      .from("slips")
+      .upload(path, bytes, { contentType: mimeMatch?.[1] ?? "image/jpeg", upsert: false });
+    if (!upErr) slipPath = path;
+  } catch {
+    // non-fatal — verdict is still recorded; admin can re-request the slip
+  }
+
+  // Persist slip path + verdict. trans_ref has a unique index; if this slip was
   // already used, downgrade to 'duplicate' and store without the ref.
   const baseUpdate = {
-    slip_image: slipDataUrl,
+    slip_url: slipPath,
     verify_status: verifyStatus,
     verify_note: verifyNote,
     verified_at: new Date().toISOString(),

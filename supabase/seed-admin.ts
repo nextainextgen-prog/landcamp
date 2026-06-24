@@ -1,14 +1,13 @@
 // Seed the super-admin account. Run AFTER migration 009 is applied:
-//   npx tsx supabase/seed-admin.ts
+//   ADMIN_SEED_USERNAME=LandCamp ADMIN_SEED_PASSWORD=yourpass npx tsx supabase/seed-admin.ts
+// (or put ADMIN_SEED_USERNAME / ADMIN_SEED_PASSWORD in .env.local)
 // Idempotent: skips if the username already exists (won't overwrite a changed
 // password). Hash format must match lib/admin/auth.ts verifyPassword.
+// No credentials are hardcoded here — they come from the environment.
 
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes, scryptSync } from "node:crypto";
-
-const USERNAME = "LandCamp";
-const PASSWORD = "LandCamp196";
 
 function hashPassword(pw: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -21,6 +20,14 @@ async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Missing Supabase env vars in .env.local");
+
+  const USERNAME = process.env.ADMIN_SEED_USERNAME ?? "LandCamp";
+  const PASSWORD = process.env.ADMIN_SEED_PASSWORD;
+  if (!PASSWORD) {
+    throw new Error(
+      "Set ADMIN_SEED_PASSWORD (env or .env.local) before seeding the super admin.",
+    );
+  }
 
   const supabase = createClient(url, key, { auth: { persistSession: false } });
 

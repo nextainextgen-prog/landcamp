@@ -33,7 +33,7 @@ export default async function AdminBookingsPage() {
       ids.length
         ? admin
             .from("payments")
-            .select("booking_id, amount, kind, status, verify_status, verify_note, slip_image, created_at")
+            .select("booking_id, amount, kind, status, verify_status, verify_note, slip_image, slip_url, created_at")
             .in("booking_id", ids)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [] as Record<string, unknown>[] }),
@@ -63,6 +63,18 @@ export default async function AdminBookingsPage() {
       if (!latestPayment.has(bid)) latestPayment.set(bid, p);
     }
 
+    // Sign slip object paths (private bucket) so the admin can view them.
+    const slipPaths = [...latestPayment.values()]
+      .map((p) => p.slip_url as string | null)
+      .filter((v): v is string => Boolean(v));
+    const signed = new Map<string, string>();
+    if (slipPaths.length) {
+      const { data: signedData } = await admin.storage.from("slips").createSignedUrls(slipPaths, 3600);
+      for (const s of signedData ?? []) {
+        if (s.path && s.signedUrl) signed.set(s.path, s.signedUrl);
+      }
+    }
+
     rows = list.map((b) => {
       const p = latestPayment.get(b.id as string);
       const c = customerMap.get(b.customer_id as string);
@@ -86,7 +98,11 @@ export default async function AdminBookingsPage() {
               status: p.status as string,
               verify_status: (p.verify_status as string) ?? null,
               verify_note: (p.verify_note as string) ?? null,
-              slip_image: (p.slip_image as string) ?? null,
+              // Prefer the signed Storage URL; fall back to legacy base64 rows.
+              slip_image:
+                (p.slip_url ? signed.get(p.slip_url as string) : null) ??
+                (p.slip_image as string) ??
+                null,
             }
           : null,
       };
