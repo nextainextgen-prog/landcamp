@@ -14,24 +14,26 @@ import type {
 
 export const dynamic = "force-dynamic";
 
-async function getBaseUrl(): Promise<string> {
+async function getRequestContext(): Promise<{ base: string; cookie: string }> {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto =
     h.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
+  return { base: `${proto}://${host}`, cookie: h.get("cookie") ?? "" };
 }
 
 async function safeGet<T>(
   url: string,
   fallback: T,
   pick: (json: unknown) => T,
+  cookie: string,
 ): Promise<T> {
   try {
     const res = await fetch(url, {
       cache: "no-store",
-      headers: { accept: "application/json" },
+      // Forward the admin's session so /api/admin/* requireAdmin() passes.
+      headers: { accept: "application/json", cookie },
     });
     if (!res.ok) return fallback;
     return pick(await res.json());
@@ -55,24 +57,27 @@ const DEFAULT_POLICY: CancellationPolicy = {
 };
 
 export default async function PaymentSettingsPage() {
-  const base = await getBaseUrl();
+  const { base, cookie } = await getRequestContext();
   const [accounts, settings, policy] = await Promise.all([
     safeGet<PaymentAccount[]>(
       `${base}/api/admin/payment-accounts`,
       [],
       (json) => (json as { accounts: PaymentAccount[] }).accounts ?? [],
+      cookie,
     ),
     safeGet<PaymentSettings>(
       `${base}/api/admin/payment-settings`,
       DEFAULT_SETTINGS,
       (json) =>
         (json as { settings: PaymentSettings }).settings ?? DEFAULT_SETTINGS,
+      cookie,
     ),
     safeGet<CancellationPolicy>(
       `${base}/api/admin/cancellation-policy`,
       DEFAULT_POLICY,
       (json) =>
         (json as { policy: CancellationPolicy }).policy ?? DEFAULT_POLICY,
+      cookie,
     ),
   ]);
 

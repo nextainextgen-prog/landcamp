@@ -1,37 +1,22 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { requireAdmin } from "@/lib/admin/guard";
 
 export const metadata: Metadata = {
   title: "Admin",
   robots: { index: false, follow: false },
 };
 
-// TODO(sprint-1 §1.4): replace this stub with a real admin_users check.
-// For now we just require *some* signal — header `x-admin-bypass=1` in dev,
-// or any non-empty `admin-session` cookie. Real RLS + admin_users lookup
-// lands when codex-3 wires the API auth.
-async function requireAdmin(): Promise<void> {
-  const h = await headers();
-  const bypass = h.get("x-admin-bypass");
-  const cookie = h.get("cookie") ?? "";
-  const hasAdminCookie = /(?:^|;\s*)admin-session=[^;]+/.test(cookie);
-  const isDev = process.env.NODE_ENV !== "production";
-
-  if (isDev) return;
-  if (bypass === "1") return;
-  if (hasAdminCookie) return;
-
-  redirect("/");
-}
+export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireAdmin();
+  const auth = await requireAdmin();
+  if (!auth.ok) redirect("/");
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-50 text-neutral-900 md:flex-row">
