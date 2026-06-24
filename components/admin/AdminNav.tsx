@@ -10,6 +10,7 @@ type NavItem = {
 };
 
 const items: NavItem[] = [
+  { label: "รายการจอง", href: "/admin/bookings" },
   { label: "ตั้งค่าการเงิน", href: "/admin/payment-settings" },
 ];
 

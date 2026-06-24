@@ -7,14 +7,18 @@ export type PaymentAccountType =
   | "promptpay_phone"
   | "promptpay_id"
   | "bank_account"
-  | "corporate";
+  | "corporate"
+  | "qr_code";
 
 export interface PaymentAccount {
   id: string;
   type: PaymentAccountType;
   account_name: string;
+  account_name_en: string | null;
   bank: string | null;
-  account_number: string;
+  account_number: string | null;
+  /** Base64 data URL of the receiving QR image (qr_code type only). */
+  qr_image: string | null;
   is_active: boolean;
   sort_order: number;
   created_at: string;

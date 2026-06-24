@@ -1,5 +1,7 @@
-// EasySlip API client — PromptPay QR generation + bank-slip verification.
-// Docs: https://document.easyslip.com  ·  server-only (uses EASYSLIP_API_KEY).
+// EasySlip API client — bank-slip verification (server-only, EASYSLIP_API_KEY).
+// Docs: https://document.easyslip.com
+// Note: PromptPay QR *generation* was removed — payment now shows the admin's
+// configured account / uploaded QR, and slips are verified in the background.
 
 const BASE_URL = "https://api.easyslip.com";
 
@@ -18,47 +20,6 @@ function authHeaders(): Record<string, string> {
   };
 }
 
-// ── QR generation ─────────────────────────────
-export type PromptPayKind = "promptpay_phone" | "promptpay_id";
-
-export type QrResult = {
-  /** Base64-encoded PNG (no data: prefix). */
-  image: string;
-  mime: string;
-  /** EMVCo QR payload string. */
-  payload: string;
-};
-
-/**
- * Generates a PromptPay QR for `amount` THB targeting the given account.
- * `account` is the raw stored value (phone or national id); non-digits are
- * stripped. Throws on an EasySlip error.
- */
-export async function generatePromptPayQR(opts: {
-  kind: PromptPayKind;
-  account: string;
-  amount: number;
-}): Promise<QrResult> {
-  const digits = opts.account.replace(/\D/g, "");
-  const body: Record<string, unknown> = { type: "PROMPTPAY", amount: opts.amount };
-  if (opts.kind === "promptpay_phone") body.msisdn = digits;
-  else body.natId = digits;
-
-  const res = await fetch(`${BASE_URL}/v1/qr/generate`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  const json = (await res.json().catch(() => null)) as
-    | { status?: number; message?: string; data?: QrResult }
-    | null;
-
-  if (!res.ok || !json?.data?.payload) {
-    throw new Error(json?.message ?? `EasySlip QR generation failed (${res.status})`);
-  }
-  return json.data;
-}
-
 // ── Slip verification ─────────────────────────
 export type VerifyResult = {
   success: boolean;
@@ -69,6 +30,8 @@ export type VerifyResult = {
   transRef: string | null;
   receiverAccount: string | null;
   senderName: string | null;
+  receiverNameTh: string | null;
+  receiverNameEn: string | null;
   paidAt: string | null;
 };
 
@@ -84,7 +47,12 @@ type RawVerify = {
       date?: string;
       amount?: { amount?: number };
       sender?: { account?: { name?: { th?: string; en?: string } } };
-      receiver?: { account?: { bank?: { account?: string } } };
+      receiver?: {
+        account?: {
+          name?: { th?: string; en?: string };
+          bank?: { account?: string };
+        };
+      };
     };
   };
 };
@@ -126,6 +94,8 @@ export async function verifyBankSlip(opts: {
     transRef: raw?.transRef ?? null,
     receiverAccount: raw?.receiver?.account?.bank?.account ?? null,
     senderName: raw?.sender?.account?.name?.th ?? raw?.sender?.account?.name?.en ?? null,
+    receiverNameTh: raw?.receiver?.account?.name?.th ?? null,
+    receiverNameEn: raw?.receiver?.account?.name?.en ?? null,
     paidAt: raw?.date ?? null,
   };
 }

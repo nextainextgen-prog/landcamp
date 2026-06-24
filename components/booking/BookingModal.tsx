@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -11,6 +12,7 @@ import {
   saveBookingIntent,
   type BookingIntent,
 } from "@/lib/booking/intent";
+import { bankLabel } from "@/lib/payment/banks";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAvailability } from "@/hooks/useAvailability";
 import type { Room } from "@/types";
@@ -19,23 +21,30 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 type Phase = "form" | "payment" | "confirmed";
 type SubmitState = "idle" | "submitting" | "error";
-type SlipState = "idle" | "verifying" | "error";
+type SlipState = "idle" | "uploading" | "error";
 
 type BookingCreated = {
   id: string;
   bookingCode: string;
   nights: number;
   totalAmount: number;
-  expiresAt: string;
+};
+
+type PaymentAccountDisplay = {
+  id: string;
+  type: string;
+  account_name: string;
+  account_name_en: string | null;
+  bank: string | null;
+  account_number: string | null;
+  qr_image: string | null;
 };
 
 type PaymentInfo = {
-  qrDataUrl: string;
-  payload: string;
   amount: number;
   kind: string;
   depositPercent: number | null;
-  account: { name: string; type: string; bank: string | null; number: string };
+  accounts: PaymentAccountDisplay[];
 };
 
 function todayISO(): string {
@@ -91,7 +100,6 @@ export function BookingModal({
   const [slip, setSlip] = useState<SlipState>("idle");
   const [slipError, setSlipError] = useState("");
 
-  // Lock background scroll + Escape to close.
   useEffect(() => {
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
@@ -104,7 +112,6 @@ export function BookingModal({
     };
   }, [onClose]);
 
-  // Resolve the static slug to the DB room UUID the booking APIs require.
   useEffect(() => {
     let active = true;
     fetch(`/api/rooms?slug=${encodeURIComponent(room.id)}`)
@@ -118,7 +125,6 @@ export function BookingModal({
     };
   }, [room.id]);
 
-  // Detect auth state.
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data }) => {
@@ -158,38 +164,32 @@ export function BookingModal({
     return { slug: room.id, checkIn, checkOut, adults, children, extraBed, notes: notes || undefined };
   }
 
-  // Fetch the PromptPay QR for the freshly-created booking.
-  async function loadQr(bookingId: string) {
+  // Load payment instructions (accounts + amount due) for the new booking.
+  async function loadPaymentInfo(bookingId: string) {
     setPaymentError("");
     try {
-      const res = await fetch("/api/payments/qr", {
+      const res = await fetch("/api/payments/info", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId }),
       });
-      const data = (await res.json()) as Partial<PaymentInfo> & {
-        qr?: { image: string; mime: string; payload: string };
-        error?: string;
-        code?: string;
-      };
-      if (!res.ok || !data.qr) {
+      const data = (await res.json()) as Partial<PaymentInfo> & { error?: string; code?: string };
+      if (!res.ok || !data.accounts) {
         setPaymentError(
-          data.code === "no_promptpay_account"
+          data.code === "no_account"
             ? t({
                 th: "ระบบชำระเงินยังไม่พร้อม — ทีมงานจะติดต่อกลับเพื่อรับชำระ",
                 en: "Payment isn't set up yet — our team will contact you to collect payment.",
               })
-            : data.error ?? t({ th: "สร้าง QR ไม่สำเร็จ", en: "Couldn't generate the QR." }),
+            : data.error ?? t({ th: "โหลดข้อมูลชำระเงินไม่สำเร็จ", en: "Couldn't load payment details." }),
         );
         return;
       }
       setPayment({
-        qrDataUrl: `data:${data.qr.mime};base64,${data.qr.image}`,
-        payload: data.qr.payload,
         amount: data.amount ?? 0,
         kind: data.kind ?? "full",
         depositPercent: data.depositPercent ?? null,
-        account: data.account ?? { name: "", type: "", bank: null, number: "" },
+        accounts: data.accounts,
       });
     } catch (err) {
       setPaymentError(err instanceof Error ? err.message : "network error");
@@ -199,7 +199,6 @@ export function BookingModal({
   async function handleSubmit() {
     if (!canSubmit) return;
 
-    // Not signed in → stash intent and bounce through Google OAuth.
     if (!user) {
       saveBookingIntent(currentIntent());
       const supabase = createSupabaseBrowserClient();
@@ -216,15 +215,7 @@ export function BookingModal({
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roomId,
-          checkIn,
-          checkOut,
-          adults,
-          children,
-          extraBed,
-          notes: notes || undefined,
-        }),
+        body: JSON.stringify({ roomId, checkIn, checkOut, adults, children, extraBed, notes: notes || undefined }),
       });
       const data = (await res.json()) as Partial<BookingCreated> & { error?: string };
       if (!res.ok) {
@@ -242,12 +233,11 @@ export function BookingModal({
         bookingCode: data.bookingCode!,
         nights: data.nights ?? 0,
         totalAmount: data.totalAmount ?? pricing?.totalAmount ?? 0,
-        expiresAt: data.expiresAt ?? "",
       };
       setBooking(created);
       setSubmit("idle");
       setPhase("payment");
-      await loadQr(created.id);
+      await loadPaymentInfo(created.id);
     } catch (err) {
       setSubmit("error");
       setErrorMsg(err instanceof Error ? err.message : "network error");
@@ -256,7 +246,7 @@ export function BookingModal({
 
   async function handleSlipFile(file: File) {
     if (!booking) return;
-    setSlip("verifying");
+    setSlip("uploading");
     setSlipError("");
     try {
       const dataUrl = await fileToDataUrl(file);
@@ -265,21 +255,17 @@ export function BookingModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId: booking.id, base64: dataUrl }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string; code?: string; expected?: number; got?: number };
+      const data = (await res.json()) as { ok?: boolean; error?: string };
       if (res.ok && data.ok) {
         setPhase("confirmed");
         return;
       }
       setSlip("error");
-      const map: Record<string, string> = {
-        duplicate: t({ th: "สลิปนี้ถูกใช้ไปแล้ว", en: "This slip has already been used." }),
-        amount_mismatch: t({
-          th: `ยอดในสลิปไม่ตรง (ต้องโอน ${thb(data.expected ?? payment?.amount ?? 0)} บาท)`,
-          en: `Slip amount doesn't match (expected ${thb(data.expected ?? payment?.amount ?? 0)} THB).`,
-        }),
-        verify_failed: t({ th: "อ่านสลิปไม่สำเร็จ ลองถ่ายใหม่ให้ชัด", en: "Couldn't read the slip — try a clearer image." }),
-      };
-      setSlipError(map[data.code ?? ""] ?? data.error ?? t({ th: "ตรวจสลิปไม่สำเร็จ", en: "Slip verification failed." }));
+      setSlipError(
+        res.status === 410
+          ? t({ th: "การจองหมดเวลาแล้ว กรุณาจองใหม่", en: "This booking expired — please book again." })
+          : data.error ?? t({ th: "อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง", en: "Upload failed. Please try again." }),
+      );
     } catch (err) {
       setSlip("error");
       setSlipError(err instanceof Error ? err.message : "network error");
@@ -332,7 +318,7 @@ export function BookingModal({
               className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
               style={{ fontFamily: "var(--font-ui)" }}
             >
-              LandCamp · {t({ th: "จองออนไลน์", en: "Book online" })}
+              LANDCAMP · {t({ th: "จองออนไลน์", en: "Book online" })}
             </span>
             <h3
               id="booking-modal-title"
@@ -358,11 +344,9 @@ export function BookingModal({
               slip={slip}
               slipError={slipError}
               onUpload={handleSlipFile}
-              onClose={onClose}
             />
           ) : (
             <div className="px-6 sm:px-8 py-6 flex flex-col gap-6">
-              {/* Dates */}
               <div className="grid grid-cols-2 gap-4">
                 <Field label={t({ th: "เช็คอิน", en: "Check-in" })}>
                   <input
@@ -387,34 +371,17 @@ export function BookingModal({
                 </Field>
               </div>
 
-              {/* Guests */}
               <div className="grid grid-cols-2 gap-4">
-                <Stepper
-                  label={t({ th: "ผู้ใหญ่", en: "Adults" })}
-                  value={adults}
-                  min={1}
-                  max={room.maxGuests}
-                  onChange={setAdults}
-                />
-                <Stepper
-                  label={t({ th: "เด็ก", en: "Children" })}
-                  value={children}
-                  min={0}
-                  max={Math.max(0, room.maxGuests - 1)}
-                  onChange={setChildren}
-                />
+                <Stepper label={t({ th: "ผู้ใหญ่", en: "Adults" })} value={adults} min={1} max={room.maxGuests} onChange={setAdults} />
+                <Stepper label={t({ th: "เด็ก", en: "Children" })} value={children} min={0} max={Math.max(0, room.maxGuests - 1)} onChange={setChildren} />
               </div>
 
               {overCapacity && (
                 <p className="text-[13px] text-[color:var(--color-warm-clay)]">
-                  {t({
-                    th: `ห้องนี้พักได้สูงสุด ${room.maxGuests} ท่าน`,
-                    en: `This room sleeps up to ${room.maxGuests} guests.`,
-                  })}
+                  {t({ th: `ห้องนี้พักได้สูงสุด ${room.maxGuests} ท่าน`, en: `This room sleeps up to ${room.maxGuests} guests.` })}
                 </p>
               )}
 
-              {/* Extra bed */}
               <label className="flex items-center justify-between gap-4 cursor-pointer">
                 <span className="flex flex-col">
                   <span className="text-[color:var(--color-forest-deep)] font-medium text-sm">
@@ -430,20 +397,13 @@ export function BookingModal({
                   aria-checked={extraBed}
                   onClick={() => setExtraBed((v) => !v)}
                   className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
-                    extraBed
-                      ? "bg-[color:var(--color-forest-deep)]"
-                      : "bg-[color:var(--color-ink)]/20"
+                    extraBed ? "bg-[color:var(--color-forest-deep)]" : "bg-[color:var(--color-ink)]/20"
                   }`}
                 >
-                  <span
-                    className={`absolute top-1 h-5 w-5 rounded-full bg-[color:var(--color-bone)] transition-all ${
-                      extraBed ? "left-6" : "left-1"
-                    }`}
-                  />
+                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-[color:var(--color-bone)] transition-all ${extraBed ? "left-6" : "left-1"}`} />
                 </button>
               </label>
 
-              {/* Notes */}
               <Field label={t({ th: "หมายเหตุ (ถ้ามี)", en: "Notes (optional)" })}>
                 <textarea
                   value={notes}
@@ -454,12 +414,9 @@ export function BookingModal({
                 />
               </Field>
 
-              {/* Price + availability */}
               <PriceSummary pricing={pricing} availability={availability} datesValid={datesValid} />
 
-              {errorMsg && (
-                <p className="text-[13px] text-red-700 bg-red-50 rounded-lg px-3 py-2">{errorMsg}</p>
-              )}
+              {errorMsg && <p className="text-[13px] text-red-700 bg-red-50 rounded-lg px-3 py-2">{errorMsg}</p>}
 
               <button
                 type="button"
@@ -476,10 +433,7 @@ export function BookingModal({
               </button>
 
               <p className="text-[11px] leading-relaxed text-[color:var(--color-ink)]/45 text-center">
-                {t({
-                  th: "ระบบจะล็อกห้องไว้ 15 นาทีเพื่อชำระเงิน",
-                  en: "Your room is held for 15 minutes to complete payment.",
-                })}
+                {t({ th: "ระบบจะล็อกห้องไว้ 15 นาทีเพื่อชำระเงิน", en: "Your room is held for 15 minutes to complete payment." })}
               </p>
             </div>
           )}
@@ -489,7 +443,7 @@ export function BookingModal({
   );
 }
 
-/* ── payment step: QR + slip upload ────────── */
+/* ── payment step: account info + slip upload ── */
 function PaymentStep({
   booking,
   payment,
@@ -497,7 +451,6 @@ function PaymentStep({
   slip,
   slipError,
   onUpload,
-  onClose,
 }: {
   booking: BookingCreated;
   payment: PaymentInfo | null;
@@ -505,7 +458,6 @@ function PaymentStep({
   slip: SlipState;
   slipError: string;
   onUpload: (file: File) => void;
-  onClose: () => void;
 }) {
   const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -517,7 +469,7 @@ function PaymentStep({
           {t({ th: "รหัสการจอง", en: "Booking code" })} · {booking.bookingCode}
         </span>
         <h4 className="font-display text-2xl text-[color:var(--color-forest-deep)]">
-          {t({ th: "สแกนเพื่อชำระเงิน", en: "Scan to pay" })}
+          {t({ th: "ชำระเงิน", en: "Make payment" })}
         </h4>
       </div>
 
@@ -527,39 +479,32 @@ function PaymentStep({
         </div>
       ) : !payment ? (
         <div className="rounded-[14px] bg-[color:var(--color-bone-soft)] px-5 py-10 text-center text-sm text-[color:var(--color-ink)]/55">
-          {t({ th: "กำลังสร้าง QR…", en: "Generating QR…" })}
+          {t({ th: "กำลังโหลด…", en: "Loading…" })}
         </div>
       ) : (
         <>
-          <div className="flex flex-col items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR from EasySlip */}
-            <img
-              src={payment.qrDataUrl}
-              alt={t({ th: "QR พร้อมเพย์", en: "PromptPay QR" })}
-              className="h-56 w-56 rounded-[14px] bg-white p-3 shadow-[0_8px_24px_-12px_rgba(45,55,40,0.4)]"
-            />
-            <div className="text-center">
-              <p className="font-display text-3xl text-[color:var(--color-forest-deep)]">
-                {thb(payment.amount)} {t({ th: "บาท", en: "THB" })}
-              </p>
-              <p className="text-[12px] text-[color:var(--color-ink)]/55">
-                {payment.kind === "deposit"
-                  ? t({ th: `มัดจำ ${payment.depositPercent ?? ""}%`, en: `Deposit ${payment.depositPercent ?? ""}%` })
-                  : t({ th: "ชำระเต็มจำนวน", en: "Full payment" })}
-                {" · "}
-                {payment.account.name} {payment.account.number}
-              </p>
-            </div>
+          <div className="text-center">
+            <p className="font-display text-3xl text-[color:var(--color-forest-deep)]">
+              {thb(payment.amount)} {t({ th: "บาท", en: "THB" })}
+            </p>
+            <p className="text-[12px] text-[color:var(--color-ink)]/55">
+              {payment.kind === "deposit"
+                ? t({ th: `มัดจำ ${payment.depositPercent ?? ""}%`, en: `Deposit ${payment.depositPercent ?? ""}%` })
+                : t({ th: "ชำระเต็มจำนวน", en: "Full payment" })}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {payment.accounts.map((acc) => (
+              <AccountCard key={acc.id} account={acc} />
+            ))}
           </div>
 
           <div className="h-px bg-[color:var(--color-ink)]/10" />
 
           <div className="flex flex-col gap-2">
             <p className="text-sm text-[color:var(--color-ink)]/70 text-center leading-relaxed">
-              {t({
-                th: "โอนแล้วอัปโหลดสลิปเพื่อยืนยันอัตโนมัติ",
-                en: "After paying, upload your slip for instant verification.",
-              })}
+              {t({ th: "โอนแล้วแนบสลิปเพื่อให้ทีมงานตรวจสอบ", en: "After paying, attach your slip for our team to review." })}
             </p>
             <input
               ref={fileRef}
@@ -575,29 +520,53 @@ function PaymentStep({
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              disabled={slip === "verifying"}
+              disabled={slip === "uploading"}
               className="w-full inline-flex items-center justify-center rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] px-6 py-4 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-warm-clay)] transition-colors disabled:opacity-50"
               style={{ fontFamily: "var(--font-ui)" }}
             >
-              {slip === "verifying"
-                ? t({ th: "กำลังตรวจสลิป…", en: "Verifying slip…" })
-                : t({ th: "อัปโหลดสลิป", en: "Upload slip" })}
+              {slip === "uploading"
+                ? t({ th: "กำลังอัปโหลด…", en: "Uploading…" })
+                : t({ th: "แนบสลิปการโอน", en: "Attach payment slip" })}
             </button>
-            {slipError && (
-              <p className="text-[13px] text-red-700 bg-red-50 rounded-lg px-3 py-2">{slipError}</p>
-            )}
+            {slipError && <p className="text-[13px] text-red-700 bg-red-50 rounded-lg px-3 py-2">{slipError}</p>}
           </div>
         </>
       )}
+    </div>
+  );
+}
 
-      <button
-        type="button"
-        onClick={onClose}
-        className="self-center text-[11px] uppercase tracking-[0.3em] text-[color:var(--color-ink)]/45 hover:text-[color:var(--color-ink)]/70 transition-colors"
-        style={{ fontFamily: "var(--font-ui)" }}
-      >
-        {t({ th: "ชำระภายหลัง", en: "Pay later" })}
-      </button>
+function AccountCard({ account }: { account: PaymentAccountDisplay }) {
+  const t = useT();
+
+  if (account.type === "qr_code" && account.qr_image) {
+    return (
+      <div className="rounded-[14px] bg-white px-5 py-5 flex flex-col items-center gap-2 shadow-[0_8px_24px_-16px_rgba(45,55,40,0.4)]">
+        {/* eslint-disable-next-line @next/next/no-img-element -- admin-uploaded QR data URL */}
+        <img src={account.qr_image} alt={t({ th: "QR ชำระเงิน", en: "Payment QR" })} className="h-52 w-52 object-contain" />
+        <p className="text-sm font-medium text-[color:var(--color-forest-deep)]">{account.account_name}</p>
+        {account.account_name_en && (
+          <p className="text-xs text-[color:var(--color-ink)]/55">{account.account_name_en}</p>
+        )}
+      </div>
+    );
+  }
+
+  const isPromptPay = account.type === "promptpay_phone" || account.type === "promptpay_id";
+  return (
+    <div className="rounded-[14px] bg-[color:var(--color-bone-soft)] px-5 py-4 flex flex-col gap-1.5 text-sm">
+      {account.bank && !isPromptPay && (
+        <Row label={t({ th: "ธนาคาร", en: "Bank" })} value={bankLabel(account.bank)} />
+      )}
+      <Row label={t({ th: "ชื่อบัญชี", en: "Account name" })} value={account.account_name} />
+      {account.account_name_en && (
+        <Row label={t({ th: "ชื่อ (EN)", en: "Name (EN)" })} value={account.account_name_en} />
+      )}
+      <Row
+        label={isPromptPay ? t({ th: "พร้อมเพย์", en: "PromptPay" }) : t({ th: "เลขที่บัญชี", en: "Account no." })}
+        value={account.account_number ?? "—"}
+        mono
+      />
     </div>
   );
 }
@@ -621,35 +590,35 @@ function Confirmation({
         </svg>
       </div>
       <h4 className="font-display text-2xl text-[color:var(--color-forest-deep)]">
-        {t({ th: "ชำระเงินสำเร็จ!", en: "Payment confirmed!" })}
+        {t({ th: "ได้รับการจองแล้ว!", en: "Booking received!" })}
       </h4>
       <p className="text-sm text-[color:var(--color-ink)]/70 leading-relaxed">
         {t({
-          th: `การจอง ${room.name.th} ของคุณได้รับการยืนยันแล้ว`,
-          en: `Your booking for ${room.name.en} is confirmed.`,
+          th: `เราได้รับสลิปการชำระเงินสำหรับ ${room.name.th} แล้ว ทีมงานกำลังตรวจสอบ — ดูสถานะและใบการจองได้ที่หน้าโปรไฟล์ของคุณ`,
+          en: `We've received your payment slip for ${room.name.en}. Our team is reviewing it — track the status and your booking document in your profile.`,
         })}
       </p>
       <div className="w-full rounded-[14px] bg-[color:var(--color-bone-soft)] px-5 py-4 flex flex-col gap-2 text-sm">
         <Row label={t({ th: "รหัสการจอง", en: "Booking code" })} value={booking.bookingCode} mono />
         <Row label={t({ th: "จำนวนคืน", en: "Nights" })} value={String(booking.nights)} />
-        <Row
-          label={t({ th: "ยอดรวม", en: "Total" })}
-          value={`${thb(booking.totalAmount)} ${t({ th: "บาท", en: "THB" })}`}
-        />
+        <Row label={t({ th: "ยอดรวม", en: "Total" })} value={`${thb(booking.totalAmount)} ${t({ th: "บาท", en: "THB" })}`} />
       </div>
-      <p className="text-[12px] text-[color:var(--color-ink)]/50 leading-relaxed">
-        {t({
-          th: "ดูรายละเอียดการจองได้ที่หน้าบัญชีของคุณ",
-          en: "You can view this booking in your account.",
-        })}
-      </p>
+      <Link
+        href="/account/bookings"
+        onClick={onClose}
+        className="mt-1 w-full inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)] px-6 py-4 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-warm-clay)] transition-colors"
+        style={{ fontFamily: "var(--font-ui)" }}
+      >
+        {t({ th: "ดูการจองของฉัน", en: "View my bookings" })}
+        <span aria-hidden>→</span>
+      </Link>
       <button
         type="button"
         onClick={onClose}
-        className="mt-1 inline-flex items-center justify-center rounded-full border border-[color:var(--color-ink)]/20 px-6 py-3 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-ink)]/5 transition-colors"
+        className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--color-ink)]/45 hover:text-[color:var(--color-ink)]/70 transition-colors"
         style={{ fontFamily: "var(--font-ui)" }}
       >
-        {t({ th: "เสร็จสิ้น", en: "Done" })}
+        {t({ th: "ปิดหน้าต่าง", en: "Close" })}
       </button>
     </div>
   );
@@ -680,29 +649,15 @@ function PriceSummary({
     <div className="rounded-[14px] bg-[color:var(--color-bone-soft)] px-5 py-4 flex flex-col gap-2 text-sm">
       {pricing && (
         <>
-          <Row
-            label={t({ th: `ค่าห้อง · ${pricing.nights} คืน`, en: `Room · ${pricing.nights} night(s)` })}
-            value={`${thb(pricing.baseAmount)} ${t({ th: "บาท", en: "THB" })}`}
-          />
+          <Row label={t({ th: `ค่าห้อง · ${pricing.nights} คืน`, en: `Room · ${pricing.nights} night(s)` })} value={`${thb(pricing.baseAmount)} ${t({ th: "บาท", en: "THB" })}`} />
           {pricing.extraBedAmount > 0 && (
-            <Row
-              label={t({ th: "เตียงเสริม", en: "Extra bed" })}
-              value={`${thb(pricing.extraBedAmount)} ${t({ th: "บาท", en: "THB" })}`}
-            />
+            <Row label={t({ th: "เตียงเสริม", en: "Extra bed" })} value={`${thb(pricing.extraBedAmount)} ${t({ th: "บาท", en: "THB" })}`} />
           )}
           <div className="h-px bg-[color:var(--color-ink)]/10 my-1" />
-          <Row
-            label={t({ th: "ยอดรวม", en: "Total" })}
-            value={`${thb(pricing.totalAmount)} ${t({ th: "บาท", en: "THB" })}`}
-            strong
-          />
+          <Row label={t({ th: "ยอดรวม", en: "Total" })} value={`${thb(pricing.totalAmount)} ${t({ th: "บาท", en: "THB" })}`} strong />
         </>
       )}
-      <p
-        className={`text-[12px] ${
-          unavailable ? "text-[color:var(--color-warm-clay)]" : "text-[color:var(--color-ink)]/55"
-        }`}
-      >
+      <p className={`text-[12px] ${unavailable ? "text-[color:var(--color-warm-clay)]" : "text-[color:var(--color-ink)]/55"}`}>
         {availability.status === "loading" && t({ th: "กำลังตรวจสอบห้องว่าง…", en: "Checking availability…" })}
         {availability.status === "available" && t({ th: "✓ ห้องว่าง จองได้", en: "✓ Available" })}
         {unavailable && t({ th: "ช่วงวันที่นี้ไม่ว่าง กรุณาเลือกวันอื่น", en: "Not available for these dates." })}
@@ -719,10 +674,7 @@ const inputClass =
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span
-        className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
-        style={{ fontFamily: "var(--font-ui)" }}
-      >
+      <span className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50" style={{ fontFamily: "var(--font-ui)" }}>
         {label}
       </span>
       {children}
@@ -796,9 +748,7 @@ function Row({
     <div className="flex items-center justify-between gap-4">
       <span className="text-[color:var(--color-ink)]/60">{label}</span>
       <span
-        className={`${strong ? "text-[color:var(--color-forest-deep)] font-semibold text-base" : "text-[color:var(--color-forest-deep)] font-medium"} ${
-          mono ? "tracking-wider" : ""
-        }`}
+        className={`${strong ? "text-[color:var(--color-forest-deep)] font-semibold text-base" : "text-[color:var(--color-forest-deep)] font-medium"} ${mono ? "tracking-wider" : ""}`}
       >
         {value}
       </span>

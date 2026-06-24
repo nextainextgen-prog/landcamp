@@ -7,14 +7,17 @@ export type PaymentAccountType =
   | "promptpay_phone"
   | "promptpay_id"
   | "bank_account"
-  | "corporate";
+  | "corporate"
+  | "qr_code";
 
 export type PaymentAccount = {
   id: string;
   type: PaymentAccountType;
   account_name: string;
+  account_name_en: string | null;
   bank: string | null;
-  account_number: string;
+  account_number: string | null;
+  qr_image: string | null;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
@@ -23,8 +26,10 @@ export type PaymentAccount = {
 export type PaymentAccountInput = {
   type: PaymentAccountType;
   account_name: string;
+  account_name_en: string | null;
   bank: string | null;
-  account_number: string;
+  account_number: string | null;
+  qr_image: string | null;
   is_active: boolean;
 };
 

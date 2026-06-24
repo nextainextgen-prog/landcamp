@@ -21,7 +21,7 @@ export async function checkAvailability(
     .from("bookings")
     .select("id")
     .eq("room_id", roomId)
-    .in("status", ["confirmed", "pending_payment"])
+    .in("status", ["confirmed", "pending_payment", "payment_review"])
     .lt("check_in", checkOut)
     .gt("check_out", checkIn)
     .limit(1);

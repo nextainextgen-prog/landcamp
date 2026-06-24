@@ -1,32 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { PaymentKind } from "@/types/payment";
-import type { PaymentAccount, PaymentAccountType } from "@/types/payment-settings";
+import type { PaymentAccount } from "@/types/payment-settings";
 
-/**
- * The active account a PromptPay QR can be generated for. QR generation only
- * supports PromptPay (phone / national id), so bank_account/corporate accounts
- * are skipped here even when active — they're display-only.
- */
-const QR_TYPES: PaymentAccountType[] = ["promptpay_phone", "promptpay_id"];
-
-export async function getActivePromptPayAccount(
+/** All active payment accounts (any type), ordered for display. */
+export async function getActivePaymentAccounts(
   admin: SupabaseClient,
-): Promise<PaymentAccount | null> {
+): Promise<PaymentAccount[]> {
   const { data } = await admin
     .from("payment_accounts")
     .select("*")
     .eq("is_active", true)
-    .order("sort_order");
-
-  if (!data?.length) return null;
-  const accounts = data as PaymentAccount[];
-  // Prefer phone, then national id.
-  for (const type of QR_TYPES) {
-    const match = accounts.find((a) => a.type === type);
-    if (match) return match;
-  }
-  return null;
+    .order("sort_order")
+    .order("created_at");
+  return (data ?? []) as PaymentAccount[];
 }
 
 export type DepositPlan = { amount: number; kind: PaymentKind; depositPercent: number | null };

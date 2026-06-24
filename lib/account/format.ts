@@ -2,6 +2,7 @@ import type { BookingStatus } from "@/types";
 
 export const BOOKING_STATUS_TH: Record<BookingStatus, string> = {
   pending_payment: "รอชำระ",
+  payment_review: "กำลังตรวจสอบสลิป",
   confirmed: "ยืนยันแล้ว",
   cancelled: "ยกเลิก",
   completed: "เสร็จสิ้น",

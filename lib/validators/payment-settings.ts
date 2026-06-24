@@ -20,6 +20,7 @@ const PAYMENT_ACCOUNT_TYPES: readonly PaymentAccountType[] = [
   "promptpay_id",
   "bank_account",
   "corporate",
+  "qr_code",
 ];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -60,8 +61,10 @@ function asBoolean(value: unknown): boolean | null {
 export interface PaymentAccountInput {
   type?: PaymentAccountType;
   account_name?: string;
+  account_name_en?: string | null;
   bank?: string | null;
-  account_number?: string;
+  account_number?: string | null;
+  qr_image?: string | null;
   is_active?: boolean;
   sort_order?: number;
 }
@@ -105,6 +108,16 @@ export function validatePaymentAccountInput(
     errors.account_name = "account_name is required.";
   }
 
+  // account_name_en (optional, nullable)
+  if (input.account_name_en !== undefined) {
+    const en = asOptionalTrimmedString(input.account_name_en);
+    if (en === undefined) {
+      errors.account_name_en = "account_name_en must be a string or null.";
+    } else {
+      data.account_name_en = en;
+    }
+  }
+
   // bank (optional, nullable)
   if (input.bank !== undefined) {
     const bank = asOptionalTrimmedString(input.bank);
@@ -115,16 +128,36 @@ export function validatePaymentAccountInput(
     }
   }
 
-  // account_number
+  // QR-code accounts carry an image instead of an account number.
+  const isQr = data.type === "qr_code";
+
+  // account_number (required for non-QR accounts on create)
   if (input.account_number !== undefined) {
-    const num = asTrimmedString(input.account_number);
-    if (num === null) {
-      errors.account_number = "account_number must be a non-empty string.";
+    const num = asOptionalTrimmedString(input.account_number);
+    if (num === undefined) {
+      errors.account_number = "account_number must be a string or null.";
     } else {
       data.account_number = num;
     }
-  } else if (!partial) {
+  } else if (!partial && !isQr) {
     errors.account_number = "account_number is required.";
+  }
+  if (!partial && !isQr && !data.account_number) {
+    errors.account_number = "account_number is required.";
+  }
+
+  // qr_image (base64 data URL — required for qr_code accounts)
+  if (input.qr_image !== undefined) {
+    if (input.qr_image === null) {
+      data.qr_image = null;
+    } else if (typeof input.qr_image !== "string" || input.qr_image.trim().length === 0) {
+      errors.qr_image = "qr_image must be a non-empty string or null.";
+    } else {
+      data.qr_image = input.qr_image;
+    }
+  }
+  if (!partial && isQr && !data.qr_image) {
+    errors.qr_image = "qr_image is required for a QR code account.";
   }
 
   // is_active (optional)

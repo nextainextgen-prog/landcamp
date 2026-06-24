@@ -8,11 +8,19 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Largest slip image we accept as base64 (~4MB raw → ~5.5MB base64).
-const MAX_BASE64_LEN = 6_000_000;
+const MAX_BASE64_LEN = 6_000_000; // ~4MB image
 
+const PG_UNIQUE_VIOLATION = "23505";
+
+/**
+ * Receives a customer payment slip. The booking moves to `payment_review` and
+ * the slip is verified against EasySlip in the background — the verdict is
+ * stored for admins ONLY and never returned to the customer (so a system/API
+ * hiccup never surfaces as a scary "invalid slip" to the guest). An admin then
+ * confirms the booking after reviewing the slip + verdict.
+ */
 export async function POST(request: NextRequest) {
-  let body: { bookingId?: string; base64?: string; payload?: string };
+  let body: { bookingId?: string; base64?: string };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -21,14 +29,14 @@ export async function POST(request: NextRequest) {
   if (!body.bookingId) {
     return NextResponse.json({ error: "bookingId required" }, { status: 400 });
   }
-  if (!body.base64 && !body.payload) {
-    return NextResponse.json({ error: "slip image or payload required" }, { status: 400 });
+  if (!body.base64) {
+    return NextResponse.json({ error: "slip image required" }, { status: 400 });
   }
-  // Accept a data: URL too — strip the prefix.
-  const base64 = body.base64?.includes(",") ? body.base64.split(",")[1] : body.base64;
-  if (base64 && base64.length > MAX_BASE64_LEN) {
+  if (body.base64.length > MAX_BASE64_LEN) {
     return NextResponse.json({ error: "slip image too large (max ~4MB)" }, { status: 413 });
   }
+  const slipDataUrl = body.base64;
+  const base64Only = slipDataUrl.includes(",") ? slipDataUrl.split(",")[1] : slipDataUrl;
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -56,125 +64,111 @@ export async function POST(request: NextRequest) {
 
   const { data: booking } = await admin
     .from("bookings")
-    .select("id, customer_id, status, created_at")
+    .select("id, customer_id, status, total_amount, created_at")
     .eq("id", body.bookingId)
     .maybeSingle();
   if (!booking || booking.customer_id !== customer.id) {
     return NextResponse.json({ error: "booking not found" }, { status: 404 });
   }
   if (booking.status === "confirmed") {
-    return NextResponse.json({ ok: true, status: "confirmed", alreadyConfirmed: true });
+    return NextResponse.json({ ok: true, status: "confirmed" });
   }
-  if (booking.status !== "pending_payment") {
+  if (booking.status !== "pending_payment" && booking.status !== "payment_review") {
     return NextResponse.json(
       { error: "booking is not awaiting payment", status: booking.status },
       { status: 409 },
     );
   }
-  const createdMs = new Date(booking.created_at as string).getTime();
-  if (Date.now() - createdMs > BOOKING_HOLD_MS) {
-    return NextResponse.json({ error: "booking hold expired" }, { status: 410 });
+  if (booking.status === "pending_payment") {
+    const createdMs = new Date(booking.created_at as string).getTime();
+    if (Date.now() - createdMs > BOOKING_HOLD_MS) {
+      return NextResponse.json({ error: "booking hold expired" }, { status: 410 });
+    }
   }
 
-  const { data: payment } = await admin
+  // Ensure a payment row exists.
+  let { data: payment } = await admin
     .from("payments")
     .select("id, amount")
     .eq("booking_id", booking.id)
-    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (!payment) {
-    return NextResponse.json(
-      { error: "no pending payment — generate a QR first" },
-      { status: 409 },
-    );
+    const { data: created } = await admin
+      .from("payments")
+      .insert({
+        booking_id: booking.id,
+        amount: booking.total_amount as number,
+        kind: "full",
+        status: "pending",
+      })
+      .select("id, amount")
+      .single();
+    payment = created;
+  }
+  if (!payment) {
+    return NextResponse.json({ error: "could not record payment" }, { status: 500 });
   }
 
-  // ── Verify the slip against EasySlip ──
-  let verify;
+  // ── Background verification — result is for admins, never the customer. ──
+  let verifyStatus = "pending";
+  let verifyNote: string | null = null;
+  let transRef: string | null = null;
   try {
-    verify = await verifyBankSlip({
-      base64: base64 || undefined,
-      payload: body.payload,
+    const v = await verifyBankSlip({
+      base64: base64Only,
       matchAmount: payment.amount as number,
       matchAccount: true,
     });
+    transRef = v.transRef;
+    if (!v.success) verifyStatus = "unreadable";
+    else if (v.isDuplicate) verifyStatus = "duplicate";
+    else if (!v.isAmountMatched) verifyStatus = "amount_mismatch";
+    else verifyStatus = "matched";
+    verifyNote = JSON.stringify({
+      amountInSlip: v.amountInSlip,
+      expected: payment.amount,
+      sender: v.senderName,
+      receiver: v.receiverAccount,
+      transRef: v.transRef,
+      message: v.message,
+    });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "slip verification failed" },
-      { status: 502 },
-    );
+    verifyStatus = "error";
+    verifyNote = err instanceof Error ? err.message : "verification error";
   }
 
-  if (!verify.success) {
-    return NextResponse.json(
-      { error: verify.message ?? "could not read slip", code: "verify_failed" },
-      { status: 422 },
-    );
-  }
-  if (verify.isDuplicate) {
-    return NextResponse.json(
-      { error: "this slip has already been used", code: "duplicate" },
-      { status: 409 },
-    );
-  }
-  if (!verify.isAmountMatched) {
-    return NextResponse.json(
-      {
-        error: "amount on the slip does not match",
-        code: "amount_mismatch",
-        expected: payment.amount,
-        got: verify.amountInSlip,
-      },
-      { status: 422 },
-    );
-  }
-
-  // ── Settle: mark payment paid + confirm booking ──
-  const { error: payErr } = await admin
+  // Persist slip + verdict. trans_ref has a unique index; if this slip was
+  // already used, downgrade to 'duplicate' and store without the ref.
+  const baseUpdate = {
+    slip_image: slipDataUrl,
+    verify_status: verifyStatus,
+    verify_note: verifyNote,
+    verified_at: new Date().toISOString(),
+  };
+  const { error: upErr } = await admin
     .from("payments")
-    .update({
-      status: "paid",
-      paid_at: verify.paidAt ?? new Date().toISOString(),
-      verified_at: new Date().toISOString(),
-      trans_ref: verify.transRef,
-    })
+    .update(transRef && verifyStatus === "matched" ? { ...baseUpdate, trans_ref: transRef } : baseUpdate)
     .eq("id", payment.id);
-
-  if (payErr) {
-    // Unique violation on trans_ref → slip already settled another payment.
-    if (payErr.code === "23505") {
-      return NextResponse.json(
-        { error: "this slip has already been used", code: "duplicate" },
-        { status: 409 },
-      );
-    }
-    return NextResponse.json({ error: payErr.message }, { status: 500 });
+  if (upErr?.code === PG_UNIQUE_VIOLATION) {
+    await admin
+      .from("payments")
+      .update({ ...baseUpdate, verify_status: "duplicate" })
+      .eq("id", payment.id);
   }
 
-  const { error: bookErr } = await admin
-    .from("bookings")
-    .update({ status: "confirmed" })
-    .eq("id", booking.id);
-  if (bookErr) {
-    return NextResponse.json({ error: bookErr.message }, { status: 500 });
+  // Move the booking into admin review (also keeps the dates held).
+  if (booking.status === "pending_payment") {
+    await admin.from("bookings").update({ status: "payment_review" }).eq("id", booking.id);
   }
 
-  // Best-effort audit log (non-fatal).
+  // Audit log (non-fatal).
   await admin.from("notifications").insert({
-    kind: "payment_confirmed",
-    payload: {
-      booking_id: booking.id,
-      payment_id: payment.id,
-      trans_ref: verify.transRef,
-      amount: payment.amount,
-      sender: verify.senderName,
-    },
+    kind: "slip_submitted",
+    payload: { booking_id: booking.id, payment_id: payment.id, verify_status: verifyStatus },
   });
 
-  return NextResponse.json({
-    ok: true,
-    status: "confirmed",
-    transRef: verify.transRef,
-    amount: payment.amount,
-  });
+  // Always success to the customer — no verdict leaked.
+  return NextResponse.json({ ok: true, status: "received" });
 }

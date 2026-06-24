@@ -16,8 +16,13 @@ export interface Payment {
   status: PaymentStatus;
   paid_at: string | null;
   slip_url: string | null;
+  /** Base64 data URL of the customer-uploaded slip. */
+  slip_image: string | null;
   trans_ref: string | null;
   verified_at: string | null;
+  /** Background EasySlip verdict (admin-only): matched | amount_mismatch | duplicate | unreadable | error. */
+  verify_status: string | null;
+  verify_note: string | null;
   created_at: string;
 }
 

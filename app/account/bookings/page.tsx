@@ -25,6 +25,7 @@ type BookingRow = {
 const STATUS_BADGE: Record<BookingStatus, string> = {
   pending_payment:
     "bg-[color:var(--color-warm-clay)]/12 text-[color:var(--color-warm-clay)] ring-[color:var(--color-warm-clay)]/30",
+  payment_review: "bg-blue-50 text-blue-700 ring-blue-200",
   confirmed:
     "bg-[color:var(--color-forest-deep)]/10 text-[color:var(--color-forest-deep)] ring-[color:var(--color-forest-deep)]/25",
   cancelled: "bg-neutral-200 text-neutral-600 ring-neutral-300",
