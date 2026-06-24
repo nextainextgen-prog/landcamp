@@ -3,12 +3,14 @@
 import { motion } from "framer-motion";
 import { siteConfig } from "@/data/siteConfig";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { Wordmark } from "@/components/ui/Wordmark";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 export function Footer() {
   const t = useT();
+  const { contact, footer } = useContent();
   const year = new Date().getFullYear();
 
   return (
@@ -35,10 +37,7 @@ export function Footer() {
           <div className="md:col-span-5 flex flex-col gap-5">
             <Wordmark size="md" color="bone" />
             <p className="text-sm leading-relaxed text-[color:var(--color-bone)]/65 max-w-sm">
-              {t({
-                th: "วิลล่าหรูสไตล์ Glamping ใจกลางขุนเขาเขาใหญ่ — 6 หลัง แยกพื้นที่ส่วนตัว ไม่ใช่โรงแรม ไม่ใช่รีสอร์ท",
-                en: "Luxury glamping villas at the heart of Khao Yai — six private retreats, each in its own pine-forest plot.",
-              })}
+              {t(footer.brandDescription)}
             </p>
             <p className="text-sm leading-relaxed text-[color:var(--color-bone)]/55 max-w-sm">
               {t(siteConfig.address.full)}
@@ -78,33 +77,33 @@ export function Footer() {
             <ul className="flex flex-col gap-3 text-sm">
               <li>
                 <a
-                  href={siteConfig.contact.lineUrl}
+                  href={contact.lineUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[color:var(--color-bone)]/75 hover:text-[color:var(--color-warm-clay)] transition-colors"
                 >
-                  Line {siteConfig.contact.line}
+                  Line {contact.line}
                 </a>
               </li>
               <li>
                 <a
-                  href={`tel:${siteConfig.contact.phoneE164}`}
+                  href={`tel:${contact.phoneE164}`}
                   className="text-[color:var(--color-bone)]/75 hover:text-[color:var(--color-warm-clay)] transition-colors tabular-nums"
                 >
-                  {siteConfig.contact.phone}
+                  {contact.phone}
                 </a>
               </li>
               <li>
                 <a
-                  href={`mailto:${siteConfig.contact.email}`}
+                  href={`mailto:${contact.email}`}
                   className="text-[color:var(--color-bone)]/75 hover:text-[color:var(--color-warm-clay)] transition-colors"
                 >
-                  {siteConfig.contact.email}
+                  {contact.email}
                 </a>
               </li>
               <li className="flex gap-5 pt-2">
                 <a
-                  href={siteConfig.contact.facebook}
+                  href={contact.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/60 hover:text-[color:var(--color-bone)] transition-colors"
@@ -113,7 +112,7 @@ export function Footer() {
                   Facebook
                 </a>
                 <a
-                  href={siteConfig.contact.instagram}
+                  href={contact.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/60 hover:text-[color:var(--color-bone)] transition-colors"
@@ -122,7 +121,7 @@ export function Footer() {
                   Instagram
                 </a>
                 <a
-                  href={siteConfig.contact.googleMaps}
+                  href={contact.googleMaps}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/60 hover:text-[color:var(--color-bone)] transition-colors"
@@ -146,10 +145,7 @@ export function Footer() {
             className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/40"
             style={{ fontFamily: "var(--font-ui)" }}
           >
-            {t({
-              th: "ออกแบบและพัฒนาด้วยใจ ที่ปากช่อง",
-              en: "Designed and built with care · Pak Chong",
-            })}
+            {t(footer.copyrightTagline)}
           </p>
         </div>
       </div>

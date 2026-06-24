@@ -1,3 +1,5 @@
+import { getSiteContent } from "@/lib/content/server";
+import { ContentProvider } from "@/lib/content/provider";
 import { Navbar } from "@/components/navigation/Navbar";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { AboutSection } from "@/components/sections/AboutSection";
@@ -27,21 +29,25 @@ import { Footer } from "@/components/sections/Footer";
  *   10 Contact + FAQ
  *   11 Footer
  */
-export default function Home() {
+export default async function Home() {
+  const content = await getSiteContent();
+
   return (
-    <main className="relative">
-      <Navbar />
-      <HeroSection />
-      <AboutSection />
-      <GallerySection />
-      <RoomsSection />
-      <WeddingSection />
-      <VideoSection />
-      <MenuSection />
-      <MapSection />
-      <ReviewsSection />
-      <ContactSection />
-      <Footer />
-    </main>
+    <ContentProvider content={content}>
+      <main className="relative">
+        <Navbar />
+        <HeroSection />
+        <AboutSection />
+        <GallerySection />
+        <RoomsSection />
+        <WeddingSection />
+        <VideoSection />
+        <MenuSection />
+        <MapSection />
+        <ReviewsSection />
+        <ContactSection />
+        <Footer />
+      </main>
+    </ContentProvider>
   );
 }

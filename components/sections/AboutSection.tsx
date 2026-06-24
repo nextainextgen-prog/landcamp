@@ -3,6 +3,7 @@
 import type { SVGProps } from "react";
 import { motion } from "framer-motion";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { StatCounter } from "@/components/ui/StatCounter";
 import { StoryCarousel, type CarouselSlide } from "@/components/ui/StoryCarousel";
 import { cn } from "@/lib/cn";
@@ -128,56 +129,18 @@ function BreakfastIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-type Stat = {
-  Icon: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
-  label: { th: string; en: string };
-  value: number;
-  decimals?: number;
-  unit?: { th: string; en: string };
-};
+// Stat/perk text + values now come from the CMS (useContent). Icons stay in
+// code, matched to the content entries by position.
+type IconComponent = (props: SVGProps<SVGSVGElement>) => React.ReactElement;
 
-type Perk = {
-  Icon: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
-  label: { th: string; en: string };
-};
-
-const STATS: Stat[] = [
-  {
-    value: 6,
-    label: { th: "ห้องพักไพรเวท", en: "Private villas" },
-    Icon: VillaIcon,
-  },
-  {
-    value: 4,
-    label: { th: "รูปแบบที่พัก", en: "Stay styles" },
-    Icon: StylesIcon,
-  },
-  {
-    value: 12.6,
-    decimals: 1,
-    unit: { th: "กม.", en: "KM" },
-    label: { th: "จากเขาใหญ่", en: "From Khao Yai gate" },
-    Icon: MountainIcon,
-  },
-  {
-    value: 4.8,
-    decimals: 1,
-    unit: { th: "/ 5", en: "/ 5" },
-    label: { th: "Google Rating", en: "Google rating" },
-    Icon: StarOutlineIcon,
-  },
+const STAT_ICONS: IconComponent[] = [
+  VillaIcon,
+  StylesIcon,
+  MountainIcon,
+  StarOutlineIcon,
 ];
 
-const PERKS: Perk[] = [
-  {
-    Icon: WifiIcon,
-    label: { th: "ไวไฟฟรีทุกห้อง", en: "Free Wi-Fi in every villa" },
-  },
-  {
-    Icon: BreakfastIcon,
-    label: { th: "อาหารเช้าฟรี ทุกการเข้าพัก", en: "Breakfast included with every stay" },
-  },
-];
+const PERK_ICONS: IconComponent[] = [WifiIcon, BreakfastIcon];
 
 type StorySlide = CarouselSlide & { orientation: "landscape" | "portrait" };
 
@@ -242,6 +205,7 @@ const STORY_SLIDES: StorySlide[] = [
 
 export function AboutSection() {
   const t = useT();
+  const { about } = useContent();
 
   return (
     <section
@@ -273,7 +237,7 @@ export function AboutSection() {
           <span className="text-[color:var(--color-warm-clay)]">02</span>
           <span aria-hidden className="h-px w-10 bg-[color:var(--color-forest-deep)]/40" />
           <span className="text-[color:var(--color-forest-deep)]/65">
-            {t({ th: "เรื่องราวของเรา", en: "Brand Story" })}
+            {t(about.eyebrow)}
           </span>
         </motion.div>
 
@@ -290,8 +254,8 @@ export function AboutSection() {
         >
           <div className="relative rounded-[1.75rem] sm:rounded-[2rem] bg-[color:var(--color-bone)] border border-[color:var(--color-ink)]/10 shadow-[0_24px_55px_-32px_rgba(26,24,20,0.28)] overflow-hidden">
             <div className="grid grid-cols-2 md:grid-cols-4">
-              {STATS.map((stat, i) => {
-                const Icon = stat.Icon;
+              {about.stats.map((stat, i) => {
+                const Icon = STAT_ICONS[i % STAT_ICONS.length];
                 return (
                   <motion.div
                     key={i}
@@ -354,8 +318,8 @@ export function AboutSection() {
               transition={{ duration: 0.8, ease: EASE_SOFT, delay: 0.15 }}
               className="flex flex-wrap items-center justify-center gap-3 px-5 py-5 sm:px-7 sm:py-6 border-t border-[color:var(--color-ink)]/10 bg-[color:var(--color-bone-soft)]/40"
             >
-              {PERKS.map((perk, i) => {
-                const Icon = perk.Icon;
+              {about.perks.map((perk, i) => {
+                const Icon = PERK_ICONS[i % PERK_ICONS.length];
                 return (
                   <span
                     key={i}
@@ -386,10 +350,7 @@ export function AboutSection() {
           transition={{ duration: 0.9, ease: EASE_SOFT, delay: 0.1 }}
           className="mt-8 sm:mt-10 max-w-2xl text-[15px] sm:text-base leading-relaxed text-[color:var(--color-ink)]/70"
         >
-          {t({
-            th: "วิลล่าสไตล์ Glamping 6 หลัง ใจกลางขุนเขาเขาใหญ่ ทุกหลังคัดสรรอย่างพิถีพิถัน เพื่อให้คุณได้พักผ่อนอย่างเป็นส่วนตัวที่สุด พร้อมประสบการณ์ที่เหนือกว่าโรงแรมทั่วไป",
-            en: "Six glamping villas tucked into the forests of Khao Yai — each thoughtfully crafted to deliver privacy, calm, and an experience that goes beyond an ordinary stay.",
-          })}
+          {t(about.description)}
         </motion.p>
 
         {/* ──────────────────────────────────────
