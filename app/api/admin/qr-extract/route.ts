@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireAdmin } from "@/lib/admin/guard";
+import { requireSection } from "@/lib/admin/guard";
 import { verifyBankSlip } from "@/lib/easyslip";
 
 export const runtime = "nodejs";
@@ -14,7 +14,7 @@ const MAX_BASE64_LEN = 6_000_000;
  * form can auto-fill it. Best-effort: returns nulls if nothing was readable.
  */
 export async function POST(req: NextRequest) {
-  const auth = await requireAdmin();
+  const auth = await requireSection("payment-settings");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: { base64?: string };

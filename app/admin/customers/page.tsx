@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+
+import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CustomersList, type CustomerRow } from "./CustomersList";
 
@@ -6,6 +9,8 @@ export const dynamic = "force-dynamic";
 const EARNING_STATUSES = new Set(["confirmed", "completed"]);
 
 export default async function AdminCustomersPage() {
+  if (!(await requireSection("customers")).ok) redirect("/admin");
+
   let rows: CustomerRow[] = [];
   let errorMsg: string | null = null;
 

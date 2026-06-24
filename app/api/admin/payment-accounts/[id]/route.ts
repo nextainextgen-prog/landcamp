@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireAdmin } from "@/lib/admin/guard";
+import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PaymentAccount } from "@/types/payment-settings";
 import { validatePaymentAccountInput } from "@/lib/validators/payment-settings";
@@ -24,7 +24,7 @@ function errorResponse(
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: NextRequest, ctx: Ctx) {
-  const auth = await requireAdmin();
+  const auth = await requireSection("payment-settings");
   if (!auth.ok) return errorResponse(auth.error, auth.status);
 
   const { id } = await ctx.params;
@@ -65,7 +65,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, ctx: Ctx) {
-  const auth = await requireAdmin();
+  const auth = await requireSection("payment-settings");
   if (!auth.ok) return errorResponse(auth.error, auth.status);
 
   const { id } = await ctx.params;

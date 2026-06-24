@@ -1,9 +1,14 @@
+import { redirect } from "next/navigation";
+
+import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BookingReviewList, type ReviewRow } from "./BookingReviewList";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminBookingsPage() {
+  if (!(await requireSection("bookings")).ok) redirect("/admin");
+
   let rows: ReviewRow[] = [];
   let errorMsg: string | null = null;
 

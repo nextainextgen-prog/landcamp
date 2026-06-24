@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+
+import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RevenueReport, type RevenueBooking, type MonthRow } from "./RevenueReport";
 
@@ -6,6 +9,8 @@ export const dynamic = "force-dynamic";
 const EARNING_STATUSES = ["confirmed", "completed"];
 
 export default async function AdminRevenuePage() {
+  if (!(await requireSection("revenue")).ok) redirect("/admin");
+
   let bookings: RevenueBooking[] = [];
   let months: MonthRow[] = [];
   let total = 0;

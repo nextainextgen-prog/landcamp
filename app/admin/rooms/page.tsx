@@ -1,9 +1,14 @@
+import { redirect } from "next/navigation";
+
+import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RoomsManager, type AdminRoom } from "./RoomsManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminRoomsPage() {
+  if (!(await requireSection("rooms")).ok) redirect("/admin");
+
   let rooms: AdminRoom[] = [];
   let errorMsg: string | null = null;
   try {

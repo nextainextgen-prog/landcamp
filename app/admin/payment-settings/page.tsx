@@ -1,4 +1,6 @@
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { requireSection } from "@/lib/admin/guard";
 import { AccountsCard } from "./AccountsCard";
 import { DepositCard } from "./DepositCard";
 import { CancellationCard } from "./CancellationCard";
@@ -57,6 +59,8 @@ const DEFAULT_POLICY: CancellationPolicy = {
 };
 
 export default async function PaymentSettingsPage() {
+  if (!(await requireSection("payment-settings")).ok) redirect("/admin");
+
   const { base, cookie } = await getRequestContext();
   const [accounts, settings, policy] = await Promise.all([
     safeGet<PaymentAccount[]>(

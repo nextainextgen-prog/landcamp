@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireAdmin } from "@/lib/admin/guard";
+import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PaymentAccount } from "@/types/payment-settings";
 import { validatePaymentAccountInput } from "@/lib/validators/payment-settings";
@@ -22,7 +22,7 @@ function errorResponse(
 }
 
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireSection("payment-settings");
   if (!auth.ok) return errorResponse(auth.error, auth.status);
 
   let supabase;
@@ -44,7 +44,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdmin();
+  const auth = await requireSection("payment-settings");
   if (!auth.ok) return errorResponse(auth.error, auth.status);
 
   let body: unknown;

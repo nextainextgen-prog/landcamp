@@ -1,58 +1,41 @@
 /**
- * Admin access guard for /admin pages and /api/admin/* routes.
+ * Admin access guard for /api/admin/* routes.
  *
- * Resolves the signed-in user from the request cookies and checks the
- * `admin_users` table (service-role lookup, bypassing RLS). Returns the
- * caller's role on success so routes can branch on it later.
+ * Backed by the username/password admin session (lib/admin/auth.ts), not the
+ * Supabase customer session. requireAdmin() = any active admin; requireSection
+ * additionally checks the section permission (super_admin passes everything).
  */
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-
-export type AdminRole = "super_admin" | "reception" | "housekeeping";
+import { canAccess, getAdminSession, type AdminSession, type SectionKey } from "@/lib/admin/auth";
 
 export type RequireAdminOk = {
   ok: true;
+  session: AdminSession;
   userId: string;
-  role: AdminRole;
+  role: AdminSession["role"];
 };
 
 export type RequireAdminFail = {
   ok: false;
-  status: 401 | 403 | 500;
+  status: 401 | 403;
   error: string;
 };
 
 export type RequireAdminResult = RequireAdminOk | RequireAdminFail;
 
 export async function requireAdmin(): Promise<RequireAdminResult> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const session = await getAdminSession();
+  if (!session) {
     return { ok: false, status: 401, error: "authentication required" };
   }
+  return { ok: true, session, userId: session.id, role: session.role };
+}
 
-  let admin;
-  try {
-    admin = createSupabaseAdminClient();
-  } catch {
-    return { ok: false, status: 500, error: "server not configured" };
+export async function requireSection(section: SectionKey): Promise<RequireAdminResult> {
+  const result = await requireAdmin();
+  if (!result.ok) return result;
+  if (!canAccess(result.session, section)) {
+    return { ok: false, status: 403, error: "no access to this section" };
   }
-
-  const { data, error } = await admin
-    .from("admin_users")
-    .select("role, is_active")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return { ok: false, status: 500, error: error.message };
-  }
-  if (!data || data.is_active !== true) {
-    return { ok: false, status: 403, error: "admin access required" };
-  }
-
-  return { ok: true, userId: user.id, role: data.role as AdminRole };
+  return result;
 }

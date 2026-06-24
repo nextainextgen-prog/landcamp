@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireAdmin } from "@/lib/admin/guard";
+import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -26,7 +26,7 @@ const DIRECT_STATUSES = new Set([
  *   no_show, cancelled) with no payment side-effects.
  */
 export async function PATCH(req: NextRequest, ctx: Ctx) {
-  const auth = await requireAdmin();
+  const auth = await requireSection("bookings");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const { id } = await ctx.params;

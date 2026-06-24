@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireAdmin } from "@/lib/admin/guard";
+import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validateRoomInput } from "@/lib/validators/room";
 
@@ -11,7 +11,7 @@ const FIELDS =
   "id, slug, room_type, name_th, name_en, description_th, description_en, price_weekday, price_weekend, max_guests, is_available, display_order";
 
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireSection("rooms");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let admin;
@@ -27,7 +27,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdmin();
+  const auth = await requireSection("rooms");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: unknown;
