@@ -11,6 +11,9 @@ type NavItem = {
 
 const items: NavItem[] = [
   { label: "รายการจอง", href: "/admin/bookings" },
+  { label: "ห้องพัก", href: "/admin/rooms" },
+  { label: "รายได้", href: "/admin/revenue" },
+  { label: "ลูกค้า", href: "/admin/customers" },
   { label: "ตั้งค่าการเงิน", href: "/admin/payment-settings" },
 ];
 

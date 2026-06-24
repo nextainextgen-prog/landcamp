@@ -13,7 +13,7 @@ export default async function AdminBookingsPage() {
     const { data: bookings } = await admin
       .from("bookings")
       .select(
-        "id, booking_code, room_id, check_in, check_out, adults, children, status, total_amount, created_at",
+        "id, booking_code, room_id, customer_id, check_in, check_out, adults, children, status, total_amount, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(60);
@@ -21,8 +21,9 @@ export default async function AdminBookingsPage() {
     const list = bookings ?? [];
     const ids = list.map((b) => b.id as string);
     const roomIds = [...new Set(list.map((b) => b.room_id as string))];
+    const customerIds = [...new Set(list.map((b) => b.customer_id as string))];
 
-    const [{ data: payments }, { data: rooms }] = await Promise.all([
+    const [{ data: payments }, { data: rooms }, { data: customers }] = await Promise.all([
       ids.length
         ? admin
             .from("payments")
@@ -33,9 +34,22 @@ export default async function AdminBookingsPage() {
       roomIds.length
         ? admin.from("rooms").select("id, name_th").in("id", roomIds)
         : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+      customerIds.length
+        ? admin.from("customers").select("id, full_name, email, phone").in("id", customerIds)
+        : Promise.resolve({ data: [] as Record<string, unknown>[] }),
     ]);
 
     const roomName = new Map((rooms ?? []).map((r) => [r.id as string, r.name_th as string]));
+    const customerMap = new Map(
+      (customers ?? []).map((c) => [
+        c.id as string,
+        {
+          name: (c.full_name as string) ?? "—",
+          email: (c.email as string) ?? "",
+          phone: (c.phone as string) ?? "",
+        },
+      ]),
+    );
     // Keep only the latest payment per booking (payments already desc by created_at).
     const latestPayment = new Map<string, Record<string, unknown>>();
     for (const p of payments ?? []) {
@@ -45,10 +59,14 @@ export default async function AdminBookingsPage() {
 
     rows = list.map((b) => {
       const p = latestPayment.get(b.id as string);
+      const c = customerMap.get(b.customer_id as string);
       return {
         id: b.id as string,
         booking_code: b.booking_code as string,
         room_name: roomName.get(b.room_id as string) ?? (b.room_id as string).slice(0, 8),
+        customer_name: c?.name ?? "—",
+        customer_email: c?.email ?? "",
+        customer_phone: c?.phone ?? "",
         check_in: b.check_in as string,
         check_out: b.check_out as string,
         adults: b.adults as number,

@@ -8,11 +8,22 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+const DIRECT_STATUSES = new Set([
+  "pending_payment",
+  "payment_review",
+  "confirmed",
+  "cancelled",
+  "completed",
+  "no_show",
+]);
+
 /**
- * Admin confirm/reject of a booking after reviewing the submitted slip.
- * body: { action: "confirm" | "reject" }
- *  - confirm → booking 'confirmed', latest payment 'paid'
- *  - reject  → booking 'cancelled', latest payment 'failed'
+ * Admin booking status update.
+ * body: { action: "confirm" | "reject" } — slip review with payment side-effects:
+ *   - confirm → booking 'confirmed', latest payment 'paid'
+ *   - reject  → booking 'cancelled', latest payment 'failed'
+ * or  { status: <BookingStatus> } — direct manual status change (e.g. completed,
+ *   no_show, cancelled) with no payment side-effects.
  */
 export async function PATCH(req: NextRequest, ctx: Ctx) {
   const auth = await requireAdmin();
@@ -21,14 +32,11 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
 
-  let body: { action?: string };
+  let body: { action?: string; status?: string };
   try {
-    body = (await req.json()) as { action?: string };
+    body = (await req.json()) as { action?: string; status?: string };
   } catch {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
-  }
-  if (body.action !== "confirm" && body.action !== "reject") {
-    return NextResponse.json({ error: "action must be confirm or reject" }, { status: 400 });
   }
 
   let admin;
@@ -36,6 +44,26 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     admin = createAdminClient();
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+
+  // Direct status change (no payment side-effects).
+  if (!body.action && body.status) {
+    if (!DIRECT_STATUSES.has(body.status)) {
+      return NextResponse.json({ error: "invalid status" }, { status: 400 });
+    }
+    const { data, error } = await admin
+      .from("bookings")
+      .update({ status: body.status })
+      .eq("id", id)
+      .select("id, status")
+      .maybeSingle();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data) return NextResponse.json({ error: "booking not found" }, { status: 404 });
+    return NextResponse.json({ ok: true, status: body.status });
+  }
+
+  if (body.action !== "confirm" && body.action !== "reject") {
+    return NextResponse.json({ error: "action must be confirm or reject" }, { status: 400 });
   }
 
   const bookingStatus = body.action === "confirm" ? "confirmed" : "cancelled";
@@ -50,7 +78,6 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   if (bErr) return NextResponse.json({ error: bErr.message }, { status: 500 });
   if (!booking) return NextResponse.json({ error: "booking not found" }, { status: 404 });
 
-  // Update the latest payment row, if any.
   const { data: payment } = await admin
     .from("payments")
     .select("id")
