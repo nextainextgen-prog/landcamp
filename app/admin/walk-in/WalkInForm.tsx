@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Panel } from "@/components/admin/ui";
 
 export type WalkInRoom = {
@@ -23,12 +24,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+type Result =
+  | { kind: "ok"; bookingCode: string; total: number; paid: boolean }
+  | { kind: "error"; message: string };
+
 /**
- * Front-desk walk-in scaffold. UI only — submission is wired to the backend
- * later (see memory: admin-backend-todo). Fields are kept in local state so the
- * layout/validation can be refined before the API exists.
+ * Front-desk walk-in form. Submits to POST /api/admin/walk-in which finds/creates
+ * the customer, runs the same availability + pricing as online booking, and
+ * records the reservation as `confirmed` (source = walk_in) plus a payment row.
  */
 export function WalkInForm({ rooms }: { rooms: WalkInRoom[] }) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -40,17 +46,83 @@ export function WalkInForm({ rooms }: { rooms: WalkInRoom[] }) {
   const [method, setMethod] = useState("cash");
   const [paid, setPaid] = useState(true);
   const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<Result | null>(null);
 
-  function onSubmit(e: FormEvent) {
+  function resetForm() {
+    setName("");
+    setPhone("");
+    setEmail("");
+    setRoomId(rooms[0]?.id ?? "");
+    setCheckIn("");
+    setCheckOut("");
+    setAdults("2");
+    setChildren("0");
+    setMethod("cash");
+    setPaid(true);
+    setNotes("");
+  }
+
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    window.alert("ส่วนนี้กำลังพัฒนา backend — ฟอร์มพร้อมแล้ว เดี๋ยวเชื่อมต่อให้บันทึกจริงภายหลัง");
+    if (submitting) return;
+    setResult(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/admin/walk-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: name,
+          phone,
+          email: email || undefined,
+          roomId,
+          checkIn,
+          checkOut,
+          adults: Number(adults),
+          children: Number(children),
+          extraBed: false,
+          method,
+          paid,
+          notes,
+        }),
+      });
+      const data = (await res.json()) as {
+        bookingCode?: string;
+        totalAmount?: number;
+        error?: string;
+      };
+      if (!res.ok) {
+        setResult({ kind: "error", message: data.error ?? "บันทึกไม่สำเร็จ" });
+        return;
+      }
+      setResult({
+        kind: "ok",
+        bookingCode: data.bookingCode ?? "—",
+        total: data.totalAmount ?? 0,
+        paid,
+      });
+      resetForm();
+      router.refresh();
+    } catch {
+      setResult({ kind: "error", message: "เครือข่ายขัดข้อง ลองอีกครั้ง" });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div className="rounded-xl border border-dashed border-[color:var(--color-warm-clay)]/40 bg-[color:var(--color-warm-clay)]/8 px-4 py-3 text-sm text-[color:var(--color-warm-clay)]">
-        🚧 หน้านี้เป็นโครง UI — ปุ่มบันทึกจะเชื่อม backend ภายหลัง (ข้อมูลยังไม่ถูกบันทึกจริง)
-      </div>
+      {result?.kind === "ok" && (
+        <div className="rounded-xl border border-[color:var(--color-forest-deep)]/20 bg-[color:var(--color-forest-deep)]/8 px-4 py-3 text-sm text-[color:var(--color-forest-deep)]">
+          ✅ บันทึกการจองแล้ว — รหัส <span className="font-mono font-semibold">{result.bookingCode}</span> · ยอด ฿{result.total.toLocaleString("en-US")} · {result.paid ? "ชำระแล้ว" : "ยังไม่ชำระ"}
+        </div>
+      )}
+      {result?.kind === "error" && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          ❌ {result.message}
+        </div>
+      )}
 
       <Panel title="ข้อมูลลูกค้า">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -114,9 +186,10 @@ export function WalkInForm({ rooms }: { rooms: WalkInRoom[] }) {
       <div className="flex justify-end">
         <button
           type="submit"
-          className="rounded-lg bg-[color:var(--color-forest-deep)] px-6 py-3 text-sm font-semibold text-[color:var(--color-bone)] transition-colors hover:bg-[color:var(--color-warm-clay)]"
+          disabled={submitting}
+          className="rounded-lg bg-[color:var(--color-forest-deep)] px-6 py-3 text-sm font-semibold text-[color:var(--color-bone)] transition-colors hover:bg-[color:var(--color-warm-clay)] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          บันทึกการจอง
+          {submitting ? "กำลังบันทึก…" : "บันทึกการจอง"}
         </button>
       </div>
     </form>
