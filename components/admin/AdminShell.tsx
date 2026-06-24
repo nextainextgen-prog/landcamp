@@ -9,6 +9,7 @@ import { SECTIONS, type AdminRole, type SectionKey } from "@/lib/admin/sections"
 const SECTION_HREF: Record<SectionKey, string> = {
   bookings: "/admin/bookings",
   rooms: "/admin/rooms",
+  content: "/admin/content",
   revenue: "/admin/revenue",
   customers: "/admin/customers",
   "payment-settings": "/admin/payment-settings",
@@ -30,6 +31,7 @@ function Icon({ name, className = "h-[18px] w-[18px]" }: { name: string; classNa
     calendar: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4M7 13h3M7 17h3M14 13h3" /></>,
     occupancy: <><path d="M3 21V9l9-6 9 6v12" /><path d="M9 21v-6h6v6" /></>,
     rooms: <><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M15 9h.01M15 13h.01" /></>,
+    content: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></>,
     revenue: <><path d="M3 3v18h18" /><path d="M7 14l4-4 3 3 5-6" /></>,
     customers: <><circle cx="9" cy="8" r="3.5" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 5.5a3.5 3.5 0 0 1 0 6.4M21 20c0-2.5-1.4-4.7-3.5-5.6" /></>,
     "payment-settings": <><rect x="2.5" y="5" width="19" height="14" rx="2" /><path d="M2.5 10h19" /></>,

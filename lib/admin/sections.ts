@@ -4,6 +4,7 @@
 export const SECTIONS = [
   { key: "bookings", label: "รายการจอง" },
   { key: "rooms", label: "ห้องพัก" },
+  { key: "content", label: "เนื้อหาเว็บ" },
   { key: "revenue", label: "รายได้" },
   { key: "customers", label: "ลูกค้า" },
   { key: "payment-settings", label: "ตั้งค่าการเงิน" },
