@@ -1,9 +1,16 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Panel } from "@/components/admin/ui";
 import type { Bilingual, SiteContent } from "@/lib/content/types";
+
+type Version = {
+  id: string;
+  label: string | null;
+  created_by: string | null;
+  created_at: string;
+};
 
 /* ── immutable path setter ── */
 function setPath<T>(obj: T, path: (string | number)[], value: unknown): T {
@@ -24,6 +31,7 @@ const TABS = [
   { key: "contactSection", label: "ส่วนติดต่อ" },
   { key: "contact", label: "ข้อมูลติดต่อ" },
   { key: "footer", label: "ส่วนท้าย" },
+  { key: "versions", label: "ประวัติเวอร์ชัน" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -345,9 +353,89 @@ export function ContentEditor({
         </Panel>
       )}
 
+      {tab === "versions" && <VersionsPanel />}
+
       <p className="text-xs text-[color:var(--color-ink)]/45">
         ส่วน Hero และข้อมูลแบรนด์อื่น ๆ จะเปิดให้แก้ในหน้านี้หลังจากหน้าแรกถูกปรับปรุงเสร็จ
       </p>
     </div>
+  );
+}
+
+function VersionsPanel() {
+  const [versions, setVersions] = useState<Version[] | null>(null);
+  const [restoring, setRestoring] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/content/versions")
+      .then((r) => r.json())
+      .then((d: { versions?: Version[] }) => {
+        if (active) setVersions(d.versions ?? []);
+      })
+      .catch(() => {
+        if (active) setVersions([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function restore(id: string) {
+    if (!window.confirm("ย้อนกลับไปใช้เนื้อหาเวอร์ชันนี้? เนื้อหาปัจจุบันจะถูกแทนที่ทันที")) return;
+    setRestoring(id);
+    setErr(null);
+    const res = await fetch(`/api/admin/content/versions/${id}/restore`, { method: "POST" });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setErr(data.error ?? "ย้อนเวอร์ชันไม่สำเร็จ");
+      setRestoring(null);
+      return;
+    }
+    // Reload so the editor re-reads the restored draft from the server.
+    window.location.reload();
+  }
+
+  return (
+    <Panel title="ประวัติการเผยแพร่" bodyClassName="flex flex-col gap-3">
+      <p className="text-xs text-[color:var(--color-ink)]/50">
+        ทุกครั้งที่กดเผยแพร่จะถูกบันทึกไว้ที่นี่ — กดย้อนกลับเพื่อใช้เนื้อหาเวอร์ชันก่อนหน้า
+      </p>
+      {err && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>
+      )}
+      {versions === null ? (
+        <p className="text-sm text-[color:var(--color-ink)]/45">กำลังโหลด…</p>
+      ) : versions.length === 0 ? (
+        <p className="text-sm text-[color:var(--color-ink)]/45">ยังไม่มีประวัติ — เผยแพร่ครั้งแรกเพื่อเริ่มเก็บประวัติ</p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-[color:var(--color-forest-deep)]/8">
+          {versions.map((v) => (
+            <li key={v.id} className="flex items-center gap-3 py-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-[color:var(--color-forest-deep)]">
+                  {new Date(v.created_at).toLocaleString("th-TH", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </div>
+                <div className="text-xs text-[color:var(--color-ink)]/45">
+                  โดย {v.created_by ?? "—"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => restore(v.id)}
+                disabled={restoring !== null}
+                className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-3 py-1.5 text-sm font-medium text-[color:var(--color-forest-deep)] transition-colors hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50"
+              >
+                {restoring === v.id ? "กำลังย้อน…" : "ย้อนกลับ"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }

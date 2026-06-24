@@ -71,3 +71,51 @@ export async function publishDraft(actor: string): Promise<SiteContentOverride> 
 
   return draft;
 }
+
+export type ContentVersion = {
+  id: string;
+  label: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+/** Recent publish snapshots, newest first. */
+export async function listVersions(limit = 20): Promise<ContentVersion[]> {
+  try {
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin
+      .from("site_content_versions")
+      .select("id, label, created_by, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return data as ContentVersion[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Restores a snapshot: sets both draft and published back to that version's
+ * doc so the editor and the live site reflect it. Throws on error.
+ */
+export async function restoreVersion(id: string): Promise<SiteContentOverride> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: version, error: readErr } = await admin
+    .from("site_content_versions")
+    .select("data")
+    .eq("id", id)
+    .maybeSingle();
+  if (readErr) throw new Error(readErr.message);
+  if (!version) throw new Error("version not found");
+  const data = (version.data ?? {}) as SiteContentOverride;
+
+  const { error: upErr } = await admin
+    .from("site_content")
+    .update({ draft: data, published: data, published_at: new Date().toISOString() })
+    .eq("id", ID);
+  if (upErr) throw new Error(upErr.message);
+
+  return data;
+}
