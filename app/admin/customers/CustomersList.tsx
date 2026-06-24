@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DataTable, EmptyState } from "@/components/admin/ui";
 
@@ -57,7 +58,11 @@ export function CustomersList({ initialRows }: { initialRows: CustomerRow[] }) {
         >
           {rows.map((r) => (
             <tr key={r.id} className="hover:bg-[color:var(--color-bone-soft)]/30">
-              <td className="px-5 py-3 font-medium text-[color:var(--color-forest-deep)]">{r.name}</td>
+              <td className="px-5 py-3 font-medium">
+                <Link href={`/admin/customers/${r.id}`} className="text-[color:var(--color-forest-deep)] hover:text-[color:var(--color-warm-clay)] hover:underline">
+                  {r.name}
+                </Link>
+              </td>
               <td className="px-5 py-3 text-[color:var(--color-ink)]/70">
                 <div>{r.email}</div>
                 {r.phone && <div className="text-xs text-[color:var(--color-ink)]/45">{r.phone}</div>}

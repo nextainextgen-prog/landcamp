@@ -20,6 +20,7 @@ const EXTRA_TOP = [
   { key: "dashboard", label: "ภาพรวม", href: "/admin/dashboard" },
   { key: "calendar", label: "ปฏิทินการจอง", href: "/admin/calendar" },
   { key: "occupancy", label: "ห้องว่าง", href: "/admin/occupancy" },
+  { key: "walkin", label: "Walk-in", href: "/admin/walk-in" },
 ] as const;
 
 function Icon({ name, className = "h-[18px] w-[18px]" }: { name: string; className?: string }) {
@@ -33,6 +34,7 @@ function Icon({ name, className = "h-[18px] w-[18px]" }: { name: string; classNa
     customers: <><circle cx="9" cy="8" r="3.5" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 5.5a3.5 3.5 0 0 1 0 6.4M21 20c0-2.5-1.4-4.7-3.5-5.6" /></>,
     "payment-settings": <><rect x="2.5" y="5" width="19" height="14" rx="2" /><path d="M2.5 10h19" /></>,
     users: <><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6" /></>,
+    walkin: <><circle cx="9" cy="8" r="3.5" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M18 8v6M15 11h6" /></>,
   };
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
@@ -47,11 +49,13 @@ export function AdminShell({
   username,
   role,
   permissions,
+  pendingReview = 0,
   children,
 }: {
   username: string;
   role: AdminRole;
   permissions: SectionKey[];
+  pendingReview?: number;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -169,7 +173,12 @@ export function AdminShell({
               )}
             >
               <Icon name={item.key} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.key === "bookings" && pendingReview > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[color:var(--color-warm-clay)] px-1.5 text-[10px] font-semibold text-white">
+                  {pendingReview}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -13,7 +13,6 @@ import {
   YAxis,
 } from "recharts";
 
-const FOREST = "#4d584b";
 const CLAY = "#9a795b";
 
 export function RevenueAreaChart({ data }: { data: { month: string; revenue: number }[] }) {

@@ -13,7 +13,7 @@ function ymd(d: Date): string {
 }
 
 export function OccupancyGrid({ rooms, bookings }: { rooms: OccRoom[]; bookings: OccBooking[] }) {
-  const today = new Date();
+  const [today] = useState(() => new Date());
   const [offset, setOffset] = useState(0); // weeks
 
   const days = useMemo(() => {
@@ -22,7 +22,7 @@ export function OccupancyGrid({ rooms, bookings }: { rooms: OccRoom[]; bookings:
       const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
       return { date: d, key: ymd(d) };
     });
-  }, [offset]);
+  }, [offset, today]);
 
   // room_id -> Set of occupied night keys
   const occupied = useMemo(() => {
