@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCustomerSession } from "@/lib/customer/session";
 
 export const metadata: Metadata = {
   title: "บัญชีของฉัน",
@@ -15,12 +15,9 @@ export default async function AccountLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await getCustomerSession();
 
-  if (!user) {
+  if (!session) {
     redirect("/");
   }
 

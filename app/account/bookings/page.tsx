@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCustomerSession } from "@/lib/customer/session";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   BOOKING_STATUS_TH,
   formatTHB,
@@ -36,36 +37,27 @@ const STATUS_BADGE: Record<BookingStatus, string> = {
 };
 
 export default async function AccountBookingsPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const session = await getCustomerSession();
+  if (!session) {
     redirect("/");
   }
 
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle<{ id: string }>();
-
+  const admin = createSupabaseAdminClient();
   let bookings: BookingRow[] = [];
-  if (customer?.id) {
-    const { data } = await supabase
+  {
+    const { data } = await admin
       .from("bookings")
       .select(
         "id, booking_code, check_in, check_out, status, total_amount, room_id, adults, children",
       )
-      .eq("customer_id", customer.id)
+      .eq("customer_id", session.id)
       .order("created_at", { ascending: false });
     const rows = (data ?? []) as Omit<BookingRow, "room_name">[];
 
-    // Resolve room names (rooms are publicly readable).
+    // Resolve room names.
     const roomIds = [...new Set(rows.map((r) => r.room_id))];
     const { data: rooms } = roomIds.length
-      ? await supabase.from("rooms").select("id, name_th").in("id", roomIds)
+      ? await admin.from("rooms").select("id, name_th").in("id", roomIds)
       : { data: [] };
     const roomName = new Map((rooms ?? []).map((r) => [r.id as string, r.name_th as string]));
 

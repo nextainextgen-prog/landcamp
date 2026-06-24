@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { holdExpiresAtIso } from "@/lib/booking/hold";
 import { getActivePaymentAccounts, resolveAmountDue } from "@/lib/payment/account";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCustomerSession } from "@/lib/customer/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,11 +24,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "bookingId required" }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const session = await getCustomerSession();
+  if (!session) {
     return NextResponse.json({ error: "authentication required" }, { status: 401 });
   }
 
@@ -39,21 +36,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "server not configured" }, { status: 500 });
   }
 
-  const { data: customer } = await admin
-    .from("customers")
-    .select("id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-  if (!customer) {
-    return NextResponse.json({ error: "customer profile not found" }, { status: 404 });
-  }
-
   const { data: booking } = await admin
     .from("bookings")
     .select("id, customer_id, status, total_amount, created_at")
     .eq("id", body.bookingId)
     .maybeSingle();
-  if (!booking || booking.customer_id !== customer.id) {
+  if (!booking || booking.customer_id !== session.id) {
     return NextResponse.json({ error: "booking not found" }, { status: 404 });
   }
 

@@ -2,11 +2,10 @@
 
 import { Avatar, Dropdown } from "@heroui/react";
 import { useRouter } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-function initials(name?: string | null, email?: string | null): string {
-  const src = (name ?? email ?? "?").trim();
+function initials(name?: string | null): string {
+  const src = (name ?? "?").trim();
   if (!src) return "?";
   const parts = src.split(/\s+/).filter(Boolean);
   if (parts.length === 1) {
@@ -15,24 +14,27 @@ function initials(name?: string | null, email?: string | null): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export function UserMenu({ user }: { user: User }) {
+export function UserMenu({
+  displayName,
+  pictureUrl,
+}: {
+  displayName: string | null;
+  pictureUrl: string | null;
+}) {
   const router = useRouter();
-  const meta = user.user_metadata ?? {};
-  const fullName: string | undefined =
-    (typeof meta.full_name === "string" && meta.full_name) ||
-    (typeof meta.name === "string" && meta.name) ||
-    undefined;
-  const avatarUrl: string | undefined =
-    typeof meta.avatar_url === "string" ? meta.avatar_url : undefined;
-  const label = initials(fullName, user.email);
+  const label = initials(displayName);
 
   async function handleSignOut() {
     try {
-      const supabase = createSupabaseBrowserClient();
-      await supabase.auth.signOut();
+      // Clear our LINE cookie and the Supabase (Google) session — whichever applies.
+      await fetch("/api/auth/logout", { method: "POST" });
+      try {
+        await createSupabaseBrowserClient().auth.signOut();
+      } catch {
+        // ignore — Google session may not exist
+      }
       router.refresh();
-    } catch (err) {
-      console.error("sign-out failed:", err);
+    } catch {
       window.location.assign("/");
     }
   }
@@ -40,12 +42,12 @@ export function UserMenu({ user }: { user: User }) {
   return (
     <Dropdown>
       <Dropdown.Trigger
-        aria-label={fullName ? `บัญชี ${fullName}` : "บัญชีของฉัน"}
+        aria-label={displayName ? `บัญชี ${displayName}` : "บัญชีของฉัน"}
         className="rounded-full outline-none ring-0 focus-visible:ring-2 focus-visible:ring-[color:var(--color-warm-clay)]"
       >
         <Avatar size="sm" className="h-9 w-9 cursor-pointer">
-          {avatarUrl ? (
-            <Avatar.Image src={avatarUrl} alt={fullName ?? "User"} />
+          {pictureUrl ? (
+            <Avatar.Image src={pictureUrl} alt={displayName ?? "User"} />
           ) : null}
           <Avatar.Fallback className="bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] text-xs uppercase tracking-wider">
             {label}

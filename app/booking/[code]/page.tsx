@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCustomerSession } from "@/lib/customer/session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { BOOKING_STATUS_TH, formatTHB, formatThaiDate } from "@/lib/account/format";
 import type { BookingStatus } from "@/types";
@@ -45,24 +45,22 @@ export default async function BookingReceiptPage({
 }) {
   const { code } = await params;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  const session = await getCustomerSession();
+  if (!session) redirect("/");
 
-  // RLS limits the customer to their own bookings.
-  const { data: booking } = await supabase
+  const admin = createSupabaseAdminClient();
+  // Fetch by code, then confirm it belongs to the signed-in customer.
+  const { data: row } = await admin
     .from("bookings")
     .select(
-      "booking_code, room_id, check_in, check_out, adults, children, extra_bed, nights, base_amount, extra_bed_amount, total_amount, status, notes, created_at",
+      "booking_code, customer_id, room_id, check_in, check_out, adults, children, extra_bed, nights, base_amount, extra_bed_amount, total_amount, status, notes, created_at",
     )
     .eq("booking_code", code)
-    .maybeSingle<BookingRow>();
+    .maybeSingle<BookingRow & { customer_id: string }>();
+  const booking = row && row.customer_id === session.id ? row : null;
 
   let roomName = "";
   if (booking) {
-    const admin = createSupabaseAdminClient();
     const { data: room } = await admin
       .from("rooms")
       .select("name_th")

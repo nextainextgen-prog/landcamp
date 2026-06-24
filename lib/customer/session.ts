@@ -11,15 +11,19 @@ import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const CUSTOMER_COOKIE = "lc_customer";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+export type AuthProvider = "line" | "google";
 
 export type CustomerSession = {
   id: string;
   lineUserId: string | null;
   displayName: string | null;
   pictureUrl: string | null;
+  provider: AuthProvider;
 };
 
 function sessionSecret(): string {
@@ -61,15 +65,29 @@ export function sessionCookieOptions() {
   };
 }
 
-/** Resolves the current customer from the signed session cookie, or null. */
+function rowToSession(
+  data: Record<string, unknown>,
+  fallbackProvider: AuthProvider,
+): CustomerSession {
+  const stored = data.auth_provider;
+  const provider: AuthProvider =
+    stored === "line" || stored === "google" ? stored : fallbackProvider;
+  return {
+    id: data.id as string,
+    lineUserId: (data.line_user_id as string) ?? null,
+    displayName: (data.full_name as string) ?? null,
+    pictureUrl: (data.avatar_url as string) ?? null,
+    provider,
+  };
+}
+
+/**
+ * Resolves the current customer from EITHER auth method:
+ *   1. the LINE `lc_customer` cookie, or
+ *   2. the Supabase (Google) session.
+ * Returns null if neither is present/valid.
+ */
 export async function getCustomerSession(): Promise<CustomerSession | null> {
-  const store = await cookies();
-  const token = store.get(CUSTOMER_COOKIE)?.value;
-  if (!token) return null;
-
-  const customerId = verifyToken(token, Date.now());
-  if (!customerId) return null;
-
   let admin;
   try {
     admin = createSupabaseAdminClient();
@@ -77,17 +95,38 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
     return null;
   }
 
-  const { data } = await admin
-    .from("customers")
-    .select("id, line_user_id, full_name, avatar_url")
-    .eq("id", customerId)
-    .maybeSingle();
-  if (!data) return null;
+  // 1. LINE — our signed cookie.
+  const store = await cookies();
+  const token = store.get(CUSTOMER_COOKIE)?.value;
+  if (token) {
+    const customerId = verifyToken(token, Date.now());
+    if (customerId) {
+      const { data } = await admin
+        .from("customers")
+        .select("id, line_user_id, full_name, avatar_url, auth_provider")
+        .eq("id", customerId)
+        .maybeSingle();
+      if (data) return rowToSession(data, "line");
+    }
+  }
 
-  return {
-    id: data.id as string,
-    lineUserId: (data.line_user_id as string) ?? null,
-    displayName: (data.full_name as string) ?? null,
-    pictureUrl: (data.avatar_url as string) ?? null,
-  };
+  // 2. Google — Supabase auth session.
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await admin
+        .from("customers")
+        .select("id, line_user_id, full_name, avatar_url, auth_provider")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+      if (data) return rowToSession(data, "google");
+    }
+  } catch {
+    // ignore — treat as signed out
+  }
+
+  return null;
 }

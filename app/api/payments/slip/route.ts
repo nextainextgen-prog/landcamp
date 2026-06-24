@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { BOOKING_HOLD_MS } from "@/lib/booking/hold";
 import { verifyBankSlip } from "@/lib/easyslip";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCustomerSession } from "@/lib/customer/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,28 +38,17 @@ export async function POST(request: NextRequest) {
   const slipDataUrl = body.base64;
   const base64Only = slipDataUrl.includes(",") ? slipDataUrl.split(",")[1] : slipDataUrl;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const session = await getCustomerSession();
+  if (!session) {
     return NextResponse.json({ error: "authentication required" }, { status: 401 });
   }
+  const customer = { id: session.id };
 
   let admin;
   try {
     admin = createSupabaseAdminClient();
   } catch {
     return NextResponse.json({ error: "server not configured" }, { status: 500 });
-  }
-
-  const { data: customer } = await admin
-    .from("customers")
-    .select("id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-  if (!customer) {
-    return NextResponse.json({ error: "customer profile not found" }, { status: 404 });
   }
 
   const { data: booking } = await admin

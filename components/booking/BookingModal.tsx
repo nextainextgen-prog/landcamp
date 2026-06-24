@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { User } from "@supabase/supabase-js";
 
 import { useT } from "@/app/providers";
 import { calculateBookingTotal } from "@/lib/booking/pricing";
@@ -13,7 +12,7 @@ import {
   type BookingIntent,
 } from "@/lib/booking/intent";
 import { bankLabel } from "@/lib/payment/banks";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { AuthOptions } from "@/components/auth/AuthOptions";
 import { useAvailability } from "@/hooks/useAvailability";
 import type { Room } from "@/types";
 
@@ -87,8 +86,9 @@ export function BookingModal({
   const [notes, setNotes] = useState(prefill?.notes ?? "");
 
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [loggedIn, setLoggedIn] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   const [phase, setPhase] = useState<Phase>("form");
   const [submit, setSubmit] = useState<SubmitState>("idle");
@@ -126,15 +126,20 @@ export function BookingModal({
   }, [room.id]);
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setAuthReady(true);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => sub.subscription.unsubscribe();
+    let active = true;
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d: { user: unknown }) => {
+        if (!active) return;
+        setLoggedIn(Boolean(d.user));
+        setAuthReady(true);
+      })
+      .catch(() => {
+        if (active) setAuthReady(true);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const datesValid = Boolean(checkIn && checkOut && checkOut > checkIn);
@@ -199,13 +204,11 @@ export function BookingModal({
   async function handleSubmit() {
     if (!canSubmit) return;
 
-    if (!user) {
+    if (!loggedIn) {
+      // Persist the intent so the booking resumes after sign-in, then reveal
+      // the LINE/Google choice inline.
       saveBookingIntent(currentIntent());
-      const supabase = createSupabaseBrowserClient();
-      await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      });
+      setShowAuth(true);
       return;
     }
 
@@ -418,19 +421,31 @@ export function BookingModal({
 
               {errorMsg && <p className="text-[13px] text-red-700 bg-red-50 rounded-lg px-3 py-2">{errorMsg}</p>}
 
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={authReady && !!user && !canSubmit}
-                className="w-full inline-flex items-center justify-center rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-6 py-4 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ fontFamily: "var(--font-ui)" }}
-              >
-                {submit === "submitting"
-                  ? t({ th: "กำลังจอง…", en: "Booking…" })
-                  : !user && authReady
-                    ? t({ th: "เข้าสู่ระบบเพื่อจอง", en: "Sign in to book" })
-                    : t({ th: "ยืนยันการจอง", en: "Confirm booking" })}
-              </button>
+              {showAuth && !loggedIn ? (
+                <div className="rounded-2xl border border-[color:var(--color-forest-deep)]/12 bg-[color:var(--color-bone-soft)]/40 p-4">
+                  <p className="mb-3 text-center text-[13px] text-[color:var(--color-ink)]/70">
+                    {t({
+                      th: "เข้าสู่ระบบเพื่อยืนยันการจอง — แนะนำผ่าน LINE เพื่อรับใบยืนยันและการแจ้งเตือน",
+                      en: "Sign in to confirm — LINE recommended so you receive your confirmation and reminders.",
+                    })}
+                  </p>
+                  <AuthOptions next="/" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={authReady && loggedIn && !canSubmit}
+                  className="w-full inline-flex items-center justify-center rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-6 py-4 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ fontFamily: "var(--font-ui)" }}
+                >
+                  {submit === "submitting"
+                    ? t({ th: "กำลังจอง…", en: "Booking…" })
+                    : !loggedIn && authReady
+                      ? t({ th: "เข้าสู่ระบบเพื่อจอง", en: "Sign in to book" })
+                      : t({ th: "ยืนยันการจอง", en: "Confirm booking" })}
+                </button>
+              )}
 
               <p className="text-[11px] leading-relaxed text-[color:var(--color-ink)]/45 text-center">
                 {t({ th: "ระบบจะล็อกห้องไว้ 15 นาทีเพื่อชำระเงิน", en: "Your room is held for 15 minutes to complete payment." })}

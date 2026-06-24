@@ -1,37 +1,31 @@
 -- 013_line_auth.sql
 --
--- Switch customer authentication from Google (Supabase Auth) to LINE Login.
+-- Add LINE Login alongside the existing Google (Supabase Auth) login. Both
+-- methods are supported; the UI emphasises LINE. Customers may be identified by
+-- their LINE userId and/or their Google auth user.
 --
--- Customers are now identified by their LINE userId (captured at LINE Login),
--- which is also the key used later to push Flex messages to them. The app
--- manages its own signed `lc_customer` session cookie (like the admin one),
--- so Supabase Auth is no longer used for customers.
---
---   * line_user_id : LINE userId (unique) — the push key. Same value the
---                    Messaging API uses IFF the Login + Messaging channels are
---                    under the same LINE provider.
---   * line_friend  : whether the customer added the Official Account as a
---                    friend (so we know we can push to them).
+--   * line_user_id  : LINE userId (unique) — the push key. Same value the
+--                     Messaging API uses IFF the Login + Messaging channels are
+--                     under the same LINE provider.
+--   * line_friend   : whether the customer added the Official Account as a
+--                     friend (so we know we can push to them).
+--   * auth_provider : which channel the customer last signed in with
+--                     ('line' | 'google') — shown on the profile + kept as data.
 --
 -- The existing google_sub / avatar_url / full_name columns are reused for the
--- LINE profile (avatar_url = picture, full_name = display name).
---
--- Also retires the auth.users → customers sync trigger from migration 005,
--- since customers are no longer created from Supabase Auth.
+-- profile (avatar_url = picture, full_name = display name). The Google
+-- auth.users → customers sync trigger (migration 005) stays in place.
 --
 -- Safe to re-run.
 
 alter table public.customers
-  add column if not exists line_user_id text,
-  add column if not exists line_friend  boolean not null default false;
+  add column if not exists line_user_id  text,
+  add column if not exists line_friend   boolean not null default false,
+  add column if not exists auth_provider text;
 
 create unique index if not exists customers_line_user_id_key
   on public.customers (line_user_id)
   where line_user_id is not null;
-
--- Retire the Google/Supabase-Auth sync trigger (migration 005).
-drop trigger if exists on_auth_user_created on auth.users;
-drop function if exists public.handle_new_auth_user();
 
 -- ── LINE integration settings (editable in /admin/settings) ──
 -- Single-row store so the owner can enter LINE channel credentials + the OA

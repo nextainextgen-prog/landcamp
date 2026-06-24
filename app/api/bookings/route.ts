@@ -6,7 +6,7 @@ import { holdExpiresAtIso } from "@/lib/booking/hold";
 import { calculateBookingTotal } from "@/lib/booking/pricing";
 import { CreateBookingSchema } from "@/lib/schemas/booking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCustomerSession } from "@/lib/customer/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,13 +50,12 @@ export async function POST(request: NextRequest) {
     parsed.data;
 
   // ── Authentication: a booking always belongs to the signed-in customer. ──
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const session = await getCustomerSession();
+  if (!session) {
     return NextResponse.json({ error: "authentication required" }, { status: 401 });
   }
+  // The session is the source of truth for the customer id.
+  const customer = { id: session.id };
 
   let admin;
   try {
@@ -65,21 +64,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "server not configured" }, { status: 500 });
   }
 
-  // Resolve the customer from the session — never trust a body-supplied id.
-  const { data: customer, error: customerErr } = await admin
-    .from("customers")
-    .select("id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (customerErr) {
-    return NextResponse.json({ error: customerErr.message }, { status: 500 });
-  }
-  if (!customer) {
-    return NextResponse.json({ error: "customer profile not found" }, { status: 404 });
-  }
-  // The session is the source of truth; if the client also sent a customerId it
-  // must match (prevents booking on behalf of another customer).
+  // If the client also sent a customerId it must match (prevents booking on
+  // behalf of another customer).
   if (customerId && customer.id !== customerId) {
     return NextResponse.json(
       { error: "customerId does not match the signed-in user" },

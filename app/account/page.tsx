@@ -1,45 +1,46 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCustomerSession } from "@/lib/customer/session";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getInitials } from "@/lib/account/format";
 import type { Customer } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function AccountHomePage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+const PROVIDER_LABEL: Record<string, string> = {
+  line: "เข้าสู่ระบบผ่าน LINE",
+  google: "เข้าสู่ระบบผ่าน Google",
+};
 
-  if (!user) {
+export default async function AccountHomePage() {
+  const session = await getCustomerSession();
+
+  if (!session) {
     // Belt-and-braces — layout already redirects, but keeps TS narrowing happy.
     redirect("/");
   }
 
-  const { data: customer } = await supabase
+  const admin = createSupabaseAdminClient();
+  const { data: customer } = await admin
     .from("customers")
     .select("id, full_name, email, avatar_url")
-    .eq("auth_user_id", user.id)
+    .eq("id", session.id)
     .maybeSingle<Pick<Customer, "id" | "full_name" | "email" | "avatar_url">>();
 
   let bookingCount = 0;
   if (customer?.id) {
-    const { count } = await supabase
+    const { count } = await admin
       .from("bookings")
       .select("id", { count: "exact", head: true })
       .eq("customer_id", customer.id);
     bookingCount = count ?? 0;
   }
 
-  const meta = (user.user_metadata ?? {}) as {
-    avatar_url?: string;
-    full_name?: string;
-  };
-  const avatarUrl = meta.avatar_url ?? customer?.avatar_url ?? null;
-  const fullName = customer?.full_name ?? meta.full_name ?? null;
-  const email = customer?.email ?? user.email ?? "";
+  const avatarUrl = customer?.avatar_url ?? session.pictureUrl ?? null;
+  const fullName = customer?.full_name ?? session.displayName ?? null;
+  const email = customer?.email ?? "";
   const initials = getInitials(fullName);
+  const providerLabel = PROVIDER_LABEL[session.provider] ?? "";
 
   return (
     <div className="space-y-10">
@@ -80,6 +81,14 @@ export default async function AccountHomePage() {
             <p className="mt-2 truncate text-sm text-[color:var(--color-ink)]/65">
               {email}
             </p>
+            {providerLabel && (
+              <span
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[color:var(--color-forest-deep)]/8 px-3 py-1 text-[11px] font-medium text-[color:var(--color-forest-deep)]"
+                style={{ fontFamily: "var(--font-ui)" }}
+              >
+                {providerLabel}
+              </span>
+            )}
           </div>
 
           <div className="sm:ml-auto sm:text-right">

@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
     const patch: Record<string, unknown> = {
       full_name: profile.displayName,
       avatar_url: profile.pictureUrl,
+      auth_provider: "line",
     };
     // Only flip line_friend on when they actually added the OA this login.
     if (token.friendAdded) patch.line_friend = true;

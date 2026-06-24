@@ -1,64 +1,54 @@
 "use client";
 
-import { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useEffect, useRef, useState } from "react";
+import { AuthOptions } from "@/components/auth/AuthOptions";
 import { cn } from "@/lib/cn";
 
 type Variant = "desktop" | "mobile";
 
+/**
+ * Sign-in entry point. Mobile shows the LINE/Google options inline; desktop
+ * shows a compact button that opens a small popover with the same options.
+ */
 export function SignInButton({ variant = "desktop" }: { variant?: Variant }) {
-  const [pending, setPending] = useState(false);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-  async function handleSignIn() {
-    if (pending) return;
-    setPending(true);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) {
-        console.error("sign-in failed:", error.message);
-        setPending(false);
-      }
-    } catch (err) {
-      console.error("sign-in error:", err);
-      setPending(false);
+  useEffect(() => {
+    if (!open) return;
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-  }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
 
   if (variant === "mobile") {
-    return (
-      <button
-        type="button"
-        onClick={handleSignIn}
-        disabled={pending}
-        className="block w-full text-center rounded-full border border-[color:var(--color-bone)]/30 text-[color:var(--color-bone)] px-6 py-4 text-[12px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-bone)]/10 transition-colors duration-500 disabled:opacity-60"
-        style={{ fontFamily: "var(--font-ui)" }}
-      >
-        {pending ? "กำลังเปิดหน้าล็อกอิน..." : "เข้าสู่ระบบ"}
-      </button>
-    );
+    return <AuthOptions className="w-full" />;
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleSignIn}
-      disabled={pending}
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[11px] uppercase tracking-[0.28em]",
-        "border border-[color:var(--color-bone)]/30 text-[color:var(--color-bone)]/90",
-        "hover:bg-[color:var(--color-bone)]/10 hover:text-[color:var(--color-bone)]",
-        "transition-colors duration-500 ease-out",
-        "disabled:opacity-60",
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[11px] uppercase tracking-[0.28em]",
+          "border border-[color:var(--color-bone)]/30 text-[color:var(--color-bone)]/90",
+          "hover:bg-[color:var(--color-bone)]/10 hover:text-[color:var(--color-bone)]",
+          "transition-colors duration-500 ease-out",
+        )}
+        style={{ fontFamily: "var(--font-ui)" }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        เข้าสู่ระบบ
+      </button>
+      {open && (
+        <div className="absolute right-0 z-50 mt-2 w-64 rounded-2xl border border-black/5 bg-white p-3 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)]">
+          <AuthOptions />
+        </div>
       )}
-      style={{ fontFamily: "var(--font-ui)" }}
-    >
-      {pending ? "..." : "เข้าสู่ระบบ"}
-    </button>
+    </div>
   );
 }

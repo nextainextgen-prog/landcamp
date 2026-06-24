@@ -14,6 +14,7 @@ export async function GET() {
       id: session.id,
       displayName: session.displayName,
       pictureUrl: session.pictureUrl,
+      provider: session.provider,
     },
   });
 }
