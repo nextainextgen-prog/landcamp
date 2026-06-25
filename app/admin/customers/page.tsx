@@ -63,12 +63,15 @@ export default async function AdminCustomersPage({
 
     allBookings = (bookings ?? []) as Record<string, unknown>[];
 
-    const agg = new Map<string, { count: number; spent: number; last: string | null }>();
+    const agg = new Map<string, { count: number; stays: number; spent: number; last: string | null }>();
     for (const b of bookings ?? []) {
       const cid = b.customer_id as string;
-      const cur = agg.get(cid) ?? { count: 0, spent: 0, last: null };
+      const cur = agg.get(cid) ?? { count: 0, stays: 0, spent: 0, last: null };
       cur.count += 1;
-      if (EARNING_STATUSES.has(b.status as string)) cur.spent += (b.total_amount as number) ?? 0;
+      if (EARNING_STATUSES.has(b.status as string)) {
+        cur.spent += (b.total_amount as number) ?? 0;
+        cur.stays += 1; // actual confirmed/completed stays (drives loyalty tier)
+      }
       const created = b.created_at as string;
       if (!cur.last || created > cur.last) cur.last = created;
       agg.set(cid, cur);
@@ -96,6 +99,7 @@ export default async function AdminCustomersPage({
         channel,
         profile_complete: c.profile_completed_at != null,
         bookings_count: a?.count ?? 0,
+        stays: a?.stays ?? 0,
         total_spent: a?.spent ?? 0,
         last_booking: a?.last ?? null,
       };

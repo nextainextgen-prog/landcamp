@@ -29,6 +29,7 @@ export type CustomerRow = {
   channel: Channel;
   profile_complete: boolean;
   bookings_count: number;
+  stays: number;
   total_spent: number;
   last_booking: string | null;
 };
@@ -112,12 +113,23 @@ function pctChange(now: number, prev: number): number {
   return now > 0 ? 100 : 0;
 }
 
-/** Lightweight RFM segmentation from booking count + recency. */
+/**
+ * Lightweight RFM segmentation. Loyalty is based on *actual stays*
+ * (confirmed/completed bookings), not raw booking rows, and on account age —
+ * a brand-new account with a couple of test bookings stays "ใหม่".
+ *   • ห่างหาย — had a real stay but hasn't returned in >120 days
+ *   • ใหม่    — account < 60 days old, or 0–1 real stays
+ *   • ประจำ   — ≥3 real stays and active within 90 days
+ */
 function rfm(r: CustomerRow): { label: string; cls: string } | null {
-  const d = daysAgo(r.last_booking);
-  if (r.bookings_count >= 3 && d !== null && d <= 90) return { label: "ประจำ", cls: "bg-emerald-100 text-emerald-700" };
-  if (d !== null && d > 120) return { label: "ห่างหาย", cls: "bg-rose-100 text-rose-600" };
-  if (r.bookings_count <= 1) return { label: "ใหม่", cls: "bg-[color:var(--color-warm-clay)]/15 text-[color:var(--color-warm-clay)]" };
+  const last = daysAgo(r.last_booking);
+  const age = daysAgo(r.created_at);
+  if (r.stays >= 1 && last !== null && last > 120)
+    return { label: "ห่างหาย", cls: "bg-rose-100 text-rose-600" };
+  if (r.stays <= 1 || (age !== null && age <= 60))
+    return { label: "ใหม่", cls: "bg-[color:var(--color-warm-clay)]/15 text-[color:var(--color-warm-clay)]" };
+  if (r.stays >= 3 && last !== null && last <= 90)
+    return { label: "ประจำ", cls: "bg-emerald-100 text-emerald-700" };
   return null;
 }
 
