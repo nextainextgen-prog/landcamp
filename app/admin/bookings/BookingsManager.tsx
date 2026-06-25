@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 
 import type { BookingStatus } from "@/types";
+import { siteConfig } from "@/data/siteConfig";
+
+const ACTIVE_STATUSES = new Set<BookingStatus>(["pending_payment", "payment_review", "confirmed"]);
 
 export type BookingRow = {
   id: string;
@@ -26,6 +29,7 @@ export type BookingRow = {
   children: number;
   status: BookingStatus;
   total_amount: number;
+  notes: string | null;
   created_at: string;
   payment: {
     amount: number;
@@ -236,6 +240,34 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
 
   const selected = rows.find((r) => r.id === selectedId) ?? null;
 
+  // Other active bookings on the same room with overlapping dates.
+  const overlaps = useMemo(() => {
+    if (!selected) return [];
+    return rows.filter(
+      (r) =>
+        r.id !== selected.id &&
+        r.room_name === selected.room_name &&
+        ACTIVE_STATUSES.has(r.status) &&
+        r.check_in < selected.check_out &&
+        selected.check_in < r.check_out,
+    );
+  }, [rows, selected]);
+
+  async function saveNotes(id: string, notes: string) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ notes }) });
+      if (!res.ok) throw new Error();
+      setRows((l) => l.map((r) => (r.id === id ? { ...r, notes } : r)));
+      setToast("บันทึกโน้ตแล้ว");
+      setTimeout(() => setToast(null), 2000);
+    } catch {
+      window.alert("บันทึกโน้ตไม่สำเร็จ");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function patch(id: string, body: Record<string, string>, optimistic: BookingStatus) {
     setBusy(true);
     try {
@@ -372,7 +404,7 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
             เลือกการจองทางซ้ายเพื่อดูรายละเอียด
           </div>
         ) : (
-          <BookingDetail key={selected.id} r={selected} busy={busy} onPatch={patch} onResend={resendCard} onZoom={setZoom} />
+          <BookingDetail key={selected.id} r={selected} busy={busy} overlaps={overlaps} onPatch={patch} onResend={resendCard} onZoom={setZoom} onSaveNotes={saveNotes} />
         )}
         {toast && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{toast}</div>}
       </div>
@@ -566,24 +598,62 @@ function MiniCalendar({ rows, active, onPick }: { rows: BookingRow[]; active: st
 function BookingDetail({
   r,
   busy,
+  overlaps,
   onPatch,
   onResend,
   onZoom,
+  onSaveNotes,
 }: {
   r: BookingRow;
   busy: boolean;
+  overlaps: BookingRow[];
   onPatch: (id: string, body: Record<string, string>, optimistic: BookingStatus) => void;
   onResend: (id: string) => void;
   onZoom: (src: string) => void;
+  onSaveNotes: (id: string, notes: string) => void;
 }) {
   const c = r.customer;
   const [phoneOpen, setPhoneOpen] = useState(false);
+  const [confirm, setConfirm] = useState<null | { title: string; message: string; label: string; danger?: boolean; run: () => void }>(null);
+  const [noteDraft, setNoteDraft] = useState(r.notes ?? "");
+  const [copied, setCopied] = useState<"" | "summary" | "map">("");
   const nights = nightsBetween(r.check_in, r.check_out);
+
+  function flash(which: "summary" | "map") {
+    setCopied(which);
+    setTimeout(() => setCopied(""), 1500);
+  }
+  function copySummary() {
+    const text = [
+      `การจอง ${r.booking_code}`,
+      `ลูกค้า: ${c.name}${c.phone ? ` (${c.phone})` : ""}`,
+      `ห้อง: ${r.room_name}`,
+      `เข้าพัก: ${thaiDate(r.check_in)} → ${thaiDate(r.check_out)} (${nights} คืน)`,
+      `ผู้เข้าพัก: ผู้ใหญ่ ${r.adults}${r.children > 0 ? ` · เด็ก ${r.children}` : ""}`,
+      `ยอด: ฿${r.total_amount.toLocaleString("en-US")}`,
+      `สถานะ: ${STATUS_TH[r.status]}`,
+    ].join("\n");
+    void navigator.clipboard?.writeText(text);
+    flash("summary");
+  }
+  function copyMap() {
+    void navigator.clipboard?.writeText(siteConfig.contact.googleMaps);
+    flash("map");
+  }
   const note = parseNote(r.payment?.verify_note ?? null);
   const verify = r.payment?.verify_status ? VERIFY[r.payment.verify_status] ?? VERIFY.pending : null;
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-5 shadow-sm">
+      {overlaps.length > 0 && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+          <span className="text-sm leading-none">⚠</span>
+          <span>
+            ห้องนี้มีการจองช่วงวันที่ทับซ้อน {overlaps.length} รายการ:{" "}
+            <span className="font-semibold">{overlaps.map((o) => o.booking_code).join(", ")}</span> — ตรวจสอบก่อนยืนยัน
+          </span>
+        </div>
+      )}
       {/* Customer */}
       <div className="flex items-start gap-3 border-b border-[color:var(--color-forest-deep)]/8 pb-4">
         <Avatar c={c} />
@@ -603,6 +673,8 @@ function BookingDetail({
             <button type="button" onClick={() => setPhoneOpen(true)} className="inline-flex items-center gap-1 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">📞 โทร</button>
             {c.email && <a href={`mailto:${c.email}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">อีเมล</a>}
             <a href={`/admin/customers/${r.customer_id}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">ดูประวัติลูกค้า</a>
+            <button type="button" onClick={copyMap} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">📍 {copied === "map" ? "คัดลอกลิงก์แล้ว" : "แผนที่"}</button>
+            <button type="button" onClick={copySummary} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">📋 {copied === "summary" ? "คัดลอกแล้ว" : "คัดลอกสรุป"}</button>
             {c.lineUserId && <button type="button" disabled={busy} onClick={() => onResend(r.id)} className="rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50">ส่งการ์ด LINE</button>}
           </div>
         </div>
@@ -665,26 +737,97 @@ function BookingDetail({
         </div>
       )}
 
+      {/* Internal note / special request */}
+      <div className="rounded-xl border border-[color:var(--color-forest-deep)]/10 bg-[color:var(--color-bone-soft)]/30 p-4">
+        <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/70">โน้ต / คำขอพิเศษ</div>
+        <textarea
+          value={noteDraft}
+          onChange={(e) => setNoteDraft(e.target.value)}
+          rows={2}
+          placeholder="บันทึกภายใน เช่น ขอเตียงเสริม · มาดึก · แพ้อาหาร…"
+          className="w-full resize-y rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-3 py-2 text-sm outline-none focus:border-[color:var(--color-warm-clay)]"
+        />
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            disabled={busy || noteDraft.trim() === (r.notes ?? "")}
+            onClick={() => onSaveNotes(r.id, noteDraft.trim())}
+            className="rounded-lg bg-[color:var(--color-forest-deep)] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[color:var(--color-warm-clay)] disabled:opacity-40"
+          >
+            บันทึกโน้ต
+          </button>
+        </div>
+      </div>
+
       {/* Actions */}
       <div className="flex flex-wrap gap-2 border-t border-[color:var(--color-forest-deep)]/8 pt-4">
         {r.status === "payment_review" && (
           <>
             <button type="button" disabled={busy} onClick={() => onPatch(r.id, { action: "confirm" }, "confirmed")} className="rounded-lg bg-[color:var(--color-warm-clay)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50">ยืนยันการจอง</button>
-            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { action: "reject" }, "cancelled")} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">ปฏิเสธ</button>
+            <button type="button" disabled={busy} onClick={() => setConfirm({ title: "ปฏิเสธการจอง", message: `ปฏิเสธสลิปและยกเลิก ${r.booking_code}? การจองจะถูกยกเลิก`, label: "ปฏิเสธ", danger: true, run: () => onPatch(r.id, { action: "reject" }, "cancelled") })} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">ปฏิเสธ</button>
           </>
         )}
         {r.status === "confirmed" && (
           <>
             <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "completed" }, "completed")} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">เช็คเอาท์แล้ว</button>
-            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "no_show" }, "no_show")} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50">ไม่มาตามนัด</button>
+            <button type="button" disabled={busy} onClick={() => setConfirm({ title: "ไม่มาตามนัด", message: `ยืนยันว่า ${c.name} ไม่มาเข้าพักตามนัด (${r.booking_code})?`, label: "ไม่มาตามนัด", danger: true, run: () => onPatch(r.id, { status: "no_show" }, "no_show") })} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50">ไม่มาตามนัด</button>
           </>
         )}
         {(r.status === "pending_payment" || r.status === "payment_review" || r.status === "confirmed") && (
-          <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "cancelled" }, "cancelled")} className="ml-auto rounded-lg px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50">ยกเลิกการจอง</button>
+          <button type="button" disabled={busy} onClick={() => setConfirm({ title: "ยกเลิกการจอง", message: `ยกเลิก ${r.booking_code} ของ ${c.name}? การดำเนินการนี้ย้อนกลับไม่ได้`, label: "ยกเลิกการจอง", danger: true, run: () => onPatch(r.id, { status: "cancelled" }, "cancelled") })} className="ml-auto rounded-lg px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50">ยกเลิกการจอง</button>
         )}
       </div>
 
       {phoneOpen && <PhonePopup name={c.name} phone={c.phone} onClose={() => setPhoneOpen(false)} />}
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          message={confirm.message}
+          label={confirm.label}
+          danger={confirm.danger}
+          busy={busy}
+          onConfirm={() => { confirm.run(); setConfirm(null); }}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConfirmDialog({
+  title,
+  message,
+  label,
+  danger,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  message: string;
+  label: string;
+  danger?: boolean;
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onCancel}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-[color:var(--color-forest-deep)]">{title}</h3>
+        <p className="mt-2 text-sm text-[color:var(--color-ink)]/70">{message}</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onCancel} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-ink)]/70 hover:bg-[color:var(--color-bone-soft)]">ยกเลิก</button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onConfirm}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${danger ? "bg-red-600 hover:bg-red-700" : "bg-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-warm-clay)]"}`}
+          >
+            {label}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

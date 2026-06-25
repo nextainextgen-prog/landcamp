@@ -33,9 +33,9 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
 
-  let body: { action?: string; status?: string };
+  let body: { action?: string; status?: string; notes?: string };
   try {
-    body = (await req.json()) as { action?: string; status?: string };
+    body = (await req.json()) as { action?: string; status?: string; notes?: string };
   } catch {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
@@ -45,6 +45,13 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     admin = createAdminClient();
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+
+  // Internal note / special-request update (no status change).
+  if (!body.action && !body.status && typeof body.notes === "string") {
+    const { error } = await admin.from("bookings").update({ notes: body.notes }).eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, notes: body.notes });
   }
 
   // Direct status change (no payment side-effects).
