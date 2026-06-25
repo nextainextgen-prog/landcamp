@@ -116,7 +116,7 @@ export function LineSettingsForm() {
           channel (OA) <strong>ต้องอยู่ provider เดียวกัน</strong> เพื่อให้ส่งข้อความหาลูกค้าได้ภายหลัง
           <br />
           ตั้ง Callback URL ในช่อง LINE Login เป็น:
-          <code className="mt-1 block break-all rounded bg-white px-2 py-1 font-mono text-[11px] text-[color:var(--color-forest-deep)]">
+          <code suppressHydrationWarning className="mt-1 block break-all rounded bg-white px-2 py-1 font-mono text-[11px] text-[color:var(--color-forest-deep)]">
             {callbackUrl || "…"}
           </code>
         </div>
@@ -161,7 +161,7 @@ export function LineSettingsForm() {
 
         <div className="rounded-lg bg-[color:var(--color-bone-soft)]/50 p-4 text-xs leading-relaxed text-[color:var(--color-ink)]/70">
           ตั้ง <strong>Webhook URL</strong> ในช่อง Messaging API เป็น (เพื่อรับ Group ID + เช็คอิน):
-          <code className="mt-1 block break-all rounded bg-white px-2 py-1 font-mono text-[11px] text-[color:var(--color-forest-deep)]">
+          <code suppressHydrationWarning className="mt-1 block break-all rounded bg-white px-2 py-1 font-mono text-[11px] text-[color:var(--color-forest-deep)]">
             {webhookUrl || "…"}
           </code>
           แล้วเชิญ OA เข้ากลุ่มทีม + พิมพ์ข้อความในกลุ่ม → ดู Group ID ได้ที่หน้า <strong>บันทึกการใช้งาน (Audit Log)</strong>
