@@ -7,6 +7,7 @@ import {
   verifyPassword,
 } from "@/lib/admin/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { logAdminAction } from "@/lib/admin/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
   }
 
   const token = signSession(account.id as string, Date.now());
+  await logAdminAction(username, "admin.login");
   const res = NextResponse.json({ ok: true });
   res.cookies.set(ADMIN_COOKIE, token, sessionCookieOptions());
   return res;

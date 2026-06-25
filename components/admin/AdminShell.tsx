@@ -68,9 +68,12 @@ export function AdminShell({
 
   const can = (key: SectionKey) => role === "super_admin" || permissions.includes(key);
 
+  // These live under "ตั้งค่าระบบ" instead of the main sidebar.
+  const IN_SETTINGS = new Set<SectionKey>(["users", "payment-settings", "content"]);
+
   // Build nav: extras (dashboard/calendar/occupancy gated by bookings access) + sections.
   const overview: NavEntry[] = can("bookings") ? [...EXTRA_TOP] : [];
-  const sectionItems: NavEntry[] = SECTIONS.filter((s) => can(s.key)).map((s) => ({
+  const sectionItems: NavEntry[] = SECTIONS.filter((s) => can(s.key) && !IN_SETTINGS.has(s.key)).map((s) => ({
     key: s.key,
     label: s.label,
     href: SECTION_HREF[s.key],
