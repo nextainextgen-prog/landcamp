@@ -149,6 +149,8 @@ function ProviderBadge({ provider }: { provider: string | null }) {
 export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) {
   const [rows, setRows] = useState<BookingRow[]>(initialRows);
   const [filter, setFilter] = useState<"all" | BookingStatus>("all");
+  const [source, setSource] = useState<"all" | "line" | "google" | "walkin">("all");
+  const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(initialRows[0]?.id ?? null);
   const [busy, setBusy] = useState(false);
@@ -161,14 +163,22 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
     return c;
   }, [rows]);
 
+  function sourceOf(r: BookingRow): "line" | "google" | "walkin" {
+    if (r.customer.provider === "line") return "line";
+    if (r.customer.provider === "google") return "google";
+    return "walkin";
+  }
+
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (filter !== "all" && r.status !== filter) return false;
+      if (source !== "all" && sourceOf(r) !== source) return false;
+      if (dateFilter && r.check_in !== dateFilter) return false;
       if (!term) return true;
       return r.booking_code.toLowerCase().includes(term) || r.customer.name.toLowerCase().includes(term) || r.customer.phone.includes(term);
     });
-  }, [rows, filter, q]);
+  }, [rows, filter, source, dateFilter, q]);
 
   const selected = rows.find((r) => r.id === selectedId) ?? null;
 
@@ -196,7 +206,7 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,360px)_1fr]">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_280px]">
       {/* ── List ── */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap gap-1.5">
@@ -252,6 +262,27 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
         {toast && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{toast}</div>}
       </div>
 
+      {/* ── Right rail: stats + calendar + source filter ── */}
+      <aside className="hidden flex-col gap-4 xl:flex">
+        <StatsBox rows={rows} />
+        <MiniCalendar rows={rows} active={dateFilter} onPick={(d) => setDateFilter((cur) => (cur === d ? null : d))} />
+        <div className="rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-4">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[color:var(--color-ink)]/45">ช่องทางลูกค้า</div>
+          <div className="flex flex-wrap gap-1.5">
+            {([["all", "ทั้งหมด"], ["line", "LINE"], ["google", "Google"], ["walkin", "Walk-in"]] as const).map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setSource(k)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${source === k ? "bg-[color:var(--color-forest-deep)] text-white" : "bg-[color:var(--color-bone-soft)] text-[color:var(--color-ink)]/65 hover:bg-[color:var(--color-bone-soft)]/70"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </aside>
+
       {zoom && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4" onClick={() => setZoom(null)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -272,6 +303,82 @@ function Avatar({ c }: { c: BookingRow["customer"] }) {
         <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold">{(c.name || "?").charAt(0)}</span>
       )}
     </span>
+  );
+}
+
+function StatRow({ label, value, cls = "" }: { label: string; value: string; cls?: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <dt className="text-[color:var(--color-ink)]/55">{label}</dt>
+      <dd className={`font-semibold ${cls || "text-[color:var(--color-forest-deep)]"}`}>{value}</dd>
+    </div>
+  );
+}
+
+function StatsBox({ rows }: { rows: BookingRow[] }) {
+  const revenue = rows.filter((r) => r.status === "confirmed" || r.status === "completed").reduce((s, r) => s + r.total_amount, 0);
+  const review = rows.filter((r) => r.status === "payment_review").length;
+  const pending = rows.filter((r) => r.status === "pending_payment").length;
+  return (
+    <div className="rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-4">
+      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[color:var(--color-ink)]/45">สรุป</div>
+      <dl className="flex flex-col gap-2 text-sm">
+        <StatRow label="จองทั้งหมด" value={`${rows.length} รายการ`} />
+        <StatRow label="รายได้ (ยืนยัน+เสร็จ)" value={`฿${revenue.toLocaleString("en-US")}`} />
+        <StatRow label="รอตรวจสลิป" value={`${review}`} cls={review ? "text-blue-600" : ""} />
+        <StatRow label="ค้างชำระ" value={`${pending}`} cls={pending ? "text-red-600" : ""} />
+      </dl>
+    </div>
+  );
+}
+
+function MiniCalendar({ rows, active, onPick }: { rows: BookingRow[]; active: string | null; onPick: (iso: string) => void }) {
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const checkInDays = useMemo(() => new Set(rows.map((r) => r.check_in)), [rows]);
+  const year = month.getFullYear();
+  const m = month.getMonth();
+  const firstDow = new Date(year, m, 1).getDay();
+  const daysInMonth = new Date(year, m + 1, 0).getDate();
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const iso = (d: number) => `${year}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+  return (
+    <div className="rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <button type="button" onClick={() => setMonth(new Date(year, m - 1, 1))} className="rounded px-2 text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">‹</button>
+        <span className="text-sm font-semibold text-[color:var(--color-forest-deep)]">{month.toLocaleDateString("th-TH", { month: "long", year: "numeric" })}</span>
+        <button type="button" onClick={() => setMonth(new Date(year, m + 1, 1))} className="rounded px-2 text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">›</button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-[color:var(--color-ink)]/40">
+        {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d, i) => <div key={i}>{d}</div>)}
+      </div>
+      <div className="mt-1 grid grid-cols-7 gap-1">
+        {cells.map((d, i) => {
+          if (d === null) return <div key={i} />;
+          const di = iso(d);
+          const has = checkInDays.has(di);
+          const isActive = active === di;
+          return (
+            <button
+              key={i}
+              type="button"
+              disabled={!has}
+              onClick={() => has && onPick(di)}
+              className={`relative h-7 rounded-md text-xs ${isActive ? "bg-[color:var(--color-warm-clay)] font-semibold text-white" : has ? "font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]" : "text-[color:var(--color-ink)]/30"}`}
+            >
+              {d}
+              {has && !isActive && <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[color:var(--color-warm-clay)]" />}
+            </button>
+          );
+        })}
+      </div>
+      {active && <button type="button" onClick={() => onPick(active)} className="mt-2 text-xs text-[color:var(--color-warm-clay)] hover:underline">ล้างวันที่ที่เลือก</button>}
+    </div>
   );
 }
 
