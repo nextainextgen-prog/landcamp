@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Panel } from "@/components/admin/ui";
+import { GalleryManager } from "./GalleryManager";
 import type { Bilingual, SiteContent } from "@/lib/content/types";
 
 type Version = {
@@ -31,6 +32,7 @@ const TABS = [
   { key: "contactSection", label: "ส่วนติดต่อ" },
   { key: "contact", label: "ข้อมูลติดต่อ" },
   { key: "footer", label: "ส่วนท้าย" },
+  { key: "gallery", label: "รูปภาพ (แกลเลอรี)" },
   { key: "versions", label: "ประวัติเวอร์ชัน" },
 ] as const;
 
@@ -350,6 +352,12 @@ export function ContentEditor({
         <Panel title="ส่วนท้ายเว็บ (Footer)" bodyClassName="flex flex-col gap-6">
           <BiField label="คำอธิบายแบรนด์" long value={doc.footer.brandDescription} onChange={(v) => update(["footer", "brandDescription"], v)} />
           <BiField label="ข้อความลิขสิทธิ์ท้ายเว็บ" value={doc.footer.copyrightTagline} onChange={(v) => update(["footer", "copyrightTagline"], v)} />
+        </Panel>
+      )}
+
+      {tab === "gallery" && (
+        <Panel title="รูปภาพแกลเลอรี (หน้าแรก)" bodyClassName="flex flex-col gap-4">
+          <GalleryManager items={doc.gallery} onChange={(items) => update(["gallery"], items)} />
         </Panel>
       )}
 

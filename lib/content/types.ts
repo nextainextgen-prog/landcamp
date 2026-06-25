@@ -16,6 +16,12 @@ export type AboutStat = {
   label: Bilingual;
 };
 
+/** A gallery image — `src` is a path under /public or a Storage public URL. */
+export type GalleryImage = {
+  src: string;
+  alt: string;
+};
+
 export type SiteContent = {
   brand: {
     name: string;
@@ -58,6 +64,8 @@ export type SiteContent = {
     brandDescription: Bilingual;
     copyrightTagline: Bilingual;
   };
+  /** Atmosphere gallery shown on the homepage (two auto-scrolling rows). */
+  gallery: GalleryImage[];
 };
 
 export type DeepPartial<T> = T extends (infer U)[]
