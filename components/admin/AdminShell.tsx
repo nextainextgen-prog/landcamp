@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { SECTIONS, type AdminRole, type SectionKey } from "@/lib/admin/sections";
+import { AdminTopbar } from "./AdminTopbar";
 
 const SECTION_HREF: Record<SectionKey, string> = {
   bookings: "/admin/bookings",
@@ -53,12 +54,14 @@ export function AdminShell({
   username,
   role,
   permissions,
+  email,
   pendingReview = 0,
   children,
 }: {
   username: string;
   role: AdminRole;
   permissions: SectionKey[];
+  email?: string | null;
   pendingReview?: number;
   children: ReactNode;
 }) {
@@ -78,11 +81,6 @@ export function AdminShell({
     label: s.label,
     href: SECTION_HREF[s.key],
   }));
-
-  const current =
-    [...overview, ...sectionItems].find(
-      (i) => pathname === i.href || pathname.startsWith(`${i.href}/`),
-    )?.label ?? "หลังบ้าน";
 
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -118,29 +116,13 @@ export function AdminShell({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[color:var(--color-forest-deep)]/10 bg-[color:var(--color-bone)]/85 px-4 backdrop-blur-md md:px-8">
-          <button
-            type="button"
-            aria-label="menu"
-            onClick={() => setMobileOpen(true)}
-            className="rounded-md p-2 text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] md:hidden"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5"><path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" /></svg>
-          </button>
-          <span className="font-display text-lg font-semibold text-[color:var(--color-forest-deep)]">{current}</span>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-right sm:block">
-              <span className="block text-sm font-medium text-[color:var(--color-forest-deep)]">{username}</span>
-              <span className="block text-[11px] text-[color:var(--color-ink)]/45">
-                {role === "super_admin" ? "Super Admin" : "Admin"}
-              </span>
-            </span>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--color-forest-deep)] text-sm font-semibold text-[color:var(--color-bone)]">
-              {username.slice(0, 1).toUpperCase()}
-            </span>
-          </div>
-        </header>
+        <AdminTopbar
+          username={username}
+          role={role}
+          email={email}
+          canSettings={can("settings")}
+          onOpenMobileNav={() => setMobileOpen(true)}
+        />
 
         <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
