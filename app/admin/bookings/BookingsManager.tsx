@@ -253,6 +253,24 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
     );
   }, [rows, selected]);
 
+  async function saveEdit(id: string, edit: { check_in: string; check_out: string; adults: number; children: number; total_amount: number }): Promise<boolean> {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ edit }) });
+      const d = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(d.error ?? "");
+      setRows((l) => l.map((r) => (r.id === id ? { ...r, ...edit } : r)));
+      setToast("บันทึกการแก้ไขแล้ว");
+      setTimeout(() => setToast(null), 2000);
+      return true;
+    } catch (e) {
+      window.alert(`แก้ไขไม่สำเร็จ${e instanceof Error && e.message ? `: ${e.message}` : ""}`);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveNotes(id: string, notes: string) {
     setBusy(true);
     try {
@@ -404,7 +422,7 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
             เลือกการจองทางซ้ายเพื่อดูรายละเอียด
           </div>
         ) : (
-          <BookingDetail key={selected.id} r={selected} busy={busy} overlaps={overlaps} onPatch={patch} onResend={resendCard} onZoom={setZoom} onSaveNotes={saveNotes} />
+          <BookingDetail key={selected.id} r={selected} busy={busy} overlaps={overlaps} onPatch={patch} onResend={resendCard} onZoom={setZoom} onSaveNotes={saveNotes} onSaveEdit={saveEdit} />
         )}
         {toast && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{toast}</div>}
       </div>
@@ -603,6 +621,7 @@ function BookingDetail({
   onResend,
   onZoom,
   onSaveNotes,
+  onSaveEdit,
 }: {
   r: BookingRow;
   busy: boolean;
@@ -611,9 +630,11 @@ function BookingDetail({
   onResend: (id: string) => void;
   onZoom: (src: string) => void;
   onSaveNotes: (id: string, notes: string) => void;
+  onSaveEdit: (id: string, edit: { check_in: string; check_out: string; adults: number; children: number; total_amount: number }) => Promise<boolean>;
 }) {
   const c = r.customer;
   const [phoneOpen, setPhoneOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [confirm, setConfirm] = useState<null | { title: string; message: string; label: string; danger?: boolean; run: () => void }>(null);
   const [noteDraft, setNoteDraft] = useState(r.notes ?? "");
   const [copied, setCopied] = useState<"" | "summary" | "map">("");
@@ -675,6 +696,9 @@ function BookingDetail({
             <a href={`/admin/customers/${r.customer_id}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">ดูประวัติลูกค้า</a>
             <button type="button" onClick={copyMap} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">📍 {copied === "map" ? "คัดลอกลิงก์แล้ว" : "แผนที่"}</button>
             <button type="button" onClick={copySummary} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">📋 {copied === "summary" ? "คัดลอกแล้ว" : "คัดลอกสรุป"}</button>
+            {ACTIVE_STATUSES.has(r.status) && (
+              <button type="button" onClick={() => setEditOpen(true)} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">✏️ แก้ไขการจอง</button>
+            )}
             {c.lineUserId && <button type="button" disabled={busy} onClick={() => onResend(r.id)} className="rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50">ส่งการ์ด LINE</button>}
           </div>
         </div>
@@ -779,6 +803,17 @@ function BookingDetail({
       </div>
 
       {phoneOpen && <PhonePopup name={c.name} phone={c.phone} onClose={() => setPhoneOpen(false)} />}
+      {editOpen && (
+        <EditDialog
+          r={r}
+          busy={busy}
+          onClose={() => setEditOpen(false)}
+          onSave={async (edit) => {
+            const ok = await onSaveEdit(r.id, edit);
+            if (ok) setEditOpen(false);
+          }}
+        />
+      )}
       {confirm && (
         <ConfirmDialog
           title={confirm.title}
@@ -790,6 +825,65 @@ function BookingDetail({
           onCancel={() => setConfirm(null)}
         />
       )}
+    </div>
+  );
+}
+
+function EditDialog({
+  r,
+  busy,
+  onClose,
+  onSave,
+}: {
+  r: BookingRow;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (edit: { check_in: string; check_out: string; adults: number; children: number; total_amount: number }) => void;
+}) {
+  const [checkIn, setCheckIn] = useState(r.check_in);
+  const [checkOut, setCheckOut] = useState(r.check_out);
+  const [adults, setAdults] = useState(r.adults);
+  const [children, setChildren] = useState(r.children);
+  const [total, setTotal] = useState(r.total_amount);
+  const nights = nightsBetween(checkIn, checkOut);
+  const valid = checkOut > checkIn && adults >= 1 && total >= 0;
+  const inputCls = "w-full rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-3 py-2 text-sm outline-none focus:border-[color:var(--color-warm-clay)]";
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-[color:var(--color-forest-deep)]">แก้ไขการจอง {r.booking_code}</h3>
+        <p className="mt-1 text-xs text-[color:var(--color-ink)]/45">{r.room_name}</p>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">เช็คอิน
+            <input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className={inputCls} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">เช็คเอาท์
+            <input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className={inputCls} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">ผู้ใหญ่
+            <input type="number" min={1} value={adults} onChange={(e) => setAdults(Math.max(1, Number(e.target.value) || 1))} className={inputCls} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">เด็ก
+            <input type="number" min={0} value={children} onChange={(e) => setChildren(Math.max(0, Number(e.target.value) || 0))} className={inputCls} />
+          </label>
+          <label className="col-span-2 flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">ยอดรวม (บาท)
+            <input type="number" min={0} value={total} onChange={(e) => setTotal(Math.max(0, Number(e.target.value) || 0))} className={inputCls} />
+          </label>
+        </div>
+        <p className="mt-2 text-xs text-[color:var(--color-ink)]/45">{nights > 0 ? `${nights} คืน` : "วันเช็คเอาท์ต้องหลังเช็คอิน"} · ระบบจะปฏิเสธถ้าช่วงวันที่ชนกับการจองอื่นของห้องนี้</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-ink)]/70 hover:bg-[color:var(--color-bone-soft)]">ยกเลิก</button>
+          <button
+            type="button"
+            disabled={busy || !valid}
+            onClick={() => onSave({ check_in: checkIn, check_out: checkOut, adults, children, total_amount: total })}
+            className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-warm-clay)] disabled:opacity-50"
+          >
+            บันทึก
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
