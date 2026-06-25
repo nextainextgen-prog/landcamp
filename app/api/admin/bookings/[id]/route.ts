@@ -9,6 +9,21 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+/** Best-effort audit write — silently ignored until migration 020 is run. */
+async function logAudit(
+  admin: ReturnType<typeof createAdminClient>,
+  bookingId: string,
+  actor: string | null,
+  action: string,
+  toStatus: string,
+): Promise<void> {
+  try {
+    await admin.from("booking_audit").insert({ booking_id: bookingId, actor, action, to_status: toStatus });
+  } catch {
+    /* table may not exist yet */
+  }
+}
+
 const DIRECT_STATUSES = new Set([
   "pending_payment",
   "payment_review",
@@ -29,6 +44,7 @@ const DIRECT_STATUSES = new Set([
 export async function PATCH(req: NextRequest, ctx: Ctx) {
   const auth = await requireSection("bookings");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const actor = auth.session.username;
 
   const { id } = await ctx.params;
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
@@ -120,6 +136,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       .maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (!data) return NextResponse.json({ error: "booking not found" }, { status: 404 });
+    await logAudit(admin, id, actor, "status", body.status);
     return NextResponse.json({ ok: true, status: body.status });
   }
 
@@ -138,6 +155,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     .maybeSingle();
   if (bErr) return NextResponse.json({ error: bErr.message }, { status: 500 });
   if (!booking) return NextResponse.json({ error: "booking not found" }, { status: 404 });
+  await logAudit(admin, id, actor, body.action, bookingStatus);
 
   const { data: payment } = await admin
     .from("payments")
