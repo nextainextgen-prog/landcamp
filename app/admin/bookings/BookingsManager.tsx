@@ -86,7 +86,7 @@ function parseNote(note: string | null): Record<string, unknown> | null {
   }
 }
 
-const STEPS = ["จองห้อง", "แนบสลิป", "ตรวจ & ยืนยัน", "เข้าพัก", "เสร็จสิ้น"];
+const STEPS = ["จองห้อง", "แนบสลิป", "ยืนยัน", "เข้าพัก", "เสร็จสิ้น"];
 function completedSteps(status: BookingStatus): number {
   switch (status) {
     case "pending_payment": return 1;
@@ -472,13 +472,16 @@ function BookingDetail({
         <Stepper status={r.status} />
       </div>
 
-      {/* Slip + verdict */}
+      {/* Auto slip-check result (system-verified — no manual checking) */}
       {r.payment && (
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/70">สลิปการชำระเงิน</span>
-            {verify && <span className={`rounded-full px-2 py-0.5 text-[11px] ${verify.cls}`}>{verify.label}</span>}
+        <div className="flex flex-col gap-2 rounded-xl bg-[color:var(--color-bone-soft)]/40 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/70">ผลตรวจสลิปอัตโนมัติ</span>
+            {verify && <span className={`rounded-full px-3 py-1 text-xs font-semibold ${verify.cls}`}>{verify.label}</span>}
           </div>
+          <p className="text-[11px] text-[color:var(--color-ink)]/45">
+            ระบบตรวจให้อัตโนมัติด้วย EasySlip (ยอด · บัญชีปลายทาง · สลิปซ้ำ/ปลอม) — ไม่ต้องตรวจเอง
+          </p>
           {note && (note.amountInSlip || note.sender) ? (
             <div className="text-xs text-[color:var(--color-ink)]/55">
               {note.amountInSlip ? <>ยอดในสลิป ฿{String(note.amountInSlip)} </> : null}
