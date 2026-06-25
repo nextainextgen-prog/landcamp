@@ -74,7 +74,7 @@ export function CustomerCrm({
 }
 
 // ── Tax / billing details ──
-function TaxPanel({ customerId, initialTax }: { customerId: string; initialTax: CrmTax }) {
+export function TaxPanel({ customerId, initialTax }: { customerId: string; initialTax: CrmTax }) {
   const [tax, setTax] = useState<CrmTax>(initialTax);
   const [draft, setDraft] = useState<CrmTax>(initialTax);
   const [editing, setEditing] = useState(false);
@@ -197,7 +197,7 @@ function TaxRow({ label, value }: { label: string; value: string }) {
 }
 
 // ── VIP flag + tags ──
-function VipTagsPanel({
+export function VipTagsPanel({
   customerId,
   initialIsVip,
   initialTags,
@@ -314,7 +314,7 @@ function VipTagsPanel({
 }
 
 // ── Notes timeline ──
-function NotesPanel({ customerId, initialNotes }: { customerId: string; initialNotes: CrmNote[] }) {
+export function NotesPanel({ customerId, initialNotes }: { customerId: string; initialNotes: CrmNote[] }) {
   const [notes, setNotes] = useState<CrmNote[]>(initialNotes);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -393,7 +393,7 @@ function NotesPanel({ customerId, initialNotes }: { customerId: string; initialN
 }
 
 // ── Contact log ──
-function ContactsPanel({
+export function ContactsPanel({
   customerId,
   initialContacts,
 }: {

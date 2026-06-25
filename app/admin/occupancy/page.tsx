@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PageHeader } from "@/components/admin/ui";
 import { OccupancyGrid, type OccRoom, type OccBooking } from "./OccupancyGrid";
+import { OccupancyStats } from "./OccupancyStats";
+import { MonthCalendar } from "./MonthCalendar";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +27,9 @@ export default async function AdminOccupancyPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="ห้องว่าง" description="มุมมองห้องว่าง–ไม่ว่าง 14 วันข้างหน้า" />
+      <OccupancyStats rooms={occRooms} bookings={occBookings} />
       <OccupancyGrid rooms={occRooms} bookings={occBookings} />
+      <MonthCalendar rooms={occRooms} bookings={occBookings} />
     </div>
   );
 }

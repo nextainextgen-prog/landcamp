@@ -17,7 +17,13 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await getAdminSession();
-  if (!session) return <AdminLogin />;
+  if (!session) {
+    return (
+      <div className="admin-type">
+        <AdminLogin />
+      </div>
+    );
+  }
 
   // Work indicator: bookings awaiting slip review.
   let pendingReview = 0;
@@ -33,13 +39,15 @@ export default async function AdminLayout({
   }
 
   return (
-    <AdminShell
-      username={session.username}
-      role={session.role}
-      permissions={session.permissions}
-      pendingReview={pendingReview}
-    >
-      {children}
-    </AdminShell>
+    <div className="admin-type">
+      <AdminShell
+        username={session.username}
+        role={session.role}
+        permissions={session.permissions}
+        pendingReview={pendingReview}
+      >
+        {children}
+      </AdminShell>
+    </div>
   );
 }

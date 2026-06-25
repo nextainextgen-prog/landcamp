@@ -12,6 +12,7 @@ export default async function AdminCustomersPage() {
   if (!(await requireSection("customers")).ok) redirect("/admin");
 
   let rows: CustomerRow[] = [];
+  let allBookings: Record<string, unknown>[] = [];
   let errorMsg: string | null = null;
 
   try {
@@ -20,11 +21,13 @@ export default async function AdminCustomersPage() {
       admin
         .from("customers")
         .select(
-          "id, full_name, email, phone, created_at, is_vip, tags, source, auth_provider, profile_completed_at",
+          "id, full_name, email, phone, line_user_id, created_at, is_vip, tags, source, auth_provider, profile_completed_at",
         )
         .order("created_at", { ascending: false }),
       admin.from("bookings").select("customer_id, status, total_amount, created_at"),
     ]);
+
+    allBookings = (bookings ?? []) as Record<string, unknown>[];
 
     const agg = new Map<string, { count: number; spent: number; last: string | null }>();
     for (const b of bookings ?? []) {
@@ -52,8 +55,8 @@ export default async function AdminCustomersPage() {
         name: (c.full_name as string) ?? "—",
         email: (c.email as string) ?? "—",
         phone: (c.phone as string) ?? "",
+        line_user_id: (c.line_user_id as string) ?? null,
         created_at: c.created_at as string,
-        is_vip: Boolean(c.is_vip),
         tags: (c.tags as string[]) ?? [],
         channel,
         profile_complete: c.profile_completed_at != null,
@@ -68,12 +71,40 @@ export default async function AdminCustomersPage() {
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+
+  // Month-over-month aggregates for the KPI trend badges.
+  let revenueThisMonth = 0;
+  let revenueLastMonth = 0;
+  let bookingsThisMonth = 0;
+  let bookingsLastMonth = 0;
+  for (const b of allBookings) {
+    const t = Date.parse(b.created_at as string);
+    if (Number.isNaN(t)) continue;
+    const earning = EARNING_STATUSES.has(b.status as string);
+    const amt = (b.total_amount as number) ?? 0;
+    if (t >= monthStart) {
+      bookingsThisMonth += 1;
+      if (earning) revenueThisMonth += amt;
+    } else if (t >= lastMonthStart) {
+      bookingsLastMonth += 1;
+      if (earning) revenueLastMonth += amt;
+    }
+  }
+
   const stats: CustomerStats = {
     total: rows.length,
     newThisMonth: rows.filter((r) => new Date(r.created_at).getTime() >= monthStart).length,
-    vip: rows.filter((r) => r.is_vip).length,
+    newLastMonth: rows.filter((r) => {
+      const t = new Date(r.created_at).getTime();
+      return t >= lastMonthStart && t < monthStart;
+    }).length,
     revenue: rows.reduce((s, r) => s + r.total_spent, 0),
-    withPhone: rows.filter((r) => r.phone.trim().length > 0).length,
+    revenueThisMonth,
+    revenueLastMonth,
+    bookings: rows.reduce((s, r) => s + r.bookings_count, 0),
+    bookingsThisMonth,
+    bookingsLastMonth,
   };
 
   if (errorMsg) {
