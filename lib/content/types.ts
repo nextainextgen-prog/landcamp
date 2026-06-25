@@ -75,6 +75,30 @@ export type SiteContent = {
   };
   /** Atmosphere gallery shown on the homepage (two auto-scrolling rows). */
   gallery: GalleryImage[];
+  wedding: {
+    eyebrow: Bilingual;
+    heading: Bilingual;
+    description: Bilingual;
+    highlights: Bilingual[];
+    ctaLabel: Bilingual;
+    images: GalleryImage[];
+  };
+  video: {
+    eyebrow: Bilingual;
+    heading: Bilingual;
+    lead: Bilingual;
+  };
+  menu: {
+    eyebrow: Bilingual;
+    heading: Bilingual;
+    lead: Bilingual;
+  };
+  reviews: {
+    eyebrow: Bilingual;
+    heading: Bilingual;
+    ratingValue: number;
+    ratingCount: number;
+  };
 };
 
 export type DeepPartial<T> = T extends (infer U)[]

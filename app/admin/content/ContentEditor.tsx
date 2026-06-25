@@ -33,6 +33,10 @@ const TABS = [
   { key: "contactSection", label: "ส่วนติดต่อ" },
   { key: "contact", label: "ข้อมูลติดต่อ" },
   { key: "footer", label: "ส่วนท้าย" },
+  { key: "wedding", label: "งานแต่ง" },
+  { key: "video", label: "วิดีโอ" },
+  { key: "menu", label: "เมนูอาหาร" },
+  { key: "reviews", label: "รีวิว" },
   { key: "gallery", label: "รูปภาพ (แกลเลอรี)" },
   { key: "versions", label: "ประวัติเวอร์ชัน" },
 ] as const;
@@ -45,6 +49,9 @@ const TAB_ANCHOR: Partial<Record<TabKey, string>> = {
   contactSection: "#contact",
   contact: "#contact",
   footer: "footer",
+  wedding: "#wedding",
+  menu: "#menu",
+  reviews: "#reviews",
   gallery: "#atmosphere",
 };
 
@@ -421,6 +428,59 @@ export function ContentEditor({
         <Panel title="ส่วนท้ายเว็บ (Footer)" bodyClassName="flex flex-col gap-6">
           <BiField label="คำอธิบายแบรนด์" long value={doc.footer.brandDescription} onChange={(v) => update(["footer", "brandDescription"], v)} />
           <BiField label="ข้อความลิขสิทธิ์ท้ายเว็บ" value={doc.footer.copyrightTagline} onChange={(v) => update(["footer", "copyrightTagline"], v)} />
+        </Panel>
+      )}
+
+      {tab === "wedding" && (
+        <Panel title="ส่วนงานแต่ง / งานเลี้ยง" bodyClassName="flex flex-col gap-6">
+          <BiField label="หัวข้อย่อย" value={doc.wedding.eyebrow} onChange={(v) => update(["wedding", "eyebrow"], v)} />
+          <BiField label="หัวข้อใหญ่" value={doc.wedding.heading} onChange={(v) => update(["wedding", "heading"], v)} />
+          <BiField label="คำอธิบาย" long value={doc.wedding.description} onChange={(v) => update(["wedding", "description"], v)} />
+          <div className="grid gap-3">
+            <FieldLabel>จุดเด่น (รายการ)</FieldLabel>
+            {doc.wedding.highlights.map((h, i) => (
+              <BiField key={i} label={`ข้อ ${i + 1}`} value={h} onChange={(v) => update(["wedding", "highlights", i], v)} />
+            ))}
+          </div>
+          <BiField label="ปุ่ม CTA" value={doc.wedding.ctaLabel} onChange={(v) => update(["wedding", "ctaLabel"], v)} />
+          <div className="grid gap-3">
+            <FieldLabel>รูปภาพ (สไลด์งานแต่ง)</FieldLabel>
+            <GalleryManager items={doc.wedding.images} onChange={(items) => update(["wedding", "images"], items)} />
+          </div>
+        </Panel>
+      )}
+
+      {tab === "video" && (
+        <Panel title="ส่วนวิดีโอ (หัวข้อ)" bodyClassName="flex flex-col gap-6">
+          <BiField label="หัวข้อย่อย" value={doc.video.eyebrow} onChange={(v) => update(["video", "eyebrow"], v)} />
+          <BiField label="หัวข้อใหญ่ (ขึ้นบรรทัดใหม่ได้)" long value={doc.video.heading} onChange={(v) => update(["video", "heading"], v)} />
+          <BiField label="ข้อความนำ" long value={doc.video.lead} onChange={(v) => update(["video", "lead"], v)} />
+          <p className="text-xs text-[color:var(--color-ink)]/45">คลิปวิดีโอยังจัดการในโค้ด — แก้ได้เฉพาะข้อความหัวข้อ</p>
+        </Panel>
+      )}
+
+      {tab === "menu" && (
+        <Panel title="ส่วนอาหาร & เครื่องดื่ม (หัวข้อ)" bodyClassName="flex flex-col gap-6">
+          <BiField label="หัวข้อย่อย" value={doc.menu.eyebrow} onChange={(v) => update(["menu", "eyebrow"], v)} />
+          <BiField label="หัวข้อใหญ่" value={doc.menu.heading} onChange={(v) => update(["menu", "heading"], v)} />
+          <BiField label="ข้อความท้ายส่วน" long value={doc.menu.lead} onChange={(v) => update(["menu", "lead"], v)} />
+        </Panel>
+      )}
+
+      {tab === "reviews" && (
+        <Panel title="ส่วนรีวิว (หัวข้อ + คะแนนรวม)" bodyClassName="flex flex-col gap-6">
+          <BiField label="หัวข้อย่อย" value={doc.reviews.eyebrow} onChange={(v) => update(["reviews", "eyebrow"], v)} />
+          <BiField label="หัวข้อใหญ่" value={doc.reviews.heading} onChange={(v) => update(["reviews", "heading"], v)} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-1.5">
+              <FieldLabel>คะแนนเฉลี่ย (เช่น 4.9)</FieldLabel>
+              <input type="number" step="0.1" min="0" max="5" className={inputCls} value={doc.reviews.ratingValue} onChange={(e) => update(["reviews", "ratingValue"], Number(e.target.value))} />
+            </label>
+            <label className="grid gap-1.5">
+              <FieldLabel>จำนวนรีวิว</FieldLabel>
+              <input type="number" min="0" className={inputCls} value={doc.reviews.ratingCount} onChange={(e) => update(["reviews", "ratingCount"], Number(e.target.value))} />
+            </label>
+          </div>
         </Panel>
       )}
 

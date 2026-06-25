@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { featuredReviews } from "@/data/reviews";
-import { siteConfig } from "@/data/siteConfig";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { StatCounter } from "@/components/ui/StatCounter";
 import { cn } from "@/lib/cn";
 import type { Review } from "@/types";
@@ -47,6 +47,7 @@ function Stars({ value, size = "sm" }: { value: number; size?: "sm" | "xs" }) {
 
 export function ReviewsSection() {
   const t = useT();
+  const { reviews } = useContent();
 
   return (
     <section
@@ -72,19 +73,14 @@ export function ReviewsSection() {
             >
               <span className="text-[color:var(--color-warm-clay)]">08</span>
               <span aria-hidden className="h-px w-8 bg-[color:var(--color-forest-deep)]/40" />
-              <span className="text-[color:var(--color-forest-deep)]/65">
-                {t({ th: "เสียงจากผู้เข้าพัก", en: "Guest Voices" })}
-              </span>
+              <span className="text-[color:var(--color-forest-deep)]/65">{t(reviews.eyebrow)}</span>
             </div>
 
             <h2
               className="font-display text-[28px] sm:text-[36px] lg:text-[44px] leading-[1.05] text-[color:var(--color-forest-deep)] max-w-xl"
               style={{ letterSpacing: "-0.02em" }}
             >
-              {t({
-                th: "เก้าในสิบของผู้เข้าพักกลับมาอีกครั้ง",
-                en: "Nine in ten guests come back again",
-              })}
+              {t(reviews.heading)}
             </h2>
           </motion.div>
 
@@ -101,7 +97,7 @@ export function ReviewsSection() {
                 className="font-display text-5xl sm:text-6xl leading-none"
                 style={{ letterSpacing: "-0.02em" }}
               >
-                <StatCounter value={siteConfig.rating.value} decimals={1} />
+                <StatCounter value={reviews.ratingValue} decimals={1} />
               </span>
               <span
                 className="ml-1 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/55"
@@ -116,7 +112,7 @@ export function ReviewsSection() {
                 className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-ink)]/60"
                 style={{ fontFamily: "var(--font-ui)" }}
               >
-                <StatCounter value={siteConfig.rating.count} />+ Google reviews
+                <StatCounter value={reviews.ratingCount} />+ Google reviews
               </span>
             </div>
           </motion.div>

@@ -144,4 +144,69 @@ export const CONTENT_DEFAULTS: SiteContent = {
     { src: "/images/atmosphere/atmosphere-34.jpeg", alt: "Bathroom interior" },
     { src: "/images/atmosphere/atmosphere-35.jpeg", alt: "Camper Van interior in evening light" },
   ],
+  wedding: {
+    eyebrow: { th: "งานแต่งงาน", en: "Wedding" },
+    heading: {
+      th: "จัดงานแต่งงานท่ามกลางขุนเขาเขาใหญ่",
+      en: "Say I do, among the Khao Yai pines",
+    },
+    description: {
+      th: "พื้นที่ส่วนตัวกว้างขวางสำหรับ Outdoor Wedding, Pre-Wedding และงานเลี้ยงพิเศษ — รองรับ Indoor backup กรณีฝนตก ทีมงานช่วยวางแผนตั้งแต่ตกแต่ง อาหาร ไปจนถึงที่พักสำหรับเจ้าบ่าวเจ้าสาวและแขก",
+      en: "An expansive private setting for outdoor weddings, pre-wedding shoots and intimate celebrations — with an indoor backup for rainy days. Our team helps plan everything from styling and catering to guest accommodation.",
+    },
+    highlights: [
+      { th: "พื้นที่กลางแจ้งกว้างขวาง", en: "Spacious open-air venue" },
+      { th: "Indoor backup เมื่อฝนตก", en: "Indoor rain backup" },
+      { th: "ที่พัก 6 หลังสำหรับครอบครัวและแขก", en: "6 villas for family and guests" },
+      { th: "ทีมงานช่วยวางแผนเต็มรูปแบบ", en: "Full event planning support" },
+    ],
+    ctaLabel: { th: "สอบถามรายละเอียด", en: "Inquire for details" },
+    images: [
+      { src: "/images/wedding/322.png", alt: "งานแต่งงานยามพระอาทิตย์ตก" },
+      { src: "/images/wedding/323.png", alt: "พิธีแต่งงานยามค่ำคืน" },
+      { src: "/images/wedding/324.png", alt: "การจัดโต๊ะอาหาร" },
+      { src: "/images/wedding/325.png", alt: "ซุ้มผ้าสีขาว" },
+      { src: "/images/wedding/326.png", alt: "ภาพมุมสูงพื้นที่งาน" },
+      { src: "/images/wedding/327.png", alt: "โต๊ะอาหารริมสนาม" },
+      { src: "/images/wedding/328.png", alt: "โต๊ะยาวใต้แสงไฟ" },
+      { src: "/images/wedding/329.png", alt: "ซุ้มดอกไม้สีขาว" },
+      { src: "/images/wedding/330.png", alt: "ทางเดินใต้ซุ้มผ้า" },
+      { src: "/images/wedding/331.png", alt: "พื้นที่จัดเลี้ยงกลางสนาม" },
+      { src: "/images/wedding/332.png", alt: "มุมพิธีต้นสน" },
+      { src: "/images/wedding/333.png", alt: "ช่วงโยนช่อดอกไม้" },
+      { src: "/images/wedding/334.png", alt: "โต๊ะแขกริมแสงไฟราว" },
+      { src: "/images/wedding/335.png", alt: "โต๊ะยาวยามค่ำ" },
+    ],
+  },
+  video: {
+    eyebrow: { th: "วิดีโอบรรยากาศ", en: "Atmosphere on Film" },
+    heading: {
+      th: "ชมบรรยากาศจริงผ่าน\nมุมมองของผู้เข้าพัก",
+      en: "See it through\nour guests' eyes",
+    },
+    lead: {
+      th: "วิดีโอรีวิวสไตล์ Reels จากผู้เข้าพักจริง — แตะที่ลำโพงเพื่อเปิดเสียง",
+      en: "Reels-style clips from real guests — tap the speaker to hear sound.",
+    },
+  },
+  menu: {
+    eyebrow: { th: "อาหาร & เครื่องดื่ม", en: "Food & Drinks" },
+    heading: {
+      th: "ครัว คาเฟ่ และมื้อค่ำริมลำธาร",
+      en: "Kitchen, cafe and dinner by the stream",
+    },
+    lead: {
+      th: "อาหารเช้ารวมในแพ็กเกจ · อาหารตามสั่ง คาเฟ่ และหมูกระทะ สั่งเพิ่มได้ทาง Line @landcamp",
+      en: "Breakfast included with every stay · Thai à la carte, cafe and moo krata available on order via Line @landcamp.",
+    },
+  },
+  reviews: {
+    eyebrow: { th: "เสียงจากผู้เข้าพัก", en: "Guest Voices" },
+    heading: {
+      th: "เก้าในสิบของผู้เข้าพักกลับมาอีกครั้ง",
+      en: "Nine in ten guests come back again",
+    },
+    ratingValue: 4.9,
+    ratingCount: 47,
+  },
 };

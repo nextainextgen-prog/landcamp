@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { cn } from "@/lib/cn";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -216,6 +217,7 @@ function VideoCard({
 
 export function VideoSection() {
   const t = useT();
+  const { video } = useContent();
   const [activeMute, setActiveMute] = useState<string | null>(null);
 
   return (
@@ -238,26 +240,18 @@ export function VideoSection() {
           >
             <span className="text-[color:var(--color-warm-clay)]">05</span>
             <span aria-hidden className="h-px w-8 bg-[color:var(--color-bone)]/40" />
-            <span className="text-[color:var(--color-bone)]/65">
-              {t({ th: "วิดีโอบรรยากาศ", en: "Atmosphere on Film" })}
-            </span>
+            <span className="text-[color:var(--color-bone)]/65">{t(video.eyebrow)}</span>
           </div>
 
           <h2
             className="font-display text-[28px] sm:text-[36px] lg:text-[44px] leading-[1.1] text-[color:var(--color-bone)] max-w-xl whitespace-pre-line"
             style={{ letterSpacing: "-0.02em" }}
           >
-            {t({
-              th: "ชมบรรยากาศจริงผ่าน\nมุมมองของผู้เข้าพัก",
-              en: "See it through\nour guests' eyes",
-            })}
+            {t(video.heading)}
           </h2>
 
           <p className="max-w-md text-sm sm:text-base leading-relaxed text-[color:var(--color-bone)]/65">
-            {t({
-              th: "วิดีโอรีวิวสไตล์ Reels จากผู้เข้าพักจริง — แตะที่ลำโพงเพื่อเปิดเสียง",
-              en: "Reels-style clips from real guests — tap the speaker to hear sound.",
-            })}
+            {t(video.lead)}
           </p>
         </motion.div>
 

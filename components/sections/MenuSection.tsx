@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { FullMenuModal } from "@/components/sections/FullMenuModal";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -95,6 +96,7 @@ const ROWS: {
 
 export function MenuSection() {
   const t = useT();
+  const { menu } = useContent();
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -139,19 +141,14 @@ export function MenuSection() {
           >
             <span className="text-[color:var(--color-warm-clay)]">06</span>
             <span aria-hidden className="h-px w-8 bg-[color:var(--color-forest-deep)]/40" />
-            <span className="text-[color:var(--color-forest-deep)]/65">
-              {t({ th: "อาหาร & เครื่องดื่ม", en: "Food & Drinks" })}
-            </span>
+            <span className="text-[color:var(--color-forest-deep)]/65">{t(menu.eyebrow)}</span>
           </div>
 
           <h2
             className="font-display text-[22px] sm:text-[30px] lg:text-[38px] leading-[1.15] text-[color:var(--color-forest-deep)] lg:whitespace-nowrap"
             style={{ letterSpacing: "-0.02em" }}
           >
-            {t({
-              th: "ครัว คาเฟ่ และมื้อค่ำริมลำธาร",
-              en: "Kitchen, cafe and dinner by the stream",
-            })}
+            {t(menu.heading)}
           </h2>
 
           <button
@@ -192,10 +189,7 @@ export function MenuSection() {
           transition={{ duration: 1, delay: 0.2 }}
           className="mt-12 sm:mt-16 text-center text-sm text-[color:var(--color-ink)]/55 max-w-2xl mx-auto"
         >
-          {t({
-            th: "อาหารเช้ารวมในแพ็กเกจ · อาหารตามสั่ง คาเฟ่ และหมูกระทะ สั่งเพิ่มได้ทาง Line @landcamp",
-            en: "Breakfast included with every stay · Thai à la carte, cafe and moo krata available on order via Line @landcamp.",
-          })}
+          {t(menu.lead)}
         </motion.p>
       </div>
 

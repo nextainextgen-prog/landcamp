@@ -2,10 +2,8 @@
 
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import { weddingContent } from "@/data/wedding";
-import { siteConfig } from "@/data/siteConfig";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { cn } from "@/lib/cn";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -14,6 +12,7 @@ const SLIDE_DURATION_MS = 4000;
 
 export function WeddingSection() {
   const t = useT();
+  const { wedding, contact } = useContent();
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-10% 0px" });
 
@@ -40,19 +39,19 @@ export function WeddingSection() {
             >
               <span className="text-[color:var(--color-warm-clay)]">05</span>
               <span aria-hidden className="h-px w-10 bg-[color:var(--color-ink)]/30" />
-              <span className="text-[color:var(--color-ink)]/65">{t(weddingContent.eyebrow)}</span>
+              <span className="text-[color:var(--color-ink)]/65">{t(wedding.eyebrow)}</span>
             </div>
 
             <h2 className="font-display text-[26px] sm:text-[34px] lg:text-[40px] leading-[1.15] text-[color:var(--color-forest-deep)] max-w-xl">
-              {t(weddingContent.heading)}
+              {t(wedding.heading)}
             </h2>
 
             <p className="max-w-xl text-sm sm:text-base leading-relaxed text-[color:var(--color-ink)]/75">
-              {t(weddingContent.description)}
+              {t(wedding.description)}
             </p>
 
             <ul className="mt-2 flex flex-col gap-3 text-sm sm:text-[15px] leading-relaxed">
-              {weddingContent.highlights.map((h, i) => (
+              {wedding.highlights.map((h, i) => (
                 <li key={i} className="flex items-start gap-3 text-[color:var(--color-ink)]/85">
                   <span
                     aria-hidden
@@ -64,13 +63,13 @@ export function WeddingSection() {
             </ul>
 
             <a
-              href={siteConfig.contact.lineUrl}
+              href={contact.lineUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 inline-flex items-center justify-center gap-3 self-start rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-7 py-4 text-[11px] uppercase tracking-[0.3em] hover:bg-[color:var(--color-forest-deep)] transition-colors duration-500"
               style={{ fontFamily: "var(--font-ui)" }}
             >
-              {t(weddingContent.ctaLabel)}
+              {t(wedding.ctaLabel)}
               <span aria-hidden>→</span>
             </a>
           </motion.div>
@@ -94,8 +93,8 @@ export function WeddingSection() {
 }
 
 function WeddingCarousel({ started }: { started: boolean }) {
-  const t = useT();
-  const images = weddingContent.images;
+  const { wedding } = useContent();
+  const images = wedding.images;
   const [index, setIndex] = useState(0);
   const initialCoverDoneRef = useRef(false);
 
@@ -110,6 +109,9 @@ function WeddingCarousel({ started }: { started: boolean }) {
     return () => window.clearTimeout(id);
   }, [started, index, images.length]);
 
+  if (images.length === 0) return null;
+  const current = images[index] ?? images[0];
+
   return (
     <div className="absolute inset-0 overflow-hidden">
       <AnimatePresence initial={false} mode="popLayout">
@@ -121,13 +123,11 @@ function WeddingCarousel({ started }: { started: boolean }) {
           transition={{ duration: 0.85, ease: EASE }}
           className="absolute inset-0"
         >
-          <Image
-            src={images[index].src}
-            alt={t(images[index].alt)}
-            fill
-            sizes="(max-width: 1024px) 92vw, 58vw"
-            className="object-cover"
-            priority={index === 0}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={current.src}
+            alt={current.alt}
+            className="absolute inset-0 h-full w-full object-cover"
           />
         </motion.div>
       </AnimatePresence>
