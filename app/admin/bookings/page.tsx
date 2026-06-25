@@ -25,7 +25,7 @@ export default async function AdminBookingsPage() {
     const { data: bookings } = await admin
       .from("bookings")
       .select(
-        "id, booking_code, room_id, customer_id, check_in, check_out, adults, children, status, total_amount, notes, created_at",
+        "id, booking_code, room_id, customer_id, check_in, check_out, adults, children, status, total_amount, notes, checked_in_at, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(80);
@@ -108,6 +108,7 @@ export default async function AdminBookingsPage() {
         status: b.status as BookingRow["status"],
         total_amount: b.total_amount as number,
         notes: (b.notes as string) ?? null,
+        checked_in_at: (b.checked_in_at as string) ?? null,
         created_at: b.created_at as string,
         payment: p
           ? {

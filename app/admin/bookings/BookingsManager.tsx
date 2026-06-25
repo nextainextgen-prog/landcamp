@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { BookingStatus } from "@/types";
 import { siteConfig } from "@/data/siteConfig";
@@ -51,6 +51,7 @@ export type BookingRow = {
   status: BookingStatus;
   total_amount: number;
   notes: string | null;
+  checked_in_at: string | null;
   created_at: string;
   payment: {
     amount: number;
@@ -137,9 +138,9 @@ function completedSteps(status: BookingStatus): number {
   }
 }
 
-function Stepper({ status }: { status: BookingStatus }) {
+function Stepper({ status, checkedIn = false }: { status: BookingStatus; checkedIn?: boolean }) {
   const terminal = status === "cancelled" || status === "no_show";
-  const done = completedSteps(status);
+  const done = status === "confirmed" && checkedIn ? 4 : completedSteps(status);
   return (
     <div>
       {terminal && (
@@ -287,6 +288,21 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
     } catch (e) {
       window.alert(`แก้ไขไม่สำเร็จ${e instanceof Error && e.message ? `: ${e.message}` : ""}`);
       return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function checkIn(id: string) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "check_in" }) });
+      if (!res.ok) throw new Error();
+      setRows((l) => l.map((r) => (r.id === id ? { ...r, checked_in_at: new Date().toISOString() } : r)));
+      setToast("เช็คอินแล้ว · ลูกค้าเข้าพัก");
+      setTimeout(() => setToast(null), 2000);
+    } catch {
+      window.alert("เช็คอินไม่สำเร็จ ลองใหม่");
     } finally {
       setBusy(false);
     }
@@ -461,7 +477,7 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
             เลือกการจองทางซ้ายเพื่อดูรายละเอียด
           </div>
         ) : (
-          <BookingDetail key={selected.id} r={selected} busy={busy} overlaps={overlaps} onPatch={patch} onResend={resendCard} onZoom={setZoom} onSaveNotes={saveNotes} onSaveEdit={saveEdit} onRecordPayment={recordPayment} />
+          <BookingDetail key={selected.id} r={selected} busy={busy} overlaps={overlaps} onPatch={patch} onResend={resendCard} onZoom={setZoom} onSaveNotes={saveNotes} onSaveEdit={saveEdit} onRecordPayment={recordPayment} onCheckIn={checkIn} />
         )}
         {toast && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{toast}</div>}
       </div>
@@ -496,6 +512,7 @@ function BookingCard({
   const isToday = r.check_in === dayKeys.todayKey;
   const isTomorrow = r.check_in === dayKeys.tomorrowKey;
   const needsAction = r.status === "payment_review";
+  const inHouse = r.status === "confirmed" && Boolean(r.checked_in_at);
   return (
     <div
       role="button"
@@ -528,8 +545,9 @@ function BookingCard({
           </div>
           <div className="mt-0.5 flex items-end justify-between gap-2">
             <span className="flex min-w-0 items-center gap-1.5">
-              {isToday && <span className="flex-shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">วันนี้</span>}
-              {isTomorrow && <span className="flex-shrink-0 rounded-full bg-[color:var(--color-warm-clay)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--color-warm-clay)]">พรุ่งนี้</span>}
+              {inHouse && <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> อยู่ในที่พัก</span>}
+              {!inHouse && isToday && <span className="flex-shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">วันนี้</span>}
+              {!inHouse && isTomorrow && <span className="flex-shrink-0 rounded-full bg-[color:var(--color-warm-clay)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--color-warm-clay)]">พรุ่งนี้</span>}
               <span className="truncate text-xs text-[color:var(--color-ink)]/55">{r.room_name} · {shortDate(r.check_in)}</span>
             </span>
             <span className="flex-shrink-0 text-sm font-semibold text-[color:var(--color-forest-deep)]">฿{r.total_amount.toLocaleString("en-US")}</span>
@@ -662,6 +680,7 @@ function BookingDetail({
   onSaveNotes,
   onSaveEdit,
   onRecordPayment,
+  onCheckIn,
 }: {
   r: BookingRow;
   busy: boolean;
@@ -672,6 +691,7 @@ function BookingDetail({
   onSaveNotes: (id: string, notes: string) => void;
   onSaveEdit: (id: string, edit: { check_in: string; check_out: string; adults: number; children: number; total_amount: number }) => Promise<boolean>;
   onRecordPayment: (id: string, payment: { amount: number; kind: string; method: string }) => Promise<boolean>;
+  onCheckIn: (id: string) => void;
 }) {
   const c = r.customer;
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -680,7 +700,25 @@ function BookingDetail({
   const [confirm, setConfirm] = useState<null | { title: string; message: string; label: string; danger?: boolean; run: () => void }>(null);
   const [noteDraft, setNoteDraft] = useState(r.notes ?? "");
   const [copied, setCopied] = useState<"" | "summary" | "map">("");
+  const [audit, setAudit] = useState<{ id: string; actor: string | null; action: string; to_status: string | null; created_at: string }[]>([]);
   const nights = nightsBetween(r.check_in, r.check_out);
+  const inHouse = r.status === "confirmed" && Boolean(r.checked_in_at);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/bookings/${r.id}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const d = (await res.json()) as { items?: typeof audit };
+        if (alive) setAudit(d.items ?? []);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => { alive = false; };
+    // re-fetch when the booking or its status/check-in changes
+  }, [r.id, r.status, r.checked_in_at]);
 
   function flash(which: "summary" | "map") {
     setCopied(which);
@@ -774,7 +812,7 @@ function BookingDetail({
 
       {/* Stepper */}
       <div className="border-y border-[color:var(--color-forest-deep)]/8 py-4">
-        <Stepper status={r.status} />
+        <Stepper status={r.status} checkedIn={inHouse} />
       </div>
 
       {/* Auto slip-check result (system-verified — no manual checking) */}
@@ -826,6 +864,25 @@ function BookingDetail({
         </div>
       </div>
 
+      {/* Audit trail */}
+      {audit.length > 0 && (
+        <div className="rounded-xl border border-[color:var(--color-forest-deep)]/10 p-4">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/70">ประวัติการดำเนินการ</div>
+          <ul className="flex flex-col gap-1.5">
+            {audit.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-[color:var(--color-ink)]/75">
+                  {a.action === "check_in" ? "เช็คอิน" : a.to_status && STATUS_TH[a.to_status as BookingStatus] ? STATUS_TH[a.to_status as BookingStatus] : a.action}
+                </span>
+                <span className="text-[color:var(--color-ink)]/40">
+                  {a.actor ?? "—"} · {new Date(a.created_at).toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex flex-wrap gap-2 border-t border-[color:var(--color-forest-deep)]/8 pt-4">
         {r.status === "payment_review" && (
@@ -834,10 +891,16 @@ function BookingDetail({
             <button type="button" disabled={busy} onClick={() => setConfirm({ title: "ปฏิเสธการจอง", message: `ปฏิเสธสลิปและยกเลิก ${r.booking_code}? การจองจะถูกยกเลิก`, label: "ปฏิเสธ", danger: true, run: () => onPatch(r.id, { action: "reject" }, "cancelled") })} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">ปฏิเสธ</button>
           </>
         )}
-        {r.status === "confirmed" && (
+        {r.status === "confirmed" && !inHouse && (
           <>
-            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "completed" }, "completed")} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">เช็คเอาท์แล้ว</button>
+            <button type="button" disabled={busy} onClick={() => onCheckIn(r.id)} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-warm-clay)] disabled:opacity-50">เช็คอิน (ลูกค้ามาถึง)</button>
             <button type="button" disabled={busy} onClick={() => setConfirm({ title: "ไม่มาตามนัด", message: `ยืนยันว่า ${c.name} ไม่มาเข้าพักตามนัด (${r.booking_code})?`, label: "ไม่มาตามนัด", danger: true, run: () => onPatch(r.id, { status: "no_show" }, "no_show") })} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50">ไม่มาตามนัด</button>
+          </>
+        )}
+        {r.status === "confirmed" && inHouse && (
+          <>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700"><span className="h-2 w-2 rounded-full bg-emerald-500" /> อยู่ในที่พัก</span>
+            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "completed" }, "completed")} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">เช็คเอาท์แล้ว</button>
           </>
         )}
         {(r.status === "pending_payment" || r.status === "payment_review" || r.status === "confirmed") && (

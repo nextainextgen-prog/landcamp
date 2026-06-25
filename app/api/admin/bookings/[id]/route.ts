@@ -24,6 +24,26 @@ async function logAudit(
   }
 }
 
+/** Audit trail for a booking. */
+export async function GET(_req: NextRequest, ctx: Ctx) {
+  const auth = await requireSection("bookings");
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const { id } = await ctx.params;
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+  const { data } = await admin
+    .from("booking_audit")
+    .select("id, actor, action, to_status, created_at")
+    .eq("booking_id", id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  return NextResponse.json({ items: data ?? [] });
+}
+
 const DIRECT_STATUSES = new Set([
   "pending_payment",
   "payment_review",
@@ -138,6 +158,20 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     if (!data) return NextResponse.json({ error: "booking not found" }, { status: 404 });
     await logAudit(admin, id, actor, "status", body.status);
     return NextResponse.json({ ok: true, status: body.status });
+  }
+
+  // Check-in: guest physically arrived (status stays 'confirmed', in-house).
+  if (body.action === "check_in") {
+    const { data, error } = await admin
+      .from("bookings")
+      .update({ checked_in_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("id, checked_in_at")
+      .maybeSingle();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data) return NextResponse.json({ error: "booking not found" }, { status: 404 });
+    await logAudit(admin, id, actor, "check_in", "checked_in");
+    return NextResponse.json({ ok: true, checked_in_at: data.checked_in_at });
   }
 
   if (body.action !== "confirm" && body.action !== "reject") {
