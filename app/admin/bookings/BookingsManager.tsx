@@ -206,24 +206,61 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_280px]">
-      {/* ── List ── */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${filter === f.key ? "bg-[color:var(--color-warm-clay)] text-white" : "bg-[color:var(--color-bone-soft)] text-[color:var(--color-ink)]/65 hover:bg-[color:var(--color-bone-soft)]/70"}`}
-            >
-              {f.label}{counts[f.key] ? ` ${counts[f.key]}` : ""}
-            </button>
-          ))}
+    <div className="grid gap-5 xl:grid-cols-[270px_minmax(0,340px)_minmax(0,1fr)]">
+      {/* ── Left: controls (filter card + stats + calendar + source) ── */}
+      <aside className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[color:var(--color-ink)]/45">สถานะการจอง</div>
+          <div className="flex flex-wrap gap-1.5">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${filter === f.key ? "bg-[color:var(--color-warm-clay)] text-white" : "bg-[color:var(--color-bone-soft)] text-[color:var(--color-ink)]/70 hover:bg-[color:var(--color-bone-soft)]/70"}`}
+              >
+                {f.label}
+                {counts[f.key] ? (
+                  <span className={`rounded-full px-1.5 text-[10px] ${filter === f.key ? "bg-white/25" : "bg-white text-[color:var(--color-forest-deep)]"}`}>{counts[f.key]}</span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+          <div className="relative">
+            <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[color:var(--color-ink)]/35">🔍</span>
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="ค้นหา ชื่อ / เบอร์ / รหัสจอง"
+              className="w-full rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-[color:var(--color-bone-soft)]/40 py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-[color:var(--color-warm-clay)] focus:bg-white"
+            />
+          </div>
         </div>
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา ชื่อ / เบอร์ / รหัสจอง" className="w-full rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-3 py-2 text-sm outline-none focus:border-[color:var(--color-warm-clay)]" />
 
-        <ul className="flex max-h-[72vh] flex-col gap-2 overflow-y-auto pr-1">
+        <StatsBox rows={rows} />
+        <MiniCalendar rows={rows} active={dateFilter} onPick={(d) => setDateFilter((cur) => (cur === d ? null : d))} />
+
+        <div className="rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-4">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[color:var(--color-ink)]/45">ช่องทางลูกค้า</div>
+          <div className="flex flex-wrap gap-1.5">
+            {([["all", "ทั้งหมด"], ["line", "LINE"], ["google", "Google"], ["walkin", "Walk-in"]] as const).map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setSource(k)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${source === k ? "bg-[color:var(--color-forest-deep)] text-white" : "bg-[color:var(--color-bone-soft)] text-[color:var(--color-ink)]/70 hover:bg-[color:var(--color-bone-soft)]/70"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Middle: list ── */}
+      <div className="min-w-0">
+        <ul className="flex max-h-[80vh] flex-col gap-2 overflow-y-auto pr-1">
           {visible.length === 0 && <li className="rounded-lg border border-dashed p-6 text-center text-sm text-[color:var(--color-ink)]/45">ไม่พบรายการ</li>}
           {visible.map((r) => (
             <li key={r.id}>
@@ -261,27 +298,6 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
         )}
         {toast && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{toast}</div>}
       </div>
-
-      {/* ── Right rail: stats + calendar + source filter ── */}
-      <aside className="hidden flex-col gap-4 xl:flex">
-        <StatsBox rows={rows} />
-        <MiniCalendar rows={rows} active={dateFilter} onPick={(d) => setDateFilter((cur) => (cur === d ? null : d))} />
-        <div className="rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-4">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[color:var(--color-ink)]/45">ช่องทางลูกค้า</div>
-          <div className="flex flex-wrap gap-1.5">
-            {([["all", "ทั้งหมด"], ["line", "LINE"], ["google", "Google"], ["walkin", "Walk-in"]] as const).map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setSource(k)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${source === k ? "bg-[color:var(--color-forest-deep)] text-white" : "bg-[color:var(--color-bone-soft)] text-[color:var(--color-ink)]/65 hover:bg-[color:var(--color-bone-soft)]/70"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </aside>
 
       {zoom && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4" onClick={() => setZoom(null)}>
