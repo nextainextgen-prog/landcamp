@@ -5,8 +5,13 @@ import { getAdminSession } from "@/lib/admin/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
-  title: "Admin",
+  title: "LandCamp · เข้าสู่ระบบหลังบ้าน",
   robots: { index: false, follow: false },
+  openGraph: {
+    title: "LandCamp Backoffice — เข้าสู่ระบบ",
+    description: "ระบบจัดการ LandCamp Villa Khao Yai (เฉพาะเจ้าหน้าที่)",
+    type: "website",
+  },
 };
 
 export const dynamic = "force-dynamic";
