@@ -9,6 +9,7 @@ import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { BookingModal } from "@/components/booking/BookingModal";
 import { loadBookingIntent, type BookingIntent } from "@/lib/booking/intent";
+import { PUBLIC_BOOKING_ENABLED } from "@/lib/features";
 import type { Room } from "@/types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -36,6 +37,7 @@ export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
   // a macrotask so state isn't set synchronously in the effect and the open
   // happens after hydration settles (no SSR mismatch).
   useEffect(() => {
+    if (!PUBLIC_BOOKING_ENABLED) return;
     const intent = loadBookingIntent();
     if (!intent) return;
     const room = rooms.find((r) => r.id === intent.slug);
@@ -48,6 +50,11 @@ export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
   }, [rooms]);
 
   function openBooking(room: Room) {
+    // Online booking is not live yet — route guests to LINE instead.
+    if (!PUBLIC_BOOKING_ENABLED) {
+      window.open(siteConfig.contact.lineUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
     setBookingIntent(null);
     setBookingRoom(room);
   }
@@ -185,7 +192,9 @@ export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-5 py-3.5 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300"
                     style={{ fontFamily: "var(--font-ui)" }}
                   >
-                    {t({ th: "จองออนไลน์", en: "Book Now" })}
+                    {PUBLIC_BOOKING_ENABLED
+                      ? t({ th: "จองออนไลน์", en: "Book Now" })
+                      : t({ th: "จองผ่าน LINE", en: "Book via LINE" })}
                     <span aria-hidden>→</span>
                   </button>
                 </div>

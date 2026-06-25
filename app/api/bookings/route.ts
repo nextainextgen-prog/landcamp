@@ -7,6 +7,7 @@ import { calculateBookingTotal } from "@/lib/booking/pricing";
 import { CreateBookingSchema } from "@/lib/schemas/booking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCustomerSession } from "@/lib/customer/session";
+import { PUBLIC_BOOKING_ENABLED } from "@/lib/features";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,14 @@ function bangkokToday(nowMs: number): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Online booking is not live yet (see lib/features.ts).
+  if (!PUBLIC_BOOKING_ENABLED) {
+    return NextResponse.json(
+      { error: "การจองออนไลน์ยังไม่เปิดให้บริการ — กรุณาติดต่อผ่าน LINE" },
+      { status: 503 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
