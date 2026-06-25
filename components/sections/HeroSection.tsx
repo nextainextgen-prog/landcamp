@@ -1,16 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { motion, useScroll, useTransform, type Variants } from "framer-motion";
 import { useRef } from "react";
-import { siteConfig } from "@/data/siteConfig";
-import { useLocale, useT } from "@/app/providers";
+import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { usePrefersReducedMotion } from "@/lib/useMediaQuery";
 import { MagneticButton } from "@/components/ui/MagneticButton";
+import { scrollToSection } from "@/lib/scrollToSection";
 import { cn } from "@/lib/cn";
-
-const HEADLINE_TH = ["LandCamp", "Villa Khao Yai"];
-const HEADLINE_EN = ["LandCamp", "Villa Khao Yai"];
 
 const EASE_SOFT = [0.22, 1, 0.36, 1] as const;
 
@@ -25,7 +22,7 @@ const lineVariants: Variants = {
 
 export function HeroSection() {
   const t = useT();
-  const { locale } = useLocale();
+  const { hero } = useContent();
   const reduce = usePrefersReducedMotion();
   const ref = useRef<HTMLElement>(null);
 
@@ -53,7 +50,7 @@ export function HeroSection() {
   );
   const opacityContent = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
 
-  const headline = locale === "th" ? HEADLINE_TH : HEADLINE_EN;
+  const headline = hero.headline;
 
   return (
     <section
@@ -69,13 +66,11 @@ export function HeroSection() {
         style={{ y: yImage, scale: scaleImage }}
         className="absolute inset-0 -top-[4%] h-[108%] origin-center will-change-transform z-0"
       >
-        <Image
-          src="/images/hero/landcamp-glamping.jpg"
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={hero.image}
           alt="LandCamp Villa Khao Yai — Camper Van, stone villa and glass cabin at golden hour"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
         />
       </motion.div>
 
@@ -104,7 +99,7 @@ export function HeroSection() {
           ────────────────────────────────────── */}
       <motion.div
         style={{ y: yContent, opacity: opacityContent }}
-        className="relative z-10 mx-auto w-full max-w-[880px] px-6 pt-[120px] sm:pt-[140px] flex flex-col items-center"
+        className="relative z-10 mx-auto w-full max-w-[880px] px-6 py-[112px] sm:py-[132px] flex flex-col items-center"
       >
         <motion.p
           initial={{ opacity: 0, y: 18 }}
@@ -113,10 +108,7 @@ export function HeroSection() {
           className="text-[11px] sm:text-[11.5px] uppercase tracking-[0.32em] font-medium text-[color:var(--color-bone)]"
           style={{ fontFamily: "var(--font-ui)" }}
         >
-          {t({
-            th: "เขาใหญ่ · ที่พักไพรเวท",
-            en: "Khao Yai · Private Sanctuary",
-          })}
+          {t(hero.eyebrow)}
         </motion.p>
 
         <motion.h1
@@ -150,15 +142,9 @@ export function HeroSection() {
           transition={{ duration: 1, ease: EASE_SOFT, delay: 1.0 }}
           className="mt-6 max-w-[620px] mx-auto text-[15px] sm:text-base lg:text-[18px] leading-relaxed font-light text-[color:var(--color-bone)]/90"
         >
-          {t({
-            th: "วิลล่าสไตล์ Glamping 6 หลัง ใจกลางขุนเขาเขาใหญ่",
-            en: "Six glamping villas tucked into the forests of Khao Yai",
-          })}
+          {t(hero.subheadLine1)}
           <br />
-          {t({
-            th: "ทุกมุมมองสงวนไว้ให้คุณคนเดียว",
-            en: "every vista, reserved for you alone.",
-          })}
+          {t(hero.subheadLine2)}
         </motion.p>
 
         {/* CTA cluster — centered, primary + ghost matched on width
@@ -171,8 +157,8 @@ export function HeroSection() {
           className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4"
         >
           <MagneticButton
-            href={siteConfig.contact.lineUrl}
-            ariaLabel="Book via Line"
+            onClick={() => scrollToSection("rooms")}
+            ariaLabel={t({ th: "เลื่อนไปดูห้องพัก", en: "Jump to rooms" })}
             strength={0.25}
           >
             <span
@@ -185,7 +171,7 @@ export function HeroSection() {
               )}
               style={{ fontFamily: "var(--font-ui)", letterSpacing: "0.02em" }}
             >
-              {t({ th: "จองที่พัก", en: "Reserve" })}
+              {t(hero.ctaReserve)}
             </span>
           </MagneticButton>
 
@@ -199,7 +185,7 @@ export function HeroSection() {
             )}
             style={{ fontFamily: "var(--font-ui)", letterSpacing: "0.02em" }}
           >
-            {t({ th: "สำรวจห้องพัก", en: "Explore Rooms" })}
+            {t(hero.ctaExplore)}
             <span aria-hidden>→</span>
           </a>
         </motion.div>
@@ -212,7 +198,7 @@ export function HeroSection() {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, ease: EASE_SOFT, delay: 1.7 }}
-        className="absolute bottom-8 sm:bottom-9 left-1/2 -translate-x-1/2 z-[4] flex flex-col items-center gap-2.5 text-[color:var(--color-bone)]/40"
+        className="absolute bottom-8 sm:bottom-9 left-1/2 -translate-x-1/2 z-[4] hidden [@media(min-height:760px)]:flex flex-col items-center gap-2.5 text-[color:var(--color-bone)]/40"
         aria-hidden
       >
         <span

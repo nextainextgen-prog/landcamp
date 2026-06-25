@@ -67,6 +67,10 @@ export type SiteContent = {
   };
   hero: {
     eyebrow: Bilingual;
+    /** Big title lines (brand name — same in both languages). */
+    headline: string[];
+    /** Background image — /public path or Storage URL. */
+    image: string;
     subheadLine1: Bilingual;
     subheadLine2: Bilingual;
     ctaReserve: Bilingual;
@@ -123,6 +127,7 @@ export type SiteContent = {
     directionsLabel: Bilingual;
     directions: { text: Bilingual; distance: Bilingual }[];
   };
+  faq: { question: Bilingual; answer: Bilingual }[];
 };
 
 export type DeepPartial<T> = T extends (infer U)[]

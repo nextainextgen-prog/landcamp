@@ -30,6 +30,7 @@ const inputCls =
   "w-full rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-3 py-2 text-sm text-[color:var(--color-ink)] outline-none transition-colors focus:border-[color:var(--color-warm-clay)]";
 
 const TABS = [
+  { key: "hero", label: "หน้าแรก (Hero)" },
   { key: "about", label: "เกี่ยวกับเรา" },
   { key: "contactSection", label: "ส่วนติดต่อ" },
   { key: "contact", label: "ข้อมูลติดต่อ" },
@@ -39,6 +40,7 @@ const TABS = [
   { key: "menu", label: "เมนูอาหาร" },
   { key: "reviews", label: "รีวิว" },
   { key: "map", label: "แผนที่/การเดินทาง" },
+  { key: "faq", label: "คำถามที่พบบ่อย" },
   { key: "gallery", label: "รูปภาพ (แกลเลอรี)" },
   { key: "versions", label: "ประวัติเวอร์ชัน" },
 ] as const;
@@ -47,6 +49,7 @@ type TabKey = (typeof TABS)[number]["key"];
 
 // Which part of the live preview to scroll to / highlight when a tab is opened.
 const TAB_ANCHOR: Partial<Record<TabKey, string>> = {
+  hero: "#hero",
   about: "#about",
   contactSection: "#contact",
   contact: "#contact",
@@ -55,6 +58,7 @@ const TAB_ANCHOR: Partial<Record<TabKey, string>> = {
   menu: "#menu",
   reviews: "#reviews",
   map: "#location",
+  faq: "#faq",
   gallery: "#atmosphere",
 };
 
@@ -138,6 +142,57 @@ function StrField({
       <input className={inputCls} value={value} onChange={(e) => onChange(e.target.value)} />
       {hint && <span className="text-[11px] text-[color:var(--color-ink)]/40">{hint}</span>}
     </label>
+  );
+}
+
+function ImageField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+
+  async function up(file: File) {
+    setUploading(true);
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const res = await fetch("/api/admin/content/media", { method: "POST", body: form });
+      const data = (await res.json()) as { url?: string };
+      if (res.ok && data.url) onChange(data.url);
+    } catch {
+      // ignore
+    }
+    setUploading(false);
+    if (ref.current) ref.current.value = "";
+  }
+
+  return (
+    <div className="grid gap-2">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex items-center gap-3">
+        <div className="relative h-20 w-32 flex-shrink-0 overflow-hidden rounded-lg bg-[color:var(--color-bone-soft)]">
+          {value && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={value} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => ref.current?.click()}
+          disabled={uploading}
+          className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-3 py-2 text-sm font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50"
+        >
+          {uploading ? "กำลังอัปโหลด…" : "เปลี่ยนรูป"}
+        </button>
+        <input ref={ref} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && up(e.target.files[0])} />
+      </div>
+    </div>
   );
 }
 
@@ -350,6 +405,31 @@ export function ContentEditor({
       </div>
 
       {/* Panels */}
+      {tab === "hero" && (
+        <Panel title="ส่วนหน้าแรก (Hero)" bodyClassName="flex flex-col gap-6">
+          <ImageField label="รูปพื้นหลัง" value={doc.hero.image} onChange={(v) => update(["hero", "image"], v)} />
+          <BiField label="หัวข้อย่อย (ด้านบน)" value={doc.hero.eyebrow} onChange={(v) => update(["hero", "eyebrow"], v)} />
+          <div className="grid gap-2">
+            <FieldLabel>หัวข้อใหญ่ (แต่ละบรรทัด)</FieldLabel>
+            {doc.hero.headline.map((line, i) => (
+              <input
+                key={i}
+                value={line}
+                onChange={(e) => update(["hero", "headline", i], e.target.value)}
+                placeholder={`บรรทัดที่ ${i + 1}`}
+                className={inputCls}
+              />
+            ))}
+          </div>
+          <BiField label="คำโปรย บรรทัด 1" value={doc.hero.subheadLine1} onChange={(v) => update(["hero", "subheadLine1"], v)} />
+          <BiField label="คำโปรย บรรทัด 2" value={doc.hero.subheadLine2} onChange={(v) => update(["hero", "subheadLine2"], v)} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <BiField label="ปุ่มหลัก" value={doc.hero.ctaReserve} onChange={(v) => update(["hero", "ctaReserve"], v)} />
+            <BiField label="ปุ่มรอง" value={doc.hero.ctaExplore} onChange={(v) => update(["hero", "ctaExplore"], v)} />
+          </div>
+        </Panel>
+      )}
+
       {tab === "about" && (
         <Panel title="ส่วน “เกี่ยวกับเรา”" bodyClassName="flex flex-col gap-6">
           <BiField label="หัวข้อย่อย (eyebrow)" value={doc.about.eyebrow} onChange={(v) => update(["about", "eyebrow"], v)} />
@@ -514,6 +594,34 @@ export function ContentEditor({
               </div>
             ))}
           </div>
+        </Panel>
+      )}
+
+      {tab === "faq" && (
+        <Panel title="คำถามที่พบบ่อย (FAQ)" bodyClassName="flex flex-col gap-5">
+          {doc.faq.map((item, i) => (
+            <div key={i} className="grid gap-3 rounded-xl border border-[color:var(--color-forest-deep)]/10 p-4">
+              <div className="flex items-center justify-between">
+                <FieldLabel>ข้อ {i + 1}</FieldLabel>
+                <button
+                  type="button"
+                  onClick={() => update(["faq"], doc.faq.filter((_, idx) => idx !== i))}
+                  className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                >
+                  ลบ
+                </button>
+              </div>
+              <BiField label="คำถาม" value={item.question} onChange={(v) => update(["faq", i, "question"], v)} />
+              <BiField label="คำตอบ" long value={item.answer} onChange={(v) => update(["faq", i, "answer"], v)} />
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => update(["faq"], [...doc.faq, { question: { ...EMPTY_BI }, answer: { ...EMPTY_BI } }])}
+            className="self-start rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"
+          >
+            + เพิ่มคำถาม
+          </button>
         </Panel>
       )}
 
