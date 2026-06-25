@@ -178,10 +178,7 @@ export function AdminShell({
 
 function SidebarHead() {
   return (
-    <div className="flex items-center gap-2.5 px-5 py-5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[color:var(--color-warm-clay)] font-display text-lg font-bold text-white">
-        L
-      </span>
+    <div className="border-b border-white/10 px-5 py-5">
       <div className="leading-tight">
         <div className="font-display text-base font-semibold text-[color:var(--color-bone)]">LandCamp</div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--color-bone)]/40">Backoffice</div>

@@ -8,8 +8,8 @@ export default async function AdminIndexPage() {
   const session = await getAdminSession();
   if (!session) return null; // layout shows the login screen
 
-  // Overview (dashboard) is the home for anyone who can see bookings.
-  if (canAccess(session, "bookings")) redirect("/admin/dashboard");
+  // The booking calendar is the home for anyone who can see bookings.
+  if (canAccess(session, "bookings")) redirect("/admin/calendar");
 
   const section = firstAllowedSection(session);
   if (section) redirect(`/admin/${section}`);

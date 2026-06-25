@@ -6,23 +6,22 @@ import type { ReactNode } from "react";
  * server and client components.
  */
 
+/**
+ * The page title/description are now shown in the global AdminTopbar, so this
+ * no longer renders any heading — pages stay full-bleed and content sits at the
+ * top. Only `actions` (if provided) still render, right-aligned. When there are
+ * no actions it renders nothing at all (no leftover gap). `title`/`description`
+ * are accepted for backward compatibility but ignored.
+ */
 export function PageHeader({
-  title,
   actions,
 }: {
-  title: string;
-  /** Kept for compatibility; no longer rendered (keeps pages compact/full-bleed). */
+  title?: string;
   description?: string;
   actions?: ReactNode;
 }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <h1 className="font-display text-2xl font-semibold tracking-tight text-[color:var(--color-forest-deep)]">
-        {title}
-      </h1>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
-    </div>
-  );
+  if (!actions) return null;
+  return <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>;
 }
 
 export function Panel({

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import {
   STATUS,
   WEEKDAYS_TH,
@@ -30,7 +31,7 @@ function softOf(status: string): string {
 // ─────────────────────────────────────────────
 const DAY_START = 8;
 const DAY_END = 22;
-const HOUR_PX = 54;
+const MIN_HOUR_PX = 34;
 const CHECK_IN_H = 14;
 const CHECK_OUT_H = 12;
 
@@ -45,7 +46,37 @@ export function DayView({
 }) {
   const key = ymd(anchor);
   const hours = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i);
-  const bodyH = (DAY_END - DAY_START) * HOUR_PX;
+
+  // Stretch the grid so 08:00–22:00 fills the viewport down to the bottom
+  // (no inner scroll), clamping to a minimum row height on short screens.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const headRef = useRef<HTMLDivElement>(null);
+  const [hourPx, setHourPx] = useState(54);
+  const [availH, setAvailH] = useState<number | null>(null);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const compute = () => {
+      const top = wrap.getBoundingClientRect().top;
+      const avail = Math.max(360, window.innerHeight - top - 20);
+      const headerH = headRef.current?.offsetHeight ?? 48;
+      const px = Math.max(MIN_HOUR_PX, (avail - headerH) / (DAY_END - DAY_START));
+      setHourPx(px);
+      setAvailH(avail);
+    };
+    const raf = requestAnimationFrame(compute);
+    const ro = new ResizeObserver(compute);
+    ro.observe(document.body);
+    window.addEventListener("resize", compute);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", compute);
+    };
+  }, []);
+
+  const bodyH = (DAY_END - DAY_START) * hourPx;
 
   function block(b: CalBooking): { top: number; height: number; from: number; to: number } | null {
     if (b.check_in > key || b.check_out < key) return null;
@@ -53,32 +84,28 @@ export function DayView({
     const from = b.check_in === key ? CHECK_IN_H : DAY_START;
     const to = b.check_out === key ? CHECK_OUT_H : DAY_END;
     if (to <= from) return null;
-    return { top: (from - DAY_START) * HOUR_PX, height: (to - from) * HOUR_PX, from, to };
+    return { top: (from - DAY_START) * hourPx, height: (to - from) * hourPx, from, to };
   }
 
   const colMin = 200;
 
   return (
-    <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 240px)" }}>
+    <div ref={wrapRef} className="overflow-auto" style={availH ? { maxHeight: availH } : undefined}>
       <div style={{ minWidth: 64 + rooms.length * colMin }}>
         {/* header */}
-        <div className="sticky top-0 z-20 flex border-b border-[color:var(--color-forest-deep)]/10 bg-white">
+        <div ref={headRef} className="sticky top-0 z-20 flex border-b border-[color:var(--color-forest-deep)]/10 bg-white">
           <div className="w-16 shrink-0 border-r border-[color:var(--color-forest-deep)]/8 px-2 py-3 text-[11px] font-medium uppercase text-[color:var(--color-ink)]/45">
             เวลา
           </div>
           {rooms.map((r) => (
             <div
               key={r.id}
-              className="flex-1 border-r border-[color:var(--color-forest-deep)]/8 px-3 py-2.5 last:border-r-0"
+              className="flex-1 border-r border-[color:var(--color-forest-deep)]/8 px-3 py-3 last:border-r-0"
               style={{ minWidth: colMin }}
             >
               <p className="flex items-center gap-1.5 text-sm font-semibold text-[color:var(--color-forest-deep)]">
                 <span className="h-2 w-2 rounded-full" style={{ background: statusColor("confirmed") }} />
                 {r.name}
-              </p>
-              <p className="mt-0.5 text-[11px] text-[color:var(--color-ink)]/50">
-                {r.maxGuests > 0 ? `${r.maxGuests} ท่าน` : "—"}
-                {r.price > 0 ? ` · ฿${r.price.toLocaleString("en-US")}/คืน` : ""}
               </p>
             </div>
           ))}
@@ -92,7 +119,7 @@ export function DayView({
               <div
                 key={h}
                 className="absolute right-2 -translate-y-1/2 text-[11px] tabular-nums text-[color:var(--color-ink)]/40"
-                style={{ top: (h - DAY_START) * HOUR_PX }}
+                style={{ top: (h - DAY_START) * hourPx }}
               >
                 {String(h).padStart(2, "0")}:00
               </div>
@@ -118,7 +145,7 @@ export function DayView({
                   <div
                     key={h}
                     className="absolute inset-x-0 border-b border-[color:var(--color-forest-deep)]/6"
-                    style={{ top: (h - DAY_START) * HOUR_PX, height: HOUR_PX }}
+                    style={{ top: (h - DAY_START) * hourPx, height: hourPx }}
                   />
                 ))}
                 {/* booking blocks */}

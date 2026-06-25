@@ -136,13 +136,6 @@ export function CalendarDashboard({
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-[color:var(--color-forest-deep)]">
-          ปฏิทินการจอง
-        </h1>
-        <p className="text-sm text-[color:var(--color-ink)]/55">จัดการการจองทั้งหมด — มุมมองรายวัน สัปดาห์ เดือน และรายการ</p>
-      </div>
-
       {/* ── Toolbar ── */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white px-4 py-3 shadow-[0_18px_44px_-32px_rgba(45,55,40,0.35)]">
         <button onClick={goToday} className="rounded-lg border border-[color:var(--color-forest-deep)]/15 px-3 py-1.5 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">
@@ -246,7 +239,9 @@ export function CalendarDashboard({
         )}
 
         {/* ── Main view ── */}
-        <section className="min-w-0 overflow-hidden rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white shadow-[0_18px_44px_-32px_rgba(45,55,40,0.35)]">
+        {/* self-start so this card never stretches to match a taller filter rail
+            (which would leave an empty white gap under the day grid). */}
+        <section className="min-w-0 self-start overflow-hidden rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white shadow-[0_18px_44px_-32px_rgba(45,55,40,0.35)]">
           {view !== "list" && (
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--color-forest-deep)]/8 bg-[color:var(--color-bone-soft)]/40 px-4 py-2.5">
               <span className="text-xs font-medium text-[color:var(--color-ink)]/50">
