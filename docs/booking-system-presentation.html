@@ -1,0 +1,1443 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<title>LandCamp · Booking System Design</title>
+<meta name="viewport" content="width=1440, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --forest-deep:#4d584b; --forest-night:#2c3327;
+  --sage-mid:#778475; --sage-light:#a2aaa1;
+  --warm-clay:#9a795b; --warm-clay-soft:#c4a98b; --warm-clay-pale:#e9dccb;
+  --bone:#f5f1ea; --bone-soft:#ece6da; --bone-deep:#ddd5c4;
+  --ink:#1a1814; --ink-soft:#4a4640;
+  --rule:rgba(26,24,20,.12); --rule-strong:rgba(26,24,20,.24);
+  --code-bg:#1f1d1a; --code-text:#ece6da;
+  --code-keyword:#c4a98b; --code-string:#9aab95; --code-comment:#6d6b66;
+  --shadow-1:0 1px 2px rgba(26,24,20,.04),0 4px 16px rgba(26,24,20,.04);
+  --shadow-2:0 4px 24px rgba(26,24,20,.06),0 12px 48px rgba(26,24,20,.06);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;font-style:normal!important}
+html,body{height:100%;background:var(--bone);color:var(--ink);
+  font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;
+  font-feature-settings:"ss01","cv01";-webkit-font-smoothing:antialiased;overflow:hidden}
+:lang(th),[lang="th"]{font-family:'Noto Sans Thai','Inter',sans-serif;line-height:1.55;font-size-adjust:0.52}
+.serif{font-family:'Cormorant Garamond','Noto Sans Thai',serif;font-weight:400;letter-spacing:-0.01em}
+.mono{font-family:'JetBrains Mono',monospace}
+.caps{text-transform:uppercase;letter-spacing:0.18em;font-size:11px;font-weight:500}
+
+.deck{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;height:100vh;width:100vw;scrollbar-width:none}
+.deck::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100vw;height:100vh;scroll-snap-align:start;
+  padding:44px 72px 100px;position:relative;display:flex;flex-direction:column;
+  background:var(--bone);overflow:hidden}
+.slide.dark{background:var(--forest-night);color:var(--bone)}
+.slide.bone-soft{background:var(--bone-soft)}
+
+.slide-head{display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:20px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:22px;height:22px;border:1.2px solid currentColor;
+  display:grid;place-items:center;font-family:'Cormorant Garamond',serif;
+  font-size:12px;font-weight:500;border-radius:4px}
+.brand-label{font-size:12px;letter-spacing:0.08em;opacity:0.65}
+.slide-no{font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.5;letter-spacing:0.1em}
+
+.slide-body{flex:1;display:flex;flex-direction:column;min-height:0}
+.eyebrow{font-size:10px;letter-spacing:0.22em;text-transform:uppercase;
+  color:var(--warm-clay);margin-bottom:10px;font-weight:500}
+.slide.dark .eyebrow{color:var(--warm-clay-soft)}
+
+h1.title,h2.title,h3.title{font-family:'Cormorant Garamond','Noto Sans Thai',serif;
+  font-weight:400;letter-spacing:-0.01em;margin-bottom:10px;word-break:break-word}
+h1.title{font-size:38px;line-height:1.15;max-width:26ch}
+h2.title{font-size:30px;line-height:1.2;max-width:30ch}
+h3.title{font-size:24px;line-height:1.25;max-width:34ch}
+.lede{font-size:14px;line-height:1.65;max-width:70ch;color:var(--ink-soft);margin-bottom:14px}
+.slide.dark .lede{color:var(--sage-light)}
+
+.progress{position:fixed;top:0;left:0;right:0;height:2px;background:var(--rule);z-index:50}
+.progress>i{display:block;height:100%;background:var(--warm-clay);width:0;transition:width .25s ease}
+.dots{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  display:flex;gap:5px;background:rgba(245,241,234,.92);backdrop-filter:blur(8px);
+  padding:7px 14px;border-radius:100px;border:1px solid var(--rule);z-index:50}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--rule-strong);
+  border:none;padding:0;cursor:pointer;transition:all .2s ease}
+.dot.active{background:var(--warm-clay);width:16px;border-radius:100px}
+.dot:hover{background:var(--warm-clay-soft)}
+.nav-hint{position:fixed;bottom:24px;right:24px;display:flex;align-items:center;gap:6px;
+  font-size:10px;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--ink-soft);opacity:0.6;z-index:50}
+.key{display:inline-grid;place-items:center;width:18px;height:18px;
+  border:1px solid var(--rule-strong);border-radius:3px;
+  font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(245,241,234,.8)}
+
+.cover{padding-top:44px;padding-bottom:100px;justify-content:space-between}
+.cover-top{display:flex;justify-content:space-between;align-items:flex-start}
+.cover-tag{font-size:11px;letter-spacing:0.22em;text-transform:uppercase;opacity:0.6}
+.cover-main{margin-top:auto}
+.cover-title{font-family:'Cormorant Garamond','Noto Sans Thai',serif;
+  font-weight:400;font-size:82px;line-height:1.1;letter-spacing:-0.02em;
+  margin-bottom:32px;padding-bottom:4px}
+.cover-subtitle{font-size:16px;max-width:60ch;color:var(--sage-light);line-height:1.65}
+.cover-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;
+  margin-top:36px;padding-top:22px;border-top:1px solid rgba(245,241,234,.15)}
+.cover-meta .caps{color:var(--warm-clay-soft);margin-bottom:6px;display:block}
+.cover-meta p{font-size:13px;color:var(--bone)}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+.card{background:var(--bone);border:1px solid var(--rule);border-radius:11px;
+  padding:18px;display:flex;flex-direction:column;gap:8px}
+.card-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--warm-clay);letter-spacing:0.1em}
+.card-title{font-size:14px;font-weight:500}
+.card-body{font-size:12px;color:var(--ink-soft);line-height:1.55}
+.icon-box{width:34px;height:34px;border:1px solid var(--rule-strong);border-radius:8px;
+  display:grid;place-items:center;color:var(--warm-clay);background:var(--bone)}
+.icon-box svg{width:16px;height:16px}
+
+.compare{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule);
+  border-radius:11px;overflow:hidden;background:var(--bone);margin-top:6px}
+.compare-col{padding:24px 28px}
+.compare-col+.compare-col{border-left:1px solid var(--rule);background:var(--bone-soft)}
+.compare-h{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--sage-mid);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.compare-col+.compare-col .compare-h{color:var(--warm-clay)}
+.compare-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--rule);font-size:13px}
+.compare-row:last-child{border-bottom:none}
+.compare-row svg{flex-shrink:0;margin-top:3px;opacity:0.55}
+
+.diagram-wrap{flex:1;min-height:0;display:flex;align-items:center;
+  justify-content:center;padding:4px 0}
+.diagram-wrap svg{width:100%;height:100%;max-height:100%;display:block}
+
+.tools-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:18px}
+.tool{border:1px solid var(--rule);border-radius:10px;padding:14px 10px;text-align:center;
+  background:var(--bone);display:flex;flex-direction:column;align-items:center;gap:5px;
+  min-height:104px;justify-content:center}
+.tool .glyph{width:30px;height:30px;color:var(--warm-clay);display:grid;place-items:center}
+.tool .glyph svg{width:26px;height:26px}
+.tool .tn{font-size:12px;font-weight:500}
+.tool .tr{font-size:10px;color:var(--sage-mid);line-height:1.35}
+
+.flow-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:0;margin-top:18px}
+.flow-step{position:relative;padding:16px 14px;border:1px solid var(--rule);background:var(--bone)}
+.flow-step+.flow-step{border-left:none}
+.flow-step:first-child{border-radius:11px 0 0 11px}
+.flow-step:last-child{border-radius:0 11px 11px 0}
+.flow-step .ic{width:30px;height:30px;border:1px solid var(--rule-strong);border-radius:7px;
+  display:grid;place-items:center;color:var(--warm-clay);margin-bottom:8px}
+.flow-step .ic svg{width:15px;height:15px}
+.flow-step .step-no{font-family:'JetBrains Mono',monospace;font-size:9px;
+  color:var(--warm-clay);letter-spacing:0.1em;margin-bottom:3px}
+.flow-step .step-title{font-size:12px;font-weight:500;margin-bottom:3px;line-height:1.35}
+.flow-step .step-desc{font-size:10px;color:var(--ink-soft);line-height:1.4}
+.flow-step .arrow{position:absolute;right:-6px;top:50%;width:12px;height:12px;
+  transform:translateY(-50%) rotate(45deg);border-top:1px solid var(--rule-strong);
+  border-right:1px solid var(--rule-strong);background:var(--bone);z-index:2}
+.flow-step:last-child .arrow{display:none}
+
+.wire-stage{flex:1;display:grid;grid-template-columns:1.3fr 1fr;gap:24px;
+  align-items:center;min-height:0}
+.wire-mock{background:var(--bone);border:1px solid var(--rule);border-radius:13px;
+  padding:18px;box-shadow:var(--shadow-2);display:flex;flex-direction:column;gap:10px;
+  overflow:hidden;height:100%;max-height:520px}
+.wire-title-bar{display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:10px;border-bottom:1px solid var(--rule)}
+.wire-title-bar .t{font-size:13px;font-weight:500}
+.wire-title-bar .dots-row{display:flex;gap:4px}
+.wire-title-bar .dots-row span{width:7px;height:7px;border-radius:50%;
+  background:var(--rule-strong);opacity:.4}
+.wire-row{display:flex;gap:8px}
+.wire-input{flex:1;height:32px;border:1px solid var(--rule);border-radius:7px;
+  background:var(--bone-soft);display:flex;align-items:center;padding:0 12px;
+  font-size:11px;color:var(--ink-soft)}
+.wire-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--sage-mid);margin-bottom:3px}
+.wire-btn{background:var(--warm-clay);color:var(--bone);padding:9px 14px;border-radius:7px;
+  font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;border:none}
+.wire-btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule-strong)}
+.wire-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:100px;
+  font-size:10px;background:var(--warm-clay-pale);color:var(--warm-clay)}
+.wire-dim{color:var(--sage-mid);font-size:11px}
+.wire-notes{display:flex;flex-direction:column;gap:12px}
+.wire-note{display:flex;gap:10px;align-items:flex-start;padding-bottom:12px;
+  border-bottom:1px solid var(--rule)}
+.wire-note:last-child{border:none}
+.wire-note .pin{width:22px;height:22px;border:1px solid var(--warm-clay);color:var(--warm-clay);
+  border-radius:50%;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;
+  font-size:10px;flex-shrink:0}
+.wire-note .nt{font-size:12px;font-weight:500;margin-bottom:3px}
+.wire-note .nb{font-size:11px;color:var(--ink-soft);line-height:1.5}
+
+.dash{display:grid;grid-template-columns:170px 1fr;height:100%;max-height:520px;
+  border:1px solid var(--rule);border-radius:12px;overflow:hidden;
+  background:var(--bone);box-shadow:var(--shadow-2)}
+.dash-side{background:var(--forest-night);color:var(--bone);padding:16px 12px;
+  display:flex;flex-direction:column;gap:16px}
+.dash-brand{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500}
+.dash-menu{display:flex;flex-direction:column;gap:3px;font-size:11px}
+.dash-menu a{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:5px;
+  color:var(--sage-light);text-decoration:none}
+.dash-menu a.active{background:var(--warm-clay);color:var(--bone)}
+.dash-menu a svg{width:13px;height:13px}
+.dash-main{padding:16px 20px;overflow:auto}
+.dash-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.dash-h h3{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:20px}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.kpi-card{border:1px solid var(--rule);border-radius:8px;padding:10px;background:var(--bone-soft)}
+.kpi-label{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--sage-mid);margin-bottom:5px}
+.kpi-val{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500}
+.kpi-delta{font-size:10px;color:var(--sage-mid);margin-top:2px}
+.kpi-delta.up{color:var(--forest-deep)}
+.chart{border:1px solid var(--rule);border-radius:8px;padding:12px;height:110px;
+  background:var(--bone);margin-bottom:10px}
+.chart-bars{display:flex;gap:4px;align-items:flex-end;height:100%;padding-top:14px}
+.chart-bars span{flex:1;background:var(--warm-clay-soft);border-radius:3px 3px 0 0}
+.chart-bars span.hi{background:var(--warm-clay)}
+.dash-list{border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.dash-list-row{display:grid;grid-template-columns:90px 1fr 75px 65px;padding:8px 12px;
+  font-size:10px;border-bottom:1px solid var(--rule);align-items:center}
+.dash-list-row:last-child{border-bottom:none}
+.dash-list-row.head{background:var(--bone-soft);font-size:9px;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--sage-mid)}
+.pill{display:inline-flex;padding:2px 7px;border-radius:100px;font-size:9px}
+.pill.ok{background:rgba(119,132,117,.18);color:var(--forest-deep)}
+.pill.wait{background:var(--warm-clay-pale);color:var(--warm-clay)}
+
+.code-block{background:var(--code-bg);color:var(--code-text);border-radius:10px;
+  padding:20px 24px;font-family:'JetBrains Mono',monospace;font-size:11.5px;
+  line-height:1.7;overflow:auto;flex:1;min-height:0;
+  white-space:pre;tab-size:2}
+.code-block .kw{color:var(--code-keyword)}
+.code-block .st{color:var(--code-string)}
+.code-block .cm{color:var(--code-comment)}
+.code-block .pk{color:#d0a878}
+.code-block .nu{color:#b1a6d4}
+.code-block .pl{color:#a9c1a9}
+
+.code-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;flex:1;min-height:0}
+.code-3col .code-block{font-size:10.5px;padding:16px 18px}
+
+.tbl{width:100%;border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  background:var(--bone);font-size:12px;border-collapse:collapse}
+.tbl th,.tbl td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+.tbl thead th{background:var(--bone-soft);font-size:10px;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--sage-mid);font-weight:500}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl td.label{font-weight:500;width:22%}
+.tbl .code-mini{background:var(--code-bg);color:var(--warm-clay-soft);padding:2px 7px;
+  border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:10px}
+
+.sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+.sec{border:1px solid var(--rule);border-radius:10px;padding:16px;display:flex;gap:11px;
+  align-items:flex-start;background:var(--bone)}
+.sec .ic-md{width:34px;height:34px;border-radius:50%;background:var(--warm-clay-pale);
+  color:var(--warm-clay);display:grid;place-items:center;flex-shrink:0}
+.sec .ic-md svg{width:17px;height:17px}
+.sec h5{font-size:13px;margin-bottom:4px;font-weight:500}
+.sec p{font-size:11.5px;color:var(--ink-soft);line-height:1.5}
+
+.tree{background:var(--code-bg);color:var(--code-text);border-radius:10px;padding:22px 26px;
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.85;flex:1;
+  min-height:0;overflow:auto;white-space:pre;tab-size:2}
+.tree .dir{color:var(--code-keyword)}
+.tree .cm{color:var(--code-comment)}
+
+.roadmap{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
+.road-card{border:1px solid var(--rule);border-radius:11px;padding:18px;background:var(--bone)}
+.road-card .ic-lg{width:44px;height:44px;border:1px solid var(--rule-strong);border-radius:11px;
+  display:grid;place-items:center;color:var(--warm-clay);margin-bottom:12px}
+.road-card .ic-lg svg{width:20px;height:20px}
+.road-card h4{font-size:14px;margin-bottom:5px;font-weight:500}
+.road-card p{font-size:11.5px;color:var(--ink-soft);line-height:1.55}
+
+.timeline{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:14px}
+.timeline-grid{display:grid;grid-template-columns:200px repeat(6,1fr);align-items:center;
+  gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.timeline-grid>div{background:var(--bone);padding:9px 11px;min-height:46px;
+  display:flex;align-items:center;font-size:11px}
+.timeline-grid .head{background:var(--bone-soft);font-size:9px;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--sage-mid);justify-content:center}
+.timeline-grid .label{font-weight:500;font-size:11px;flex-direction:column;align-items:flex-start;gap:2px}
+.timeline-grid .label .sub{font-weight:400;font-size:10px;color:var(--sage-mid)}
+.timeline-bar{height:16px;border-radius:4px;background:var(--warm-clay);display:flex;
+  align-items:center;padding:0 8px;color:var(--bone);font-size:9px;width:100%}
+.timeline-bar.alt{background:var(--forest-deep)}
+.timeline-bar.lite{background:var(--warm-clay-soft);color:var(--ink)}
+.timeline-bar.parallel{background:var(--sage-mid)}
+
+.steps{display:flex;flex-direction:column;gap:10px;margin-top:18px;max-width:780px}
+.step{display:flex;gap:14px;align-items:center;padding:13px 16px;
+  border:1px solid var(--rule);border-radius:10px;background:var(--bone)}
+.step-n{width:28px;height:28px;border-radius:50%;background:var(--warm-clay);color:var(--bone);
+  display:grid;place-items:center;font-family:'Cormorant Garamond',serif;font-weight:500;flex-shrink:0}
+.step-t{font-weight:500;font-size:13px}
+.step-b{font-size:11.5px;color:var(--ink-soft)}
+
+@media print {
+  @page { size: 1440px 810px; margin: 0; }
+  html, body { overflow: visible !important; height: auto !important; width: 1440px !important; background: var(--bone); }
+  .deck { display: block !important; overflow: visible !important; height: auto !important; width: 1440px !important; scroll-snap-type: none !important; }
+  .slide {
+    flex: none !important;
+    width: 1440px !important;
+    height: 810px !important;
+    page-break-after: always;
+    break-after: page;
+    overflow: hidden !important;
+    padding: 44px 72px 60px !important;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  .progress, .dots, .nav-hint { display: none !important; }
+  .cover { padding-top: 44px !important; padding-bottom: 60px !important; }
+  .diagram-wrap svg { max-height: 480px !important; }
+  .code-block, .tree { overflow: hidden !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress"><i id="bar"></i></div>
+<div class="dots" id="dots"></div>
+<div class="nav-hint"><span>เลื่อน</span><span class="key">&lt;</span><span class="key">&gt;</span></div>
+
+<main class="deck" id="deck">
+<!-- 01 COVER -->
+<section class="slide dark cover">
+  <div class="cover-top">
+    <div class="brand"><div class="brand-mark">L</div>
+      <div class="brand-label serif" style="font-size:16px;letter-spacing:.02em">LandCamp Villa</div></div>
+    <div class="cover-tag">DESIGN PRESENTATION · 2026</div>
+  </div>
+  <div class="cover-main">
+    <div class="cover-tag" style="margin-bottom:16px;color:var(--warm-clay-soft)">RESERVATION &amp; OPERATIONS PLATFORM</div>
+    <div class="cover-title">Booking System.</div>
+    <p class="cover-subtitle">ระบบจองที่พักออนไลน์และระบบหลังบ้าน ที่ทำให้การจองสำเร็จได้ในไม่กี่นาที พร้อมแจ้งเตือนทีมงานและออกใบเสร็จดิจิทัลโดยอัตโนมัติ</p>
+    <div class="cover-meta">
+      <div><span class="caps">เอกสาร</span><p>ภาพรวมระบบ + Flow + Wireframe</p></div>
+      <div><span class="caps">เฟส</span><p>Web Booking + Admin + ฟีเจอร์ขยาย</p></div>
+      <div><span class="caps">เวลาดำเนินการ</span><p>6 สัปดาห์ · 1 สัปดาห์ต่อ Sprint</p></div>
+      <div><span class="caps">สถานะ</span><p>ร่างเพื่อพิจารณา</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 OVERVIEW -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">02 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">ภาพรวม</div>
+    <h1 class="title">เรากำลังสร้างระบบจองที่พักออนไลน์</h1>
+    <p class="lede">ปัจจุบันลูกค้าทุกคนต้องทักแชทเข้ามาจอง ทีมต้องตอบทีละคน เช็คสลิปด้วยตา และทำใบเสร็จเองทุกครั้ง ระบบใหม่จะย้ายการจองทั้งหมดมาที่หน้าเว็บ ลดงานซ้ำของทีม และทำให้ลูกค้าจองเสร็จได้ในไม่กี่นาที</p>
+    <div class="grid-4" style="margin-top:24px">
+      <div class="card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8M12 18v2"/></svg></div>
+        <div class="card-num">01</div>
+        <div class="card-title">จองผ่านเว็บไซต์</div>
+        <div class="card-body">ลูกค้ากดจองห้องได้จากหน้าเว็บโดยตรง เลือกวัน กรอกข้อมูล และยืนยันการจองในขั้นตอนเดียว</div>
+      </div>
+      <div class="card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h6v6h-6zM17 14v3M14 17h3"/></svg></div>
+        <div class="card-num">02</div>
+        <div class="card-title">ยืนยันสลิปอัตโนมัติ</div>
+        <div class="card-body">ลูกค้าสแกน QR และอัปโหลดสลิป ระบบเช็คยอดเงินกับธนาคารให้ทันที ไม่มีคนต้องเช็คมือ</div>
+      </div>
+      <div class="card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+        <div class="card-num">03</div>
+        <div class="card-title">แจ้งทีมงานทันที</div>
+        <div class="card-body">ทุกการจองที่สำเร็จจะส่งเข้ากลุ่ม LINE ของทีมงานทันที พร้อมรายละเอียดครบ ไม่ต้องไล่ดูเอง</div>
+      </div>
+      <div class="card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-6"/></svg></div>
+        <div class="card-num">04</div>
+        <div class="card-title">ดูรายได้ได้ทุกเวลา</div>
+        <div class="card-body">หน้าหลังบ้านแสดงรายได้รายวัน สัปดาห์ เดือน พร้อมกราฟ การจอง และสถานะลูกค้าแบบรวมในที่เดียว</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 BEFORE / AFTER -->
+<section class="slide bone-soft">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">03 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">การเปลี่ยนแปลง</div>
+    <h2 class="title">ปัจจุบัน เทียบกับ หลังจากใช้ระบบใหม่</h2>
+    <div class="compare" style="margin-top:22px">
+      <div class="compare-col">
+        <div class="compare-h"><span style="width:7px;height:7px;background:var(--sage-mid);border-radius:50%;display:inline-block"></span>ปัจจุบัน</div>
+        <div class="compare-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="6" y1="12" x2="18" y2="12"/></svg>ลูกค้าทักแชท LINE มาถามและจองด้วยมือ</div>
+        <div class="compare-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="6" y1="12" x2="18" y2="12"/></svg>ทีมตอบลูกค้าทีละคน ใช้เวลาและเหนื่อย</div>
+        <div class="compare-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="6" y1="12" x2="18" y2="12"/></svg>เช็คสลิปด้วยตา เสี่ยงต่อสลิปปลอม</div>
+        <div class="compare-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="6" y1="12" x2="18" y2="12"/></svg>ใบเสร็จต้องทำเองทุกครั้ง</div>
+        <div class="compare-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="6" y1="12" x2="18" y2="12"/></svg>ดูยอดต้องเปิดสมุดหรือไฟล์</div>
+        <div class="compare-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="6" y1="12" x2="18" y2="12"/></svg>เสี่ยงจองทับกันถ้าสื่อสารพลาด</div>
+      </div>
+      <div class="compare-col">
+        <div class="compare-h"><span style="width:7px;height:7px;background:var(--warm-clay);border-radius:50%;display:inline-block"></span>หลังจากใช้ระบบใหม่</div>
+        <div class="compare-row" style="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warm-clay);opacity:1"><path d="M20 6L9 17l-5-5"/></svg>กดจองที่เว็บได้เลย ลูกค้าทำเองได้ 24 ชั่วโมง</div>
+        <div class="compare-row" style="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warm-clay);opacity:1"><path d="M20 6L9 17l-5-5"/></svg>ระบบจัดการเองอัตโนมัติเกือบทุกขั้นตอน</div>
+        <div class="compare-row" style="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warm-clay);opacity:1"><path d="M20 6L9 17l-5-5"/></svg>ตรวจสลิปอัตโนมัติ กันสลิปปลอมและใช้ซ้ำ</div>
+        <div class="compare-row" style="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warm-clay);opacity:1"><path d="M20 6L9 17l-5-5"/></svg>ออกใบเสร็จดิจิทัลทันทีเมื่อชำระสำเร็จ</div>
+        <div class="compare-row" style="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warm-clay);opacity:1"><path d="M20 6L9 17l-5-5"/></svg>Dashboard ดูรายได้และการจองสดทุกเวลา</div>
+        <div class="compare-row" style="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warm-clay);opacity:1"><path d="M20 6L9 17l-5-5"/></svg>ระบบกันการจองชนกันโดยอัตโนมัติ</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 TOOLS -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">04 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">เทคโนโลยี</div>
+    <h2 class="title">เครื่องมือ 7 อย่างที่ทำให้ระบบนี้ทำงานได้</h2>
+    <p class="lede">ทุกชิ้นเป็นเครื่องมือมาตรฐานที่บริษัทระดับโลกใช้กันอยู่ ไม่มีของแปลก ทุกอย่างเปลี่ยนหรือต่อยอดได้ในอนาคต</p>
+    <div class="tools-strip">
+      <div class="tool"><div class="glyph"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="16" cy="16" r="13"/><path d="M3 16h26M16 3c4 4 4 22 0 26M16 3c-4 4-4 22 0 26"/></svg></div><div class="tn">เว็บไซต์</div><div class="tr">Next.js</div></div>
+      <div class="tool"><div class="glyph"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="16" cy="8" rx="11" ry="4"/><path d="M5 8v8c0 2.2 4.9 4 11 4s11-1.8 11-4V8M5 16v8c0 2.2 4.9 4 11 4s11-1.8 11-4v-8"/></svg></div><div class="tn">ฐานข้อมูล</div><div class="tr">Supabase</div></div>
+      <div class="tool"><div class="glyph"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="10" height="10"/><rect x="18" y="4" width="10" height="10"/><rect x="4" y="18" width="10" height="10"/><path d="M18 18h10v10H18zM23 18v4M18 23h10"/></svg></div><div class="tn">QR &amp; ตรวจสลิป</div><div class="tr">EasySlip API</div></div>
+      <div class="tool"><div class="glyph"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 4C9.4 4 4 8.7 4 14.5c0 3.4 2 6.4 5 8.2L7 28l5.5-3.2c1.1.2 2.3.3 3.5.3 6.6 0 12-4.7 12-10.5S22.6 4 16 4z"/></svg></div><div class="tn">LINE OA</div><div class="tr">แจ้งทีมงานในกลุ่ม</div></div>
+      <div class="tool"><div class="glyph"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="7" width="24" height="18" rx="2"/><path d="M4 9l12 9 12-9"/></svg></div><div class="tn">อีเมล</div><div class="tr">Resend</div></div>
+      <div class="tool"><div class="glyph"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="16" cy="10" r="5"/><path d="M5 28c1-5.5 5.5-9 11-9s10 3.5 11 9"/></svg></div><div class="tn">ล็อกอิน Google</div><div class="tr">Google OAuth</div></div>
+      <div class="tool"><div class="glyph"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 3L4 10v11l12 7 12-7V10z"/><path d="M16 16L4 10M16 16l12-6M16 16v12"/></svg></div><div class="tn">โฮสติ้ง</div><div class="tr">Vercel</div></div>
+    </div>
+    <div style="margin-top:24px;padding:18px 22px;background:var(--bone-soft);border:1px solid var(--rule);border-radius:11px;display:flex;gap:18px;align-items:center">
+      <div style="width:34px;height:34px;border:1px solid var(--warm-clay);color:var(--warm-clay);border-radius:50%;display:grid;place-items:center;flex-shrink:0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div>
+        <div style="font-weight:500;margin-bottom:3px;font-size:13px">ไม่ใช่ของใหม่ที่ต้องเริ่มจาก 0</div>
+        <div style="font-size:12px;color:var(--ink-soft);line-height:1.55">เว็บไซต์ ฐานข้อมูล และโฮสติ้ง เราใช้อยู่แล้ว ส่วนที่ต้องเพิ่มคือ EasySlip, LINE OA, อีเมล และ Google ล็อกอิน ทั้งหมดเป็นบริการสำเร็จรูปที่เชื่อมต่อได้ทันที</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 ARCHITECTURE -->
+<section class="slide bone-soft">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">05 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">โครงสร้างระบบ</div>
+    <h3 class="title">ระบบทำงานอย่างไร แบบมองภาพรวม</h3>
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 1300 500" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a795b"/></marker>
+          <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#778475"/></marker>
+        </defs>
+        <text x="40" y="50" font-family="JetBrains Mono" font-size="10" fill="#778475" letter-spacing="2">USER</text>
+        <text x="40" y="200" font-family="JetBrains Mono" font-size="10" fill="#778475" letter-spacing="2">APPLICATION</text>
+        <text x="40" y="370" font-family="JetBrains Mono" font-size="10" fill="#778475" letter-spacing="2">DATA · SERVICES</text>
+        <line x1="40" y1="65" x2="1260" y2="65" stroke="#1a1814" stroke-opacity=".08"/>
+        <line x1="40" y1="215" x2="1260" y2="215" stroke="#1a1814" stroke-opacity=".08"/>
+        <line x1="40" y1="385" x2="1260" y2="385" stroke="#1a1814" stroke-opacity=".08"/>
+        <g transform="translate(540,85)">
+          <rect width="220" height="70" rx="11" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".15"/>
+          <text x="110" y="30" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="13" font-weight="500" fill="#1a1814">ลูกค้า / พนักงาน</text>
+          <text x="110" y="50" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">ผ่านมือถือ / คอมพิวเตอร์</text>
+        </g>
+        <g transform="translate(430,235)">
+          <rect width="440" height="110" rx="11" fill="#f5f1ea" stroke="#9a795b" stroke-width="1.5"/>
+          <text x="220" y="32" text-anchor="middle" font-family="Cormorant Garamond, 'Noto Sans Thai', serif" font-size="18" fill="#1a1814">เว็บไซต์ LandCamp</text>
+          <text x="220" y="52" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">หน้าเว็บลูกค้า + หน้าหลังบ้านทีมงาน</text>
+          <line x1="40" y1="68" x2="400" y2="68" stroke="#1a1814" stroke-opacity=".1"/>
+          <text x="90" y="92" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#9a795b">Booking UI</text>
+          <text x="175" y="92" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#9a795b">Payment</text>
+          <text x="260" y="92" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#9a795b">Receipt</text>
+          <text x="345" y="92" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#9a795b">Admin</text>
+        </g>
+        <line x1="650" y1="155" x2="650" y2="235" stroke="#9a795b" stroke-width="1.5" marker-end="url(#arrA)"/>
+        <g transform="translate(40,400)">
+          <rect width="200" height="80" rx="10" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".15"/>
+          <text x="100" y="28" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">ฐานข้อมูล</text>
+          <text x="100" y="46" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">Supabase</text>
+          <text x="100" y="62" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">การจอง · ลูกค้า · เงิน</text>
+        </g>
+        <g transform="translate(280,400)">
+          <rect width="200" height="80" rx="10" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".15"/>
+          <text x="100" y="28" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">QR &amp; ตรวจสลิป</text>
+          <text x="100" y="46" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">EasySlip API</text>
+          <text x="100" y="62" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">สร้าง QR + ตรวจสลิป</text>
+        </g>
+        <g transform="translate(520,400)">
+          <rect width="200" height="80" rx="10" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".15"/>
+          <text x="100" y="28" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">แจ้งเตือนทีม</text>
+          <text x="100" y="46" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">LINE OA</text>
+          <text x="100" y="62" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">ส่งเข้ากลุ่มทีมงาน</text>
+        </g>
+        <g transform="translate(760,400)">
+          <rect width="200" height="80" rx="10" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".15"/>
+          <text x="100" y="28" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">ล็อกอิน</text>
+          <text x="100" y="46" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">Google OAuth</text>
+          <text x="100" y="62" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">ยืนยันตัวตนลูกค้า</text>
+        </g>
+        <g transform="translate(1000,400)">
+          <rect width="200" height="80" rx="10" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".15"/>
+          <text x="100" y="28" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">อีเมล</text>
+          <text x="100" y="46" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">Resend</text>
+          <text x="100" y="62" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10" fill="#4a4640">ส่งใบเสร็จลูกค้า</text>
+        </g>
+        <line x1="510" y1="345" x2="160" y2="400" stroke="#778475" stroke-width="1.2" marker-end="url(#arrG)"/>
+        <line x1="580" y1="345" x2="390" y2="400" stroke="#778475" stroke-width="1.2" marker-end="url(#arrG)"/>
+        <line x1="650" y1="345" x2="625" y2="400" stroke="#778475" stroke-width="1.2" marker-end="url(#arrG)"/>
+        <line x1="720" y1="345" x2="855" y2="400" stroke="#778475" stroke-width="1.2" marker-end="url(#arrG)"/>
+        <line x1="790" y1="345" x2="1095" y2="400" stroke="#778475" stroke-width="1.2" marker-end="url(#arrG)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 06 USER FLOW -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">06 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">เส้นทางลูกค้า · USER FLOW</div>
+    <h3 class="title">เจ็ดขั้นตอนตั้งแต่เข้าเว็บจนได้ใบเสร็จ</h3>
+    <p class="lede">ออกแบบให้ลูกค้าทำเสร็จได้ใน 3–5 นาที โดยไม่ต้องโทร ไม่ต้องแชท ไม่ต้องรอตอบกลับ</p>
+    <div class="flow-strip">
+      <div class="flow-step">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c2.5 3 2.5 17 0 20M12 2c-2.5 3-2.5 17 0 20"/></svg></div>
+        <div class="step-no">01</div>
+        <div class="step-title">เข้าเว็บไซต์</div>
+        <div class="step-desc">เปิด landcamp.com ดูห้องและบรรยากาศ</div>
+        <span class="arrow"></span>
+      </div>
+      <div class="flow-step">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 12h18M8 6v3M16 6v3"/></svg></div>
+        <div class="step-no">02</div>
+        <div class="step-title">เลือกห้องและวัน</div>
+        <div class="step-desc">กดจองที่ห้องที่ชอบ เลือกวันเข้า-ออก</div>
+        <span class="arrow"></span>
+      </div>
+      <div class="flow-step">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
+        <div class="step-no">03</div>
+        <div class="step-title">ล็อกอินด้วย Google</div>
+        <div class="step-desc">คลิกเดียวด้วยอีเมล Google เพื่อยืนยันตัวตน</div>
+        <span class="arrow"></span>
+      </div>
+      <div class="flow-step">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="13" y2="17"/></svg></div>
+        <div class="step-no">04</div>
+        <div class="step-title">กรอกข้อมูลผู้จอง</div>
+        <div class="step-desc">ชื่อ เบอร์โทร จำนวนผู้ใหญ่และเด็ก</div>
+        <span class="arrow"></span>
+      </div>
+      <div class="flow-step">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h7v7h-7zM17 14v3M14 17h3"/></svg></div>
+        <div class="step-no">05</div>
+        <div class="step-title">สแกน QR ชำระเงิน</div>
+        <div class="step-desc">ระบบสร้าง QR ให้สแกนผ่านแอปธนาคาร</div>
+        <span class="arrow"></span>
+      </div>
+      <div class="flow-step">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14m0 0l-5-5m5 5l5-5"/><path d="M5 21h14"/></svg></div>
+        <div class="step-no">06</div>
+        <div class="step-title">อัปโหลดสลิป</div>
+        <div class="step-desc">ระบบเช็คยอดอัตโนมัติภายใน 5 วินาที</div>
+        <span class="arrow"></span>
+      </div>
+      <div class="flow-step">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="step-no">07</div>
+        <div class="step-title">ได้รับใบเสร็จ</div>
+        <div class="step-desc">ใบเสร็จส่งเข้าอีเมล พร้อม QR เช็คอิน</div>
+      </div>
+    </div>
+    <div style="margin-top:22px;display:flex;gap:24px;padding:14px 22px;background:var(--bone-soft);border-radius:11px;border:1px solid var(--rule)">
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:7px;height:7px;border-radius:50%;background:var(--warm-clay)"></div><div style="font-size:12px"><strong>ระยะเวลาเฉลี่ย:</strong> <span style="color:var(--ink-soft)">3–5 นาที</span></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:7px;height:7px;border-radius:50%;background:var(--forest-deep)"></div><div style="font-size:12px"><strong>ลูกค้าทำเองทั้งหมด:</strong> <span style="color:var(--ink-soft)">ไม่ต้องรอทีมตอบ</span></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:7px;height:7px;border-radius:50%;background:var(--sage-mid)"></div><div style="font-size:12px"><strong>รองรับ:</strong> <span style="color:var(--ink-soft)">มือถือทุกแบรนด์</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 BOOKING FLOW -->
+<section class="slide bone-soft">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">07 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">การจองและการตัดสินใจของระบบ</div>
+    <h3 class="title">Flow การทำงานเมื่อมีการจองเข้ามา</h3>
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 1300 480" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="bfA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a795b"/></marker>
+          <marker id="bfG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#778475"/></marker>
+        </defs>
+        <g transform="translate(20,200)">
+          <ellipse cx="55" cy="35" rx="50" ry="28" fill="#9a795b"/>
+          <text x="55" y="40" text-anchor="middle" fill="#f5f1ea" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="13" font-weight="500">เริ่ม</text>
+        </g>
+        <line x1="125" y1="235" x2="160" y2="235" stroke="#9a795b" stroke-width="1.5" marker-end="url(#bfA)"/>
+        <g transform="translate(160,200)">
+          <rect width="140" height="70" rx="10" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".18"/>
+          <text x="70" y="32" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">เลือกห้อง</text>
+          <text x="70" y="50" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">+ วันเข้า / วันออก</text>
+        </g>
+        <line x1="300" y1="235" x2="335" y2="235" stroke="#9a795b" stroke-width="1.5" marker-end="url(#bfA)"/>
+        <g transform="translate(335,175)">
+          <polygon points="75,0 150,60 75,120 0,60" fill="#ece6da" stroke="#1a1814" stroke-opacity=".2"/>
+          <text x="75" y="56" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">ห้องว่างไหม?</text>
+          <text x="75" y="72" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">ตรวจวันที่ทับ</text>
+        </g>
+        <line x1="410" y1="175" x2="410" y2="130" stroke="#9a795b" stroke-width="1.5"/>
+        <line x1="410" y1="130" x2="485" y2="130" stroke="#9a795b" stroke-width="1.5" marker-end="url(#bfA)"/>
+        <text x="418" y="148" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#9a795b">ไม่ว่าง</text>
+        <g transform="translate(485,100)">
+          <rect width="160" height="58" rx="10" fill="#f5f1ea" stroke="#9a795b" stroke-opacity=".4"/>
+          <text x="80" y="26" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#9a795b">แจ้งวันที่อื่น</text>
+          <text x="80" y="44" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">แนะนำวันใกล้เคียง</text>
+        </g>
+        <line x1="485" y1="235" x2="520" y2="235" stroke="#9a795b" stroke-width="1.5" marker-end="url(#bfA)"/>
+        <text x="490" y="225" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#778475">ว่าง</text>
+        <g transform="translate(520,200)">
+          <rect width="150" height="70" rx="10" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".18"/>
+          <text x="75" y="32" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">ล็อคห้อง 15 นาที</text>
+          <text x="75" y="50" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">กันคนอื่นจองชน</text>
+        </g>
+        <line x1="670" y1="235" x2="705" y2="235" stroke="#9a795b" stroke-width="1.5" marker-end="url(#bfA)"/>
+        <g transform="translate(705,200)">
+          <rect width="150" height="70" rx="10" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".18"/>
+          <text x="75" y="32" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">ล็อกอิน Google</text>
+          <text x="75" y="50" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">+ กรอกข้อมูลผู้จอง</text>
+        </g>
+        <line x1="855" y1="235" x2="890" y2="235" stroke="#9a795b" stroke-width="1.5" marker-end="url(#bfA)"/>
+        <g transform="translate(890,200)">
+          <rect width="150" height="70" rx="10" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".18"/>
+          <text x="75" y="32" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">ชำระผ่าน QR</text>
+          <text x="75" y="50" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">+ อัปโหลดสลิป</text>
+        </g>
+        <line x1="1040" y1="235" x2="1075" y2="235" stroke="#9a795b" stroke-width="1.5" marker-end="url(#bfA)"/>
+        <g transform="translate(1075,175)">
+          <polygon points="75,0 150,60 75,120 0,60" fill="#ece6da" stroke="#1a1814" stroke-opacity=".2"/>
+          <text x="75" y="56" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">สลิปถูกต้อง?</text>
+          <text x="75" y="72" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">ตรวจอัตโนมัติ</text>
+        </g>
+        <line x1="1150" y1="295" x2="1150" y2="365" stroke="#9a795b" stroke-width="1.5"/>
+        <line x1="1150" y1="365" x2="1040" y2="365" stroke="#9a795b" stroke-width="1.5" marker-end="url(#bfA)"/>
+        <text x="1158" y="330" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#9a795b">ไม่ผ่าน</text>
+        <g transform="translate(880,335)">
+          <rect width="160" height="58" rx="10" fill="#f5f1ea" stroke="#9a795b" stroke-opacity=".4"/>
+          <text x="80" y="26" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#9a795b">ส่งให้ทีมตรวจ</text>
+          <text x="80" y="44" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">แจ้งเตือนใน LINE</text>
+        </g>
+        <line x1="1150" y1="175" x2="1150" y2="124" stroke="#778475" stroke-width="1.5"/>
+        <line x1="1150" y1="124" x2="1050" y2="124" stroke="#778475" stroke-width="1.5" marker-end="url(#bfG)"/>
+        <text x="1158" y="165" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#778475">ผ่าน</text>
+        <g transform="translate(870,85)">
+          <rect width="180" height="78" rx="10" fill="#778475" stroke="none"/>
+          <text x="90" y="28" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#f5f1ea">การจองสำเร็จ</text>
+          <text x="90" y="46" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10.5" fill="#ece6da">ใบเสร็จ + QR Code</text>
+          <text x="90" y="60" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10.5" fill="#ece6da">แสดงทันทีบนหน้าจอ</text>
+        </g>
+        <g transform="translate(660,85)">
+          <rect width="180" height="78" rx="10" fill="#9a795b" stroke="none"/>
+          <text x="90" y="28" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#f5f1ea">ลูกค้าได้ทันที</text>
+          <text x="90" y="46" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10.5" fill="#e9dccb">ใช้ QR ยืนยันการจอง</text>
+          <text x="90" y="60" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="10.5" fill="#e9dccb">กับพนักงานวันเข้าพัก</text>
+        </g>
+        <line x1="870" y1="124" x2="845" y2="124" stroke="#9a795b" stroke-width="1.5" marker-end="url(#bfA)"/>
+        <line x1="660" y1="124" x2="620" y2="124" stroke="#778475" stroke-width="1.5"/>
+        <line x1="620" y1="124" x2="620" y2="60" stroke="#778475" stroke-width="1.5"/>
+        <line x1="620" y1="60" x2="555" y2="60" stroke="#778475" stroke-width="1.5" marker-end="url(#bfG)"/>
+        <g transform="translate(390,30)">
+          <rect width="165" height="58" rx="10" fill="#f5f1ea" stroke="#778475" stroke-opacity=".4"/>
+          <text x="82" y="26" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">แจ้งทีมงาน</text>
+          <text x="82" y="44" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">LINE กลุ่ม + Dashboard</text>
+        </g>
+        <line x1="390" y1="60" x2="355" y2="60" stroke="#778475" stroke-width="1.5"/>
+        <line x1="355" y1="60" x2="355" y2="22" stroke="#778475" stroke-width="1.5"/>
+        <line x1="355" y1="22" x2="240" y2="22" stroke="#778475" stroke-width="1.5" marker-end="url(#bfG)"/>
+        <g transform="translate(75,-8)">
+          <rect width="165" height="58" rx="10" fill="#f5f1ea" stroke="#778475" stroke-opacity=".4"/>
+          <text x="82" y="26" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">ส่งสำเนาไปอีเมล</text>
+          <text x="82" y="44" text-anchor="middle" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#4a4640">เก็บไว้เปิดอ้างอิงได้</text>
+        </g>
+        <line x1="155" y1="50" x2="155" y2="100" stroke="#778475" stroke-width="1.5"/>
+        <line x1="155" y1="100" x2="105" y2="100" stroke="#778475" stroke-width="1.5"/>
+        <line x1="105" y1="100" x2="105" y2="200" stroke="#778475" stroke-width="1.5" marker-end="url(#bfG)"/>
+        <g transform="translate(50,390)">
+          <ellipse cx="55" cy="35" rx="50" ry="28" fill="#4d584b"/>
+          <text x="55" y="40" text-anchor="middle" fill="#f5f1ea" font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="13" font-weight="500">เสร็จสิ้น</text>
+        </g>
+        <line x1="105" y1="200" x2="105" y2="385" stroke="#4d584b" stroke-width="1.5" marker-end="url(#bfG)"/>
+      </svg>
+    </div>
+    <div style="display:flex;gap:20px;margin-top:12px;font-size:12px">
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:3px;background:#9a795b;display:inline-block"></span>ขั้นตอนหลัก</div>
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:3px;background:#778475;display:inline-block"></span>ขั้นตอนสำเร็จ / ออโต้</div>
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#ece6da;border:1px solid var(--rule-strong);transform:rotate(45deg);display:inline-block"></span>จุดตัดสินใจ</div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 SEQUENCE -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">08 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">ลำดับการสื่อสารระหว่างระบบ · SEQUENCE</div>
+    <h3 class="title" style="margin-bottom:4px">ใครคุยกับใคร ตอนไหน ตามลำดับเวลา</h3>
+    <div class="diagram-wrap" style="border:1px solid var(--rule);border-radius:11px;background:var(--bone);padding:16px;margin-top:8px">
+      <svg viewBox="0 0 1320 600" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="sqR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1a1814"/></marker>
+          <marker id="sqL" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#9a795b"/></marker>
+        </defs>
+        <g font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="12" font-weight="500" fill="#1a1814">
+          <g transform="translate(40,20)"><rect width="120" height="38" rx="7" fill="#f5f1ea" stroke="#9a795b"/><text x="60" y="24" text-anchor="middle">ลูกค้า</text></g>
+          <g transform="translate(220,20)"><rect width="120" height="38" rx="7" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".2"/><text x="60" y="24" text-anchor="middle">หน้าเว็บ</text></g>
+          <g transform="translate(400,20)"><rect width="120" height="38" rx="7" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".2"/><text x="60" y="24" text-anchor="middle">เซิร์ฟเวอร์</text></g>
+          <g transform="translate(580,20)"><rect width="120" height="38" rx="7" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".2"/><text x="60" y="24" text-anchor="middle">ฐานข้อมูล</text></g>
+          <g transform="translate(760,20)"><rect width="120" height="38" rx="7" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".2"/><text x="60" y="24" text-anchor="middle">EasySlip</text></g>
+          <g transform="translate(940,20)"><rect width="120" height="38" rx="7" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".2"/><text x="60" y="24" text-anchor="middle">LINE OA</text></g>
+          <g transform="translate(1120,20)"><rect width="120" height="38" rx="7" fill="#f5f1ea" stroke="#1a1814" stroke-opacity=".2"/><text x="60" y="24" text-anchor="middle">อีเมล</text></g>
+        </g>
+        <g stroke="#1a1814" stroke-opacity=".15" stroke-dasharray="3 4">
+          <line x1="100" y1="62" x2="100" y2="595"/><line x1="280" y1="62" x2="280" y2="595"/>
+          <line x1="460" y1="62" x2="460" y2="595"/><line x1="640" y1="62" x2="640" y2="595"/>
+          <line x1="820" y1="62" x2="820" y2="595"/><line x1="1000" y1="62" x2="1000" y2="595"/>
+          <line x1="1180" y1="62" x2="1180" y2="595"/>
+        </g>
+        <g font-family="Inter, 'Noto Sans Thai', sans-serif" font-size="11" fill="#1a1814">
+          <line x1="100" y1="100" x2="275" y2="100" stroke="#1a1814" stroke-width="1.2" marker-end="url(#sqR)"/>
+          <text x="190" y="94" text-anchor="middle">1. เปิดหน้าจอง + เลือกห้อง</text>
+          <line x1="280" y1="135" x2="455" y2="135" stroke="#1a1814" stroke-width="1.2" marker-end="url(#sqR)"/>
+          <text x="370" y="129" text-anchor="middle">2. เช็คห้องว่าง</text>
+          <line x1="460" y1="170" x2="635" y2="170" stroke="#1a1814" stroke-width="1.2" marker-end="url(#sqR)"/>
+          <text x="550" y="164" text-anchor="middle">3. ค้นข้อมูลห้อง</text>
+          <line x1="635" y1="195" x2="465" y2="195" stroke="#9a795b" stroke-width="1.2" marker-end="url(#sqL)" stroke-dasharray="4 3"/>
+          <text x="550" y="212" text-anchor="middle" fill="#9a795b">ว่าง · ราคา</text>
+          <line x1="455" y1="240" x2="285" y2="240" stroke="#9a795b" stroke-width="1.2" marker-end="url(#sqL)" stroke-dasharray="4 3"/>
+          <text x="370" y="234" text-anchor="middle" fill="#9a795b">แสดงสรุปยอด</text>
+          <line x1="100" y1="275" x2="275" y2="275" stroke="#1a1814" stroke-width="1.2" marker-end="url(#sqR)"/>
+          <text x="190" y="269" text-anchor="middle">4. ล็อกอิน Google + กรอกข้อมูล</text>
+          <line x1="280" y1="310" x2="455" y2="310" stroke="#1a1814" stroke-width="1.2" marker-end="url(#sqR)"/>
+          <text x="370" y="304" text-anchor="middle">5. สร้าง Booking (ล็อค 15 นาที)</text>
+          <line x1="460" y1="345" x2="815" y2="345" stroke="#1a1814" stroke-width="1.2" marker-end="url(#sqR)"/>
+          <text x="635" y="339" text-anchor="middle">6. ขอ QR สำหรับยอดเงินนี้</text>
+          <line x1="815" y1="370" x2="465" y2="370" stroke="#9a795b" stroke-width="1.2" marker-end="url(#sqL)" stroke-dasharray="4 3"/>
+          <text x="635" y="387" text-anchor="middle" fill="#9a795b">QR Code</text>
+          <line x1="455" y1="410" x2="285" y2="410" stroke="#9a795b" stroke-width="1.2" marker-end="url(#sqL)" stroke-dasharray="4 3"/>
+          <text x="370" y="404" text-anchor="middle" fill="#9a795b">QR + ปุ่มอัปโหลด</text>
+          <line x1="100" y1="445" x2="275" y2="445" stroke="#1a1814" stroke-width="1.2" marker-end="url(#sqR)"/>
+          <text x="190" y="439" text-anchor="middle">7. โอน + อัปโหลดสลิป</text>
+          <line x1="280" y1="480" x2="815" y2="480" stroke="#1a1814" stroke-width="1.2" marker-end="url(#sqR)"/>
+          <text x="550" y="474" text-anchor="middle">8. ส่งสลิปไปตรวจสอบ</text>
+          <line x1="815" y1="505" x2="285" y2="505" stroke="#9a795b" stroke-width="1.2" marker-end="url(#sqL)" stroke-dasharray="4 3"/>
+          <text x="550" y="522" text-anchor="middle" fill="#9a795b">ยอดตรง · สลิปไม่ซ้ำ</text>
+          <line x1="460" y1="545" x2="635" y2="545" stroke="#778475" stroke-width="1.4" marker-end="url(#sqR)"/>
+          <text x="550" y="539" text-anchor="middle" fill="#4d584b">9. ยืนยันการจอง</text>
+          <line x1="460" y1="572" x2="995" y2="572" stroke="#778475" stroke-width="1.4" marker-end="url(#sqR)"/>
+          <text x="720" y="566" text-anchor="middle" fill="#4d584b">10. แจ้งทีมงานใน LINE</text>
+          <line x1="460" y1="592" x2="1175" y2="592" stroke="#778475" stroke-width="1.4" marker-end="url(#sqR)"/>
+          <text x="810" y="586" text-anchor="middle" fill="#4d584b">11. ส่งใบเสร็จไปอีเมลลูกค้า</text>
+        </g>
+      </svg>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:22px;font-size:11px;color:var(--ink-soft)">
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:2px;background:#1a1814"></span>คำขอ (Request)</div>
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:2px;background:#9a795b;border-top:1px dashed #9a795b"></span>การตอบกลับ (Response)</div>
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:2px;background:#778475"></span>การแจ้งเตือน / บันทึก</div>
+    </div>
+  </div>
+</section>
+
+<!-- 09 DATABASE SCHEMA -->
+<section class="slide bone-soft">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">09 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">ฐานข้อมูล · DATABASE SCHEMA (SUPABASE)</div>
+    <h3 class="title" style="margin-bottom:4px">ตารางหลักที่ใช้เก็บข้อมูลทุกอย่างในระบบ</h3>
+    <p class="lede" style="margin-bottom:12px">ทุกตารางมี Row Level Security เปิดอยู่ ลูกค้าเห็นเฉพาะข้อมูลตัวเอง ทีมงานเห็นทั้งหมด</p>
+    <div class="code-3col">
+      <div class="code-block"><span class="cm">-- ลูกค้า (sync จาก Google OAuth)</span>
+<span class="kw">customers</span> (
+  id            <span class="pk">uuid PK</span>,
+  auth_user_id  <span class="pk">uuid</span> <span class="cm">-- auth.users</span>
+  email         <span class="kw">text unique</span>,
+  full_name     <span class="kw">text not null</span>,
+  phone         <span class="kw">text</span>,
+  avatar_url    <span class="kw">text</span>,
+  google_sub    <span class="kw">text unique</span>,
+  total_bookings <span class="pl">int</span> <span class="kw">default</span> <span class="nu">0</span>,
+  total_spent   <span class="pl">int</span> <span class="kw">default</span> <span class="nu">0</span>,
+  created_at    <span class="pl">timestamptz</span>,
+  updated_at    <span class="pl">timestamptz</span>
+)
+
+<span class="cm">-- ป้องกัน double-booking</span>
+<span class="kw">room_availability</span> (
+  room_id     <span class="pk">uuid</span>,
+  date        <span class="pl">date</span>,
+  booking_id  <span class="pk">uuid</span>,
+  PRIMARY KEY (room_id, date)
+)</div>
+      <div class="code-block"><span class="cm">-- การจอง</span>
+<span class="kw">bookings</span> (
+  id            <span class="pk">uuid PK</span>,
+  booking_code  <span class="kw">text unique</span> <span class="cm">-- LC-2026-0001</span>
+  customer_id   <span class="pk">uuid FK</span>,
+  room_id       <span class="pk">uuid FK</span>,
+  check_in      <span class="pl">date</span>,
+  check_out     <span class="pl">date</span>,
+  nights        <span class="pl">int</span> generated,
+  adults        <span class="pl">int</span>,
+  children      <span class="pl">int</span>,
+  total_amount  <span class="pl">int</span>,
+  room_amount   <span class="pl">int</span>,
+  extra_bed_fee <span class="pl">int</span>,
+  discount      <span class="pl">int</span>,
+  status        <span class="pl">text check</span> (status in (
+    <span class="st">'pending_payment'</span>,  <span class="cm">-- รอชำระ</span>
+    <span class="st">'payment_review'</span>,   <span class="cm">-- รอตรวจ</span>
+    <span class="st">'confirmed'</span>,        <span class="cm">-- ชำระสำเร็จ</span>
+    <span class="st">'checked_in'</span>,
+    <span class="st">'checked_out'</span>,
+    <span class="st">'cancelled'</span>,
+    <span class="st">'no_show'</span>
+  )),
+  verify_token  <span class="kw">text unique</span>, <span class="cm">-- QR ใบเสร็จ</span>
+  guest_name    <span class="kw">text not null</span>,
+  guest_phone   <span class="kw">text not null</span>,
+  notes         <span class="kw">text</span>,
+  source        <span class="kw">text default</span> <span class="st">'website'</span>,
+  created_at    <span class="pl">timestamptz</span>,
+  confirmed_at  <span class="pl">timestamptz</span>
+)</div>
+      <div class="code-block"><span class="cm">-- การชำระเงิน</span>
+<span class="kw">payments</span> (
+  id            <span class="pk">uuid PK</span>,
+  booking_id    <span class="pk">uuid FK</span>,
+  amount        <span class="pl">int</span>,
+  method        <span class="kw">text default</span> <span class="st">'qr_promptpay'</span>,
+  qr_payload    <span class="kw">text</span>,
+  qr_expires_at <span class="pl">timestamptz</span>,
+  slip_url      <span class="kw">text</span>,
+  slip_verified <span class="pl">boolean</span>,
+  easyslip_data <span class="pl">jsonb</span>,
+  verified_at   <span class="pl">timestamptz</span>,
+  verified_by   <span class="kw">text</span>, <span class="cm">-- auto / admin</span>
+  reference_id  <span class="kw">text</span>, <span class="cm">-- จากธนาคาร</span>
+  created_at    <span class="pl">timestamptz</span>
+)
+
+<span class="cm">-- log การแจ้งเตือน</span>
+<span class="kw">notifications</span> (
+  id        <span class="pk">uuid PK</span>,
+  channel   <span class="kw">text</span>, <span class="cm">-- line / email</span>
+  event     <span class="kw">text</span>,
+  recipient <span class="kw">text</span>,
+  payload   <span class="pl">jsonb</span>,
+  status    <span class="kw">text</span>,
+  error     <span class="kw">text</span>,
+  sent_at   <span class="pl">timestamptz</span>
+)</div>
+    </div>
+    <div style="margin-top:12px;padding:12px 18px;background:var(--bone);border:1px solid var(--rule);border-radius:9px;font-size:11.5px;color:var(--ink-soft);line-height:1.55">
+      <strong style="color:var(--ink)">Constraint สำคัญ:</strong> ใช้ <span class="mono" style="color:var(--warm-clay)">EXCLUDE USING gist</span> กันการจองทับวันเดียวกัน &nbsp;·&nbsp; <strong style="color:var(--ink)">RLS:</strong> ลูกค้าเห็นเฉพาะ booking ของตัวเอง, service role ใช้เฉพาะฝั่งเซิร์ฟเวอร์
+    </div>
+  </div>
+</section>
+
+<!-- 10 EASYSLIP API -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">10 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">EASYSLIP API · QR + SLIP VERIFY</div>
+    <h3 class="title" style="margin-bottom:14px">การชำระเงินและการตรวจสลิปอัตโนมัติ</h3>
+    <div class="grid-2" style="flex:1;min-height:0">
+      <div class="card" style="padding:22px;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+          <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h6v6h-6zM17 14v3M14 17h3"/></svg></div>
+          <div>
+            <div style="font-size:15px;font-weight:500">QR Generation</div>
+            <div class="mono" style="font-size:11px;color:var(--warm-clay)">POST /api/payments/qr</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--ink-soft);line-height:1.6">
+          <div style="margin-bottom:6px"><strong style="color:var(--ink)">Input:</strong> <span class="mono">booking_id</span>, <span class="mono">amount</span></div>
+          <div style="margin-bottom:6px"><strong style="color:var(--ink)">Call:</strong> <span class="mono" style="font-size:10.5px">POST api.easyslip.com/v1/qr/generate</span></div>
+          <div style="margin-bottom:6px"><strong style="color:var(--ink)">บันทึก:</strong> <span class="mono">qr_payload</span> + <span class="mono">qr_expires_at</span> ใน payments</div>
+          <div><strong style="color:var(--ink)">Return:</strong> QR base64 → frontend แสดง</div>
+        </div>
+        <div style="margin-top:6px;padding:10px 14px;background:var(--bone-soft);border-radius:7px;font-size:11px">
+          <strong>หมดอายุ 15 นาที</strong> ตรงกับเวลาที่ระบบล็อคห้องไว้ ถ้าลูกค้าไม่ชำระจะปลดล็อคให้คนอื่นจองต่อได้
+        </div>
+      </div>
+
+      <div class="card" style="padding:22px;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+          <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v14m0 0l-5-5m5 5l5-5"/><path d="M5 21h14"/></svg></div>
+          <div>
+            <div style="font-size:15px;font-weight:500">Slip Verification</div>
+            <div class="mono" style="font-size:11px;color:var(--warm-clay)">POST /api/payments/slip</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--ink-soft);line-height:1.6">
+          <div style="margin-bottom:5px">• รับไฟล์สลิปจาก client (multipart)</div>
+          <div style="margin-bottom:5px">• Upload ไป Supabase Storage <span class="mono">payment-slips/</span></div>
+          <div style="margin-bottom:5px">• เรียก EasySlip verify ด้วยรูปที่อัปโหลด</div>
+          <div style="margin-bottom:5px"><strong style="color:var(--ink)">เช็ค 3 อย่าง:</strong></div>
+          <div style="padding-left:14px;margin-bottom:3px">a. <span class="mono">amount</span> ตรงกับยอด (±0 บาท)</div>
+          <div style="padding-left:14px;margin-bottom:3px">b. <span class="mono">receiver_account</span> ตรงกับบัญชี LandCamp</div>
+          <div style="padding-left:14px;margin-bottom:5px">c. <span class="mono">slip_ref</span> ยังไม่เคยใช้</div>
+          <div>• ถ้าผ่าน → <span class="mono">booking.status = 'confirmed'</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:14px 20px;background:var(--bone-soft);border:1px solid var(--rule);border-radius:11px">
+      <div style="font-weight:500;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warm-clay)" stroke-width="1.6"><path d="M12 2L4 6v6c0 5.5 3.5 10.3 8 11 4.5-.7 8-5.5 8-11V6l-8-4z"/></svg>
+        กลไกกันโกง
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;font-size:11.5px;color:var(--ink-soft);line-height:1.55">
+        <div><strong style="color:var(--ink)">เก็บ slip_ref unique</strong><br/>สลิปเดียวกันใช้ซ้ำกับการจองอื่นไม่ได้</div>
+        <div><strong style="color:var(--ink)">เช็คเวลาในสลิป</strong><br/>ต้องอยู่ในช่วง 24 ชั่วโมงล่าสุด</div>
+        <div><strong style="color:var(--ink)">ตกหล่นไป Manual</strong><br/>ถ้า verify ไม่ผ่าน → <span class="mono">payment_review</span> ให้แอดมินเช็คมือ</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 LINE OA MESSAGING -->
+<section class="slide bone-soft">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">11 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">LINE OA MESSAGING · แจ้งทีมงาน</div>
+    <h3 class="title" style="margin-bottom:6px">เหตุการณ์ที่บอทจะส่งเข้ากลุ่ม LINE ทีมงาน</h3>
+    <p class="lede" style="margin-bottom:14px">ส่งเป็น Flex Message ดูข้อมูลครบมีปุ่ม "ดูรายละเอียด" ทุกการส่งบันทึกใน <span class="mono">notifications</span> table</p>
+    <table class="tbl" style="font-size:13px">
+      <thead>
+        <tr><th style="width:240px">Event</th><th>ข้อความที่ส่ง</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="label"><div style="display:flex;align-items:center;gap:10px"><span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--warm-clay-pale);color:var(--warm-clay)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>จองใหม่ (pending)</div></td>
+          <td><div class="mono" style="font-size:11.5px;background:var(--code-bg);color:var(--code-text);padding:10px 14px;border-radius:7px;line-height:1.6">จองใหม่ #LC-2026-0001<br/>คุณ [ชื่อ] · [ห้อง]<br/>[เช็คอิน] → [เช็คเอาท์]<br/>ยอด: ฿X,XXX</div></td>
+        </tr>
+        <tr>
+          <td class="label"><div style="display:flex;align-items:center;gap:10px"><span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(119,132,117,.18);color:var(--forest-deep)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></span>ชำระเงินสำเร็จ</div></td>
+          <td><div class="mono" style="font-size:11.5px;background:var(--code-bg);color:var(--code-text);padding:10px 14px;border-radius:7px;line-height:1.6">ชำระเงินสำเร็จ #LC-2026-0001<br/>ยอด ฿X,XXX · [เวลา]<br/>ดูรายละเอียด: [URL]</div></td>
+        </tr>
+        <tr>
+          <td class="label"><div style="display:flex;align-items:center;gap:10px"><span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--warm-clay-pale);color:var(--warm-clay)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0z"/></svg></span>สลิป verify ไม่ผ่าน</div></td>
+          <td><div class="mono" style="font-size:11.5px;background:var(--code-bg);color:var(--code-text);padding:10px 14px;border-radius:7px;line-height:1.6">สลิปต้องตรวจสอบ #LC-2026-0001<br/>[เหตุผล] · ตรวจที่: [URL]</div></td>
+        </tr>
+        <tr>
+          <td class="label"><div style="display:flex;align-items:center;gap:10px"><span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(162,170,161,.25);color:var(--forest-deep)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8M12 18v2"/></svg></span>ใกล้ check-in (1 วันก่อน)</div></td>
+          <td><div class="mono" style="font-size:11.5px;background:var(--code-bg);color:var(--code-text);padding:10px 14px;border-radius:7px;line-height:1.6">พรุ่งนี้ check-in: คุณ [ชื่อ] · [ห้อง]</div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:11.5px">
+      <div style="padding:10px 14px;background:var(--bone);border:1px solid var(--rule);border-radius:8px"><strong>LINE_CHANNEL_ACCESS_TOKEN</strong><br/><span style="color:var(--ink-soft)">เก็บใน env ฝั่งเซิร์ฟเวอร์</span></div>
+      <div style="padding:10px 14px;background:var(--bone);border:1px solid var(--rule);border-radius:8px"><strong>LINE_NOTIFY_GROUP_ID</strong><br/><span style="color:var(--ink-soft)">ID ของกลุ่มทีมงาน</span></div>
+      <div style="padding:10px 14px;background:var(--bone);border:1px solid var(--rule);border-radius:8px"><strong>Push Message API</strong><br/><span style="color:var(--ink-soft)">ส่งเป็น Flex Message สวย</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 FRONTEND COMPONENTS -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">12 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">FRONTEND CHANGES · กระทบเว็บเดิมน้อยที่สุด</div>
+    <h3 class="title" style="margin-bottom:6px">ของใหม่ที่ต้องเพิ่มในโค้ดเว็บ</h3>
+    <p class="lede" style="margin-bottom:12px">ไม่รื้อโครงเดิม เพิ่มเป็น modal และ route ใหม่ ของเดิมแก้แค่ปุ่ม "จอง" ที่ <span class="mono">RoomsSection</span></p>
+    <div class="tree"><span class="dir">components/</span>
+├── <span class="dir">booking/</span>
+│   ├── BookingModal.tsx          <span class="cm">← Popup หลัก (overlay บนหน้าเว็บปัจจุบัน)</span>
+│   ├── DateRangePicker.tsx       <span class="cm">← เลือกวันที่</span>
+│   ├── GuestCounter.tsx          <span class="cm">← จำนวนผู้ใหญ่ / เด็ก</span>
+│   ├── GoogleSignInButton.tsx    <span class="cm">← ปุ่มล็อกอิน Google</span>
+│   ├── PaymentQR.tsx             <span class="cm">← แสดง QR + countdown 15 นาที</span>
+│   ├── SlipUploader.tsx          <span class="cm">← drag &amp; drop อัปโหลดสลิป</span>
+│   └── BookingConfirmation.tsx   <span class="cm">← หน้ายืนยันการจอง</span>
+│
+└── <span class="dir">receipt/</span>
+    ├── ReceiptCard.tsx           <span class="cm">← UI ใบเสร็จในเว็บ</span>
+    └── ReceiptPdf.tsx            <span class="cm">← Template PDF (react-pdf)</span>
+
+<span class="dir">app/</span>
+├── <span class="dir">booking/</span>
+│   ├── [code]/page.tsx           <span class="cm">← หน้าใบเสร็จลูกค้า</span>
+│   └── success/page.tsx          <span class="cm">← หลังชำระสำเร็จ</span>
+│
+├── <span class="dir">verify/</span>
+│   └── [token]/page.tsx          <span class="cm">← หน้าพนักงานสแกน QR ใบเสร็จ</span>
+│
+└── <span class="dir">account/</span>
+    └── bookings/page.tsx         <span class="cm">← ประวัติการจองของลูกค้า</span></div>
+    <div style="margin-top:12px;padding:12px 18px;background:var(--bone-soft);border:1px solid var(--rule);border-radius:9px;font-size:11.5px;color:var(--ink-soft);line-height:1.55">
+      <strong style="color:var(--ink)">ของเดิมที่แก้:</strong> <span class="mono">RoomsSection.tsx</span> เปลี่ยนปุ่ม "จองผ่าน LINE" เป็น "จองออนไลน์" ที่เปิด BookingModal &nbsp;·&nbsp; <span class="mono">Navbar.tsx</span> เพิ่มเมนู "บัญชีของฉัน" เมื่อ login &nbsp;·&nbsp; <span class="mono">siteConfig.ts</span> เพิ่ม payment.bankAccount + policy.cancellation
+    </div>
+  </div>
+</section>
+
+<!-- 13 WIREFRAME · BOOKING MODAL -->
+<section class="slide bone-soft">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">13 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">หน้าจอลูกค้า · WIREFRAME</div>
+    <h3 class="title">หน้าต่างจอง · Booking Modal</h3>
+    <div class="wire-stage">
+      <div class="wire-mock">
+        <div class="wire-title-bar">
+          <div class="t serif" style="font-size:17px">จองห้อง — Villa 1</div>
+          <div class="dots-row"><span></span><span></span><span></span></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="flex:1"><div class="wire-label">เช็คอิน</div><div class="wire-input">18 มิถุนายน 2026</div></div>
+          <div style="flex:1"><div class="wire-label">เช็คเอาท์</div><div class="wire-input">20 มิถุนายน 2026</div></div>
+          <div style="width:100px"><div class="wire-label">คืน</div><div class="wire-input">2 คืน</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="flex:1"><div class="wire-label">ผู้ใหญ่</div><div class="wire-input">2 ท่าน</div></div>
+          <div style="flex:1"><div class="wire-label">เด็ก (1–10 ปี)</div><div class="wire-input">0 ท่าน</div></div>
+          <div style="flex:1"><div class="wire-label">เตียงเสริม</div><div class="wire-input">ไม่ต้องการ</div></div>
+        </div>
+        <div style="border-top:1px dashed var(--rule-strong);padding-top:12px;margin-top:4px">
+          <div class="wire-label">ผู้จอง</div>
+          <div style="display:flex;gap:9px;align-items:center;margin-top:5px">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--bone-deep);display:grid;place-items:center;font-family:'Cormorant Garamond';font-size:13px">A</div>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:500">คุณ อนันต์ ณ เขาใหญ่</div>
+              <div style="font-size:10px;color:var(--sage-mid)">anan@gmail.com · ล็อกอินด้วย Google</div>
+            </div>
+            <div class="wire-chip">ยืนยันแล้ว</div>
+          </div>
+          <div style="margin-top:10px">
+            <div class="wire-label">เบอร์โทรติดต่อ</div>
+            <div class="wire-input">081-234-5678</div>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding-top:12px;border-top:1px solid var(--rule)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px;color:var(--ink-soft)"><span>ค่าห้อง 2 คืน</span><span>฿9,000</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:12px;color:var(--ink-soft)"><span>อาหารเช้า (รวมแล้ว)</span><span>ฟรี</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-family:'Cormorant Garamond';font-size:22px"><span>ยอดรวม</span><span>฿9,000</span></div>
+          <div style="display:flex;gap:8px">
+            <button class="wire-btn ghost">ยกเลิก</button>
+            <button class="wire-btn" style="flex:1;justify-content:center">ดำเนินการชำระเงิน
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="wire-notes">
+        <div class="wire-note"><div class="pin">1</div><div><div class="nt">เลือกวันที่และจำนวนผู้เข้าพัก</div><div class="nb">ระบบเช็คห้องว่างทันที วันที่จองไปแล้วถูกปิดสีอัตโนมัติ</div></div></div>
+        <div class="wire-note"><div class="pin">2</div><div><div class="nt">ล็อกอินด้วย Google</div><div class="nb">ลูกค้าคลิกครั้งเดียว ระบบดึงชื่อ-รูปจาก Google มาแสดง ไม่ต้องตั้งรหัสผ่านใหม่</div></div></div>
+        <div class="wire-note"><div class="pin">3</div><div><div class="nt">กรอกเบอร์โทรติดต่อ</div><div class="nb">สำหรับให้ทีมงานติดต่อกลับและยืนยันก่อนเข้าพัก</div></div></div>
+        <div class="wire-note"><div class="pin">4</div><div><div class="nt">สรุปยอด + ปุ่มชำระเงิน</div><div class="nb">เมื่อกด ระบบจะล็อกห้องไว้ 15 นาที และแสดง QR Code ให้สแกน</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 14 WIREFRAME · ADMIN DASHBOARD -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">14 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">หน้าจอทีมงาน · WIREFRAME</div>
+    <h3 class="title">หน้าหลังบ้าน · Admin Dashboard</h3>
+    <div style="flex:1;display:grid;grid-template-columns:1.6fr 1fr;gap:28px;min-height:0">
+      <div class="dash">
+        <aside class="dash-side">
+          <div class="dash-brand">LandCamp</div>
+          <nav class="dash-menu">
+            <a class="active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>ภาพรวม</a>
+            <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>การจอง</a>
+            <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"/></svg>รายได้</a>
+            <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>ลูกค้า</a>
+            <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h6"/></svg>สถานะห้อง</a>
+            <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21l1.5-5L15 5.5l4 4L8.5 20 3 21z"/></svg>เนื้อหาเว็บ</a>
+            <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51"/></svg>ตั้งค่า</a>
+          </nav>
+        </aside>
+        <div class="dash-main">
+          <div class="dash-h">
+            <h3>ภาพรวมวันนี้</h3>
+            <div style="font-size:10px;color:var(--sage-mid)">18 มิ.ย. 2026 · 14:32</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-card"><div class="kpi-label">รายได้วันนี้</div><div class="kpi-val">฿18,500</div><div class="kpi-delta up">+12% จากเมื่อวาน</div></div>
+            <div class="kpi-card"><div class="kpi-label">การจองใหม่</div><div class="kpi-val">7</div><div class="kpi-delta up">+2 รายการ</div></div>
+            <div class="kpi-card"><div class="kpi-label">เช็คอินคืนนี้</div><div class="kpi-val">4</div><div class="kpi-delta">ห้อง 1,3,4,6</div></div>
+            <div class="kpi-card"><div class="kpi-label">รอตรวจสลิป</div><div class="kpi-val">1</div><div class="kpi-delta">รอแอดมิน</div></div>
+          </div>
+          <div class="chart">
+            <div class="wire-label" style="margin-bottom:6px">รายได้ 14 วันย้อนหลัง</div>
+            <div class="chart-bars">
+              <span style="height:35%"></span><span style="height:48%"></span><span style="height:42%"></span>
+              <span style="height:60%"></span><span style="height:55%"></span><span style="height:72%"></span>
+              <span style="height:65%" class="hi"></span><span style="height:50%"></span><span style="height:58%"></span>
+              <span style="height:78%" class="hi"></span><span style="height:62%"></span><span style="height:70%"></span>
+              <span style="height:85%" class="hi"></span><span style="height:68%" class="hi"></span>
+            </div>
+          </div>
+          <div class="dash-list">
+            <div class="dash-list-row head"><div>รหัส</div><div>ลูกค้า · ห้อง</div><div>ยอด</div><div>สถานะ</div></div>
+            <div class="dash-list-row"><div class="mono" style="font-size:10px;color:var(--warm-clay)">LC-2026-0142</div><div>คุณอนันต์ · Villa 1 · 18–20 มิ.ย.</div><div>฿9,000</div><div><span class="pill ok">ยืนยัน</span></div></div>
+            <div class="dash-list-row"><div class="mono" style="font-size:10px;color:var(--warm-clay)">LC-2026-0141</div><div>คุณสุดา · Train Loft · 19 มิ.ย.</div><div>฿5,500</div><div><span class="pill ok">ยืนยัน</span></div></div>
+            <div class="dash-list-row"><div class="mono" style="font-size:10px;color:var(--warm-clay)">LC-2026-0140</div><div>Mr. Tanaka · Villa 4 · 22–24 มิ.ย.</div><div>฿11,000</div><div><span class="pill wait">รอตรวจ</span></div></div>
+            <div class="dash-list-row"><div class="mono" style="font-size:10px;color:var(--warm-clay)">LC-2026-0139</div><div>คุณภัทร · Camper · 25 มิ.ย.</div><div>฿4,500</div><div><span class="pill ok">ยืนยัน</span></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="wire-notes" style="align-self:center">
+        <div class="wire-note"><div class="pin">A</div><div><div class="nt">เมนูซ้าย · ทุกฟังก์ชันรวมที่เดียว</div><div class="nb">ภาพรวม · การจอง · รายได้ · ลูกค้า · สถานะห้อง · เนื้อหาเว็บ · ตั้งค่า</div></div></div>
+        <div class="wire-note"><div class="pin">B</div><div><div class="nt">การ์ดสรุป 4 ตัวเลขสำคัญ</div><div class="nb">รายได้วันนี้ · จองใหม่ · เช็คอินคืนนี้ · รอตรวจสลิป — เห็นภาพภายใน 3 วินาที</div></div></div>
+        <div class="wire-note"><div class="pin">C</div><div><div class="nt">กราฟรายได้ย้อนหลัง</div><div class="nb">ดูเทรนด์รายได้ 14 วัน เลือกช่วงเวลาได้</div></div></div>
+        <div class="wire-note"><div class="pin">D</div><div><div class="nt">ตารางการจองล่าสุด</div><div class="nb">คลิกที่รายการเพื่อดูรายละเอียด ใบเสร็จ และสลิป</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 ADMIN DASHBOARD STRUCTURE -->
+<section class="slide bone-soft">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">15 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">ADMIN DASHBOARD · STRUCTURE</div>
+    <h3 class="title" style="margin-bottom:6px">โครงสร้างหน้าหลังบ้านและสิทธิ์การเข้าถึง</h3>
+    <p class="lede" style="margin-bottom:12px">URL <span class="mono">/admin/*</span> ล็อคด้วย Supabase Auth + role check · มี 3 role: Super Admin / Reception / Housekeeping</p>
+    <div style="flex:1;display:grid;grid-template-columns:1.2fr 1fr;gap:18px;min-height:0">
+      <div class="tree"><span class="dir">app/admin/</span>
+├── layout.tsx                    <span class="cm">← Auth guard + sidebar</span>
+├── page.tsx                      <span class="cm">← Overview (ภาพรวม)</span>
+├── <span class="dir">bookings/</span>
+│   ├── page.tsx                  <span class="cm">← รายการจอง + filter</span>
+│   └── [id]/page.tsx             <span class="cm">← รายละเอียด + actions</span>
+├── <span class="dir">payments/</span>
+│   └── page.tsx                  <span class="cm">← รายได้ + slip review</span>
+├── <span class="dir">revenue/</span>
+│   └── page.tsx                  <span class="cm">← Report ส่งออก CSV/PDF</span>
+├── <span class="dir">customers/</span>
+│   └── page.tsx                  <span class="cm">← CRM ลูกค้า + ประวัติ</span>
+├── <span class="dir">rooms/</span>
+│   └── page.tsx                  <span class="cm">← สถานะห้องเรียลไทม์</span>
+├── <span class="dir">content/</span>
+│   ├── page.tsx                  <span class="cm">← CMS · Live Preview</span>
+│   └── [slug]/page.tsx           <span class="cm">← แก้บทความ + SEO</span>
+└── <span class="dir">settings/</span>
+    └── page.tsx                  <span class="cm">← Users · Roles · Audit log</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="card" style="padding:14px;gap:6px">
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;background:var(--warm-clay);border-radius:50%"></div><div style="font-weight:500;font-size:13px">Super Admin (เจ้าของ)</div></div>
+          <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.5">เข้าได้ทุกหน้า · จัดการ users + ตั้งค่าระบบ + ดู audit log ทุกการกระทำ</div>
+        </div>
+        <div class="card" style="padding:14px;gap:6px">
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;background:var(--forest-deep);border-radius:50%"></div><div style="font-weight:500;font-size:13px">Reception (ฝ่ายต้อนรับ)</div></div>
+          <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.5">ดู/จัดการการจอง · ตรวจสลิป · ออกใบเสร็จ · ดูรายได้ · CRM ลูกค้า</div>
+        </div>
+        <div class="card" style="padding:14px;gap:6px">
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;background:var(--sage-mid);border-radius:50%"></div><div style="font-weight:500;font-size:13px">Housekeeping (แม่บ้าน)</div></div>
+          <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.5">ดูสถานะห้อง · check-in/out · อัปเดต cleaning status · แจ้งซ่อม</div>
+        </div>
+        <div style="padding:12px 14px;background:var(--bone);border:1px solid var(--rule);border-radius:9px;font-size:11px;color:var(--ink-soft);line-height:1.55;margin-top:auto">
+          <strong style="color:var(--ink)">Audit Log:</strong> ทุก action ที่ทำในระบบบันทึกใน <span class="mono">admin_audit_log</span> table · ตรวจย้อนหลังได้ตลอด
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 16 SECURITY & PRIVACY -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">16 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">SECURITY &amp; PRIVACY · ความปลอดภัย</div>
+    <h3 class="title" style="margin-bottom:6px">มาตรการป้องกัน 9 ชั้นในระบบ</h3>
+    <p class="lede" style="margin-bottom:12px">ระบบจองออนไลน์ที่สำคัญที่สุดคือต้องไว้ใจได้ ทั้งฝั่งลูกค้าและฝั่งทีมงาน เราป้องกันตั้งแต่ต้นทางทุกชั้น</p>
+    <table class="tbl">
+      <thead>
+        <tr><th style="width:140px">Layer</th><th>Mitigation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="label">Auth</td><td>Supabase Auth + Google OAuth, JWT ผ่าน httpOnly cookie</td></tr>
+        <tr><td class="label">API</td><td>Server-only env vars (<span class="code-mini">EASYSLIP_API_KEY</span>, <span class="code-mini">LINE_CHANNEL_ACCESS_TOKEN</span>)</td></tr>
+        <tr><td class="label">Database</td><td>RLS policies ทุก table, service role ใช้เฉพาะฝั่ง server</td></tr>
+        <tr><td class="label">Slip upload</td><td>Validate MIME + size (max 5MB), virus scan optional</td></tr>
+        <tr><td class="label">Anti-fraud</td><td>Unique slip ref, amount match, time window check (24 ชม.)</td></tr>
+        <tr><td class="label">Receipt QR</td><td>Signed token (JWT) + DB validation · ปลอมหรือแก้ไขจะถูกตรวจจับ</td></tr>
+        <tr><td class="label">Rate limit</td><td>Booking endpoint: 5 reqs / min / IP</td></tr>
+        <tr><td class="label">Bot protection</td><td>Vercel BotID บนปุ่ม "ยืนยันการจอง"</td></tr>
+        <tr><td class="label">Audit log</td><td>ทุก admin action log ใน <span class="code-mini">admin_audit_log</span> table · ตรวจย้อนหลังได้</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 17 ENVIRONMENT VARIABLES -->
+<section class="slide bone-soft">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">17 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">ENVIRONMENT VARIABLES · ตัวแปรลับของระบบ</div>
+    <h3 class="title" style="margin-bottom:6px">ค่าตั้งค่าที่ต้องเพิ่มใหม่</h3>
+    <p class="lede" style="margin-bottom:12px">เก็บใน Vercel Environment Variables ตัวที่ขึ้นต้นด้วย <span class="mono">NEXT_PUBLIC_</span> ใช้บน frontend ได้ ที่เหลือเป็นความลับใช้เฉพาะฝั่งเซิร์ฟเวอร์</p>
+    <div class="code-block" style="font-size:12px;line-height:1.85"><span class="cm"># Supabase (มีอยู่แล้ว — เพิ่ม service role)</span>
+<span class="kw">SUPABASE_SERVICE_ROLE_KEY</span>=...
+
+<span class="cm"># Google OAuth (ตั้งใน Supabase Auth dashboard)</span>
+<span class="kw">NEXT_PUBLIC_GOOGLE_CLIENT_ID</span>=...
+
+<span class="cm"># EasySlip</span>
+<span class="kw">EASYSLIP_API_KEY</span>=...
+<span class="kw">EASYSLIP_BANK_ACCOUNT</span>=...      <span class="cm"># บัญชีรับเงิน</span>
+<span class="kw">EASYSLIP_BANK_CODE</span>=...
+
+<span class="cm"># LINE OA</span>
+<span class="kw">LINE_CHANNEL_ACCESS_TOKEN</span>=...
+<span class="kw">LINE_CHANNEL_SECRET</span>=...
+<span class="kw">LINE_NOTIFY_GROUP_ID</span>=...         <span class="cm"># group ID ของกลุ่มทีมงาน</span>
+
+<span class="cm"># Email</span>
+<span class="kw">RESEND_API_KEY</span>=...
+<span class="kw">EMAIL_FROM</span>=<span class="st">booking@landcamp.com</span>
+
+<span class="cm"># App</span>
+<span class="kw">NEXT_PUBLIC_APP_URL</span>=<span class="st">https://landcamp-eta.vercel.app</span>
+<span class="kw">BOOKING_CODE_PREFIX</span>=<span class="st">LC</span>                <span class="cm"># LC-2026-0001</span></div>
+    <div style="margin-top:12px;padding:12px 18px;background:var(--bone);border:1px solid var(--rule);border-radius:9px;font-size:11.5px;color:var(--ink-soft);line-height:1.55">
+      <strong style="color:var(--ink)">วิธีจัดการ:</strong> ใช้คำสั่ง <span class="mono">vercel env pull</span> ดึงค่ามาที่เครื่องนักพัฒนา · ใช้ <span class="mono">vercel env add</span> เพิ่มค่าใหม่ทุก environment (preview / production) · ไม่ commit ค่าจริงลง git
+    </div>
+  </div>
+</section>
+
+<!-- 18 ALL FEATURES IN PARALLEL (PHASE 2 NOW IN PHASE 1) -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">18 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">ฟีเจอร์ขยาย · ทำพร้อมกันในเฟสนี้</div>
+    <h3 class="title" style="margin-bottom:6px">ฟีเจอร์เพิ่มเติมที่จะพัฒนาไปพร้อมกัน</h3>
+    <p class="lede" style="margin-bottom:14px">นอกจากระบบจองหลัก เรารวมอีก 4 ฟีเจอร์ขั้นสูงเข้ามาในเฟสเดียวกัน เพื่อให้ระบบหลังบ้านครบสมบูรณ์ตั้งแต่วันเปิดใช้</p>
+    <div class="roadmap">
+      <div class="road-card">
+        <div class="ic-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h6M15 3v6M15 15h6"/><circle cx="6" cy="14" r="1" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="1" fill="currentColor" stroke="none"/></svg></div>
+        <h4>สถานะห้องเรียลไทม์</h4>
+        <p>ดูสถานะทุกห้องสด ๆ ใครเช็คอินอยู่ ห้องไหนแม่บ้านยังไม่ clean พร้อมรับลูกค้าใหม่หรือยัง อัปเดตทันทีผ่าน Supabase Realtime</p>
+      </div>
+      <div class="road-card">
+        <div class="ic-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 21l1.5-5L15 5.5l4 4L8.5 20 3 21z"/><path d="M14 6.5l3.5 3.5"/></svg></div>
+        <h4>แก้เว็บไซต์ได้เอง</h4>
+        <p>เปลี่ยนรูป ราคา รายละเอียดห้อง เขียนบทความ SEO ได้จากหลังบ้านโดยตรง พร้อมตัวอย่างก่อนเผยแพร่แบบ Live Preview</p>
+      </div>
+      <div class="road-card">
+        <div class="ic-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/><circle cx="18" cy="6" r="2" fill="currentColor" stroke="none"/></svg></div>
+        <h4>ฐานข้อมูลลูกค้า</h4>
+        <p>เก็บประวัติลูกค้าทุกคน ดูยอดใช้จ่ายรวม จำนวนครั้งที่มา และส่งโปรพิเศษให้ลูกค้าประจำได้ พร้อม Segment VIP / Returning / New</p>
+      </div>
+      <div class="road-card">
+        <div class="ic-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14.7 6.3L17 9l-7.5 7.5L7 17l1-3 6.7-7.7zM12 4l8 8M3 21h18"/></svg></div>
+        <h4>ระบบแจ้งซ่อม</h4>
+        <p>พนักงาน/แม่บ้านแจ้งซ่อมจากมือถือได้ทันที ติดตามสถานะ มอบหมายช่าง และดูประวัติการซ่อมแต่ละห้องย้อนหลังได้</p>
+      </div>
+    </div>
+    <div style="margin-top:22px;padding:16px 22px;background:var(--bone-soft);border:1px solid var(--rule);border-radius:11px;display:flex;gap:18px;align-items:center">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--warm-clay);line-height:1">+</div>
+      <div>
+        <div style="font-weight:500;margin-bottom:3px;font-size:13px">ทุกฟีเจอร์ใช้ฐานข้อมูลและรากฐานเดียวกัน</div>
+        <div style="font-size:12px;color:var(--ink-soft);line-height:1.55">ไม่ต้องสร้างใหม่ ไม่ต้องย้ายข้อมูล ต่อขยายจากของเดิมได้เลย — ลดเวลาและต้นทุนของการพัฒนาอย่างมาก</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 19 TIMELINE 1 WEEK PER SPRINT -->
+<section class="slide bone-soft">
+  <div class="slide-head">
+    <div class="brand"><div class="brand-mark">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no">19 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow">ตารางพัฒนา · TIMELINE · 1 สัปดาห์ต่อ SPRINT</div>
+    <h3 class="title" style="margin-bottom:6px">หกสัปดาห์ หกผลงานที่จับต้องได้</h3>
+    <p class="lede" style="margin-bottom:12px">แต่ละสัปดาห์มีงานสำเร็จที่ดูเห็นได้ชัด เพื่อให้ติดตามความคืบหน้าได้ตลอด</p>
+    <div class="timeline">
+      <div class="timeline-grid">
+        <div class="head"></div>
+        <div class="head">สัปดาห์ 1</div>
+        <div class="head">สัปดาห์ 2</div>
+        <div class="head">สัปดาห์ 3</div>
+        <div class="head">สัปดาห์ 4</div>
+        <div class="head">สัปดาห์ 5</div>
+        <div class="head">สัปดาห์ 6</div>
+
+        <div class="label">วางรากฐาน<div class="sub">DB · Auth · Schema</div></div>
+        <div><div class="timeline-bar">โครงสร้าง</div></div>
+        <div></div><div></div><div></div><div></div><div></div>
+
+        <div class="label">หน้าจอจอง<div class="sub">Booking Modal · UI</div></div>
+        <div></div>
+        <div><div class="timeline-bar">UI + ตรวจห้องว่าง</div></div>
+        <div></div><div></div><div></div><div></div>
+
+        <div class="label">ระบบชำระเงิน<div class="sub">QR + ตรวจสลิป</div></div>
+        <div></div><div></div>
+        <div><div class="timeline-bar">EasySlip</div></div>
+        <div></div><div></div><div></div>
+
+        <div class="label">แจ้งเตือน<div class="sub">LINE · อีเมล · ใบเสร็จ</div></div>
+        <div></div><div></div><div></div>
+        <div><div class="timeline-bar alt">LINE + Email + PDF</div></div>
+        <div></div><div></div>
+
+        <div class="label">หน้าหลังบ้าน<div class="sub">Dashboard · CRM · CMS</div></div>
+        <div></div><div></div>
+        <div><div class="timeline-bar parallel">เริ่มทำพร้อมกัน</div></div>
+        <div><div class="timeline-bar parallel">CRM + CMS</div></div>
+        <div><div class="timeline-bar parallel">Real-time</div></div>
+        <div></div>
+
+        <div class="label">ทดสอบและขัดเงา<div class="sub">QA · UX · Launch</div></div>
+        <div></div><div></div><div></div><div></div><div></div>
+        <div><div class="timeline-bar lite">QA · Launch</div></div>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:22px;font-size:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:7px"><span style="width:16px;height:8px;background:var(--warm-clay);border-radius:3px"></span>งานพัฒนาหลัก</div>
+      <div style="display:flex;align-items:center;gap:7px"><span style="width:16px;height:8px;background:var(--forest-deep);border-radius:3px"></span>เชื่อมต่อบริการนอก</div>
+      <div style="display:flex;align-items:center;gap:7px"><span style="width:16px;height:8px;background:var(--sage-mid);border-radius:3px"></span>ฟีเจอร์ขยายทำพร้อมกัน</div>
+      <div style="display:flex;align-items:center;gap:7px"><span style="width:16px;height:8px;background:var(--warm-clay-soft);border-radius:3px"></span>ทดสอบและขัดเงา</div>
+    </div>
+  </div>
+</section>
+
+<!-- 20 NEXT STEPS -->
+<section class="slide dark">
+  <div class="slide-head" style="color:var(--bone)">
+    <div class="brand"><div class="brand-mark" style="border-color:var(--bone)">L</div><span class="brand-label">LandCamp</span></div>
+    <div class="slide-no" style="color:var(--sage-light)">20 / 20</div>
+  </div>
+  <div class="slide-body">
+    <div class="eyebrow" style="color:var(--warm-clay-soft)">ขั้นตอนต่อไป · NEXT STEPS</div>
+    <h1 class="title" style="color:var(--bone)">พร้อมเริ่มได้ทันที หลังตัดสินใจ 4 เรื่องนี้</h1>
+    <p class="lede" style="color:var(--sage-light);max-width:62ch">เพื่อให้เริ่ม Sprint 1 ได้ในวันถัดไป เราต้องการคำตอบในประเด็นต่อไปนี้</p>
+    <div class="steps">
+      <div class="step" style="background:rgba(245,241,234,.06);border-color:rgba(245,241,234,.15)">
+        <div class="step-n">1</div>
+        <div><div class="step-t" style="color:var(--bone)">บัญชีรับเงินที่จะใช้</div><div class="step-b" style="color:var(--sage-light)">PromptPay เบอร์โทร · เลขบัญชีธนาคาร · หรือบัญชีนิติบุคคล</div></div>
+      </div>
+      <div class="step" style="background:rgba(245,241,234,.06);border-color:rgba(245,241,234,.15)">
+        <div class="step-n">2</div>
+        <div><div class="step-t" style="color:var(--bone)">มัดจำหรือชำระเต็ม</div><div class="step-b" style="color:var(--sage-light)">ลูกค้าจ่ายเต็ม 100% ทุกครั้ง หรือมีตัวเลือกมัดจำ 30–50% ก่อน</div></div>
+      </div>
+      <div class="step" style="background:rgba(245,241,234,.06);border-color:rgba(245,241,234,.15)">
+        <div class="step-n">3</div>
+        <div><div class="step-t" style="color:var(--bone)">นโยบายยกเลิก</div><div class="step-b" style="color:var(--sage-light)">% คืนเงินตามจำนวนวันก่อน check-in เพื่อนำมาเขียนในระบบและในเว็บ</div></div>
+      </div>
+      <div class="step" style="background:rgba(245,241,234,.06);border-color:rgba(245,241,234,.15)">
+        <div class="step-n">4</div>
+        <div><div class="step-t" style="color:var(--bone)">กลุ่ม LINE สำหรับแจ้งเตือน</div><div class="step-b" style="color:var(--sage-light)">ใช้กลุ่มทีมเดิม หรือสร้างใหม่ เพื่อเพิ่มบอทเข้าไป</div></div>
+      </div>
+    </div>
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid rgba(245,241,234,.15);display:flex;justify-content:space-between;align-items:flex-end">
+      <div>
+        <div class="caps" style="color:var(--warm-clay-soft);margin-bottom:6px">เอกสารฉบับเต็ม</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--bone)">docs/booking-system-design.md</div>
+      </div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:40px;color:var(--warm-clay-soft);line-height:1">—</div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+  const deck=document.getElementById('deck');
+  const bar=document.getElementById('bar');
+  const dots=document.getElementById('dots');
+  const slides=deck.querySelectorAll('.slide');
+  slides.forEach((_,i)=>{
+    const b=document.createElement('button');
+    b.className='dot'+(i===0?' active':'');
+    b.setAttribute('aria-label','ไปสไลด์ '+(i+1));
+    b.onclick=()=>deck.scrollTo({left:i*window.innerWidth,behavior:'smooth'});
+    dots.appendChild(b);
+  });
+  const updateUI=()=>{
+    const idx=Math.round(deck.scrollLeft/window.innerWidth);
+    const pct=(deck.scrollLeft/(deck.scrollWidth-window.innerWidth))*100;
+    bar.style.width=pct+'%';
+    dots.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+  };
+  deck.addEventListener('scroll',updateUI,{passive:true});
+  window.addEventListener('resize',updateUI);
+  window.addEventListener('keydown',(e)=>{
+    const idx=Math.round(deck.scrollLeft/window.innerWidth);
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){
+      e.preventDefault();deck.scrollTo({left:(idx+1)*window.innerWidth,behavior:'smooth'});
+    }else if(e.key==='ArrowLeft'||e.key==='PageUp'){
+      e.preventDefault();deck.scrollTo({left:(idx-1)*window.innerWidth,behavior:'smooth'});
+    }else if(e.key==='Home'){deck.scrollTo({left:0,behavior:'smooth'});
+    }else if(e.key==='End'){deck.scrollTo({left:deck.scrollWidth,behavior:'smooth'});}
+  });
+  deck.addEventListener('wheel',(e)=>{
+    if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){
+      e.preventDefault();deck.scrollBy({left:e.deltaY*1.6,behavior:'auto'});
+    }
+  },{passive:false});
+</script>
+</body>
+</html>

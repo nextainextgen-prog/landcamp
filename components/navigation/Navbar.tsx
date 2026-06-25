@@ -7,6 +7,7 @@ import { useT } from "@/app/providers";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { MagneticButton } from "@/components/ui/MagneticButton";
+import { scrollToSection } from "@/lib/scrollToSection";
 import { NavAuth } from "./NavAuth";
 import { cn } from "@/lib/cn";
 
@@ -101,8 +102,8 @@ export function Navbar() {
 
             <div className="hidden md:block">
               <MagneticButton
-                href={siteConfig.contact.lineUrl}
-                ariaLabel="Book via Line"
+                onClick={() => scrollToSection("rooms")}
+                ariaLabel={t({ th: "เลื่อนไปดูห้องพัก", en: "Jump to rooms" })}
               >
                 <span
                   className={cn(
