@@ -60,14 +60,29 @@ export function OccupancyGrid({ rooms, bookings }: { rooms: OccRoom[]; bookings:
       <div className="overflow-x-auto rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white shadow-[0_18px_44px_-30px_rgba(45,55,40,0.35)]">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="bg-[color:var(--color-bone-soft)]/40">
-              <th className="sticky left-0 z-10 bg-[color:var(--color-bone-soft)]/40 px-4 py-2.5 text-left text-xs font-medium text-[color:var(--color-forest-deep)]/65">ห้อง</th>
-              {days.map((d) => (
-                <th key={d.key} className={`px-1 py-2 text-center text-[11px] font-medium ${d.key === todayKey ? "text-[color:var(--color-warm-clay)]" : "text-[color:var(--color-ink)]/55"}`}>
-                  <div>{WEEKDAYS[d.date.getDay()]}</div>
-                  <div className="text-sm">{d.date.getDate()}</div>
-                </th>
-              ))}
+            <tr className="border-b-2 border-[color:var(--color-forest-deep)]/15 bg-[color:var(--color-bone-soft)]">
+              <th className="sticky left-0 z-10 bg-[color:var(--color-bone-soft)] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--color-forest-deep)]">
+                ห้อง
+              </th>
+              {days.map((d) => {
+                const isToday = d.key === todayKey;
+                return (
+                  <th key={d.key} className="px-1 py-2 text-center">
+                    <div className={`text-[10px] font-medium uppercase ${isToday ? "text-[color:var(--color-warm-clay)]" : "text-[color:var(--color-ink)]/55"}`}>
+                      {WEEKDAYS[d.date.getDay()]}
+                    </div>
+                    {isToday ? (
+                      <div className="mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[color:var(--color-warm-clay)] text-sm font-semibold tabular-nums text-white">
+                        {d.date.getDate()}
+                      </div>
+                    ) : (
+                      <div className="text-sm font-semibold tabular-nums text-[color:var(--color-forest-deep)]">
+                        {d.date.getDate()}
+                      </div>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
