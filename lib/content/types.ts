@@ -30,6 +30,21 @@ export type StorySlide = {
   subtitle: Bilingual;
 };
 
+/** A guest video reel in the Video section. */
+export type VideoClip = {
+  src: string;
+  title: Bilingual;
+  handle: string;
+  tag: Bilingual;
+};
+
+/** A category row of food photos in the Menu section. */
+export type MenuRow = {
+  id: string;
+  label: Bilingual;
+  images: GalleryImage[];
+};
+
 export type SiteContent = {
   brand: {
     name: string;
@@ -87,11 +102,13 @@ export type SiteContent = {
     eyebrow: Bilingual;
     heading: Bilingual;
     lead: Bilingual;
+    clips: VideoClip[];
   };
   menu: {
     eyebrow: Bilingual;
     heading: Bilingual;
     lead: Bilingual;
+    rows: MenuRow[];
   };
   reviews: {
     eyebrow: Bilingual;

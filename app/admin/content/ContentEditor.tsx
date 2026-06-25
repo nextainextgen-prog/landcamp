@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel } from "@/components/admin/ui";
 import { GalleryManager } from "./GalleryManager";
 import { StoryManager } from "./StoryManager";
+import { VideoManager } from "./VideoManager";
 import type { Bilingual, SiteContent } from "@/lib/content/types";
 
 type Version = {
@@ -457,15 +458,27 @@ export function ContentEditor({
           <BiField label="หัวข้อย่อย" value={doc.video.eyebrow} onChange={(v) => update(["video", "eyebrow"], v)} />
           <BiField label="หัวข้อใหญ่ (ขึ้นบรรทัดใหม่ได้)" long value={doc.video.heading} onChange={(v) => update(["video", "heading"], v)} />
           <BiField label="ข้อความนำ" long value={doc.video.lead} onChange={(v) => update(["video", "lead"], v)} />
-          <p className="text-xs text-[color:var(--color-ink)]/45">คลิปวิดีโอยังจัดการในโค้ด — แก้ได้เฉพาะข้อความหัวข้อ</p>
+          <div className="grid gap-3">
+            <FieldLabel>คลิปวิดีโอ</FieldLabel>
+            <VideoManager items={doc.video.clips} onChange={(items) => update(["video", "clips"], items)} />
+          </div>
         </Panel>
       )}
 
       {tab === "menu" && (
-        <Panel title="ส่วนอาหาร & เครื่องดื่ม (หัวข้อ)" bodyClassName="flex flex-col gap-6">
+        <Panel title="ส่วนอาหาร & เครื่องดื่ม" bodyClassName="flex flex-col gap-6">
           <BiField label="หัวข้อย่อย" value={doc.menu.eyebrow} onChange={(v) => update(["menu", "eyebrow"], v)} />
           <BiField label="หัวข้อใหญ่" value={doc.menu.heading} onChange={(v) => update(["menu", "heading"], v)} />
           <BiField label="ข้อความท้ายส่วน" long value={doc.menu.lead} onChange={(v) => update(["menu", "lead"], v)} />
+          <div className="grid gap-5">
+            <FieldLabel>แถวรูปอาหาร (แต่ละหมวด)</FieldLabel>
+            {doc.menu.rows.map((row, i) => (
+              <div key={row.id} className="grid gap-3 rounded-xl border border-[color:var(--color-forest-deep)]/10 p-4">
+                <BiField label={`ชื่อหมวดที่ ${i + 1}`} value={row.label} onChange={(v) => update(["menu", "rows", i, "label"], v)} />
+                <GalleryManager items={row.images} onChange={(items) => update(["menu", "rows", i, "images"], items)} />
+              </div>
+            ))}
+          </div>
         </Panel>
       )}
 

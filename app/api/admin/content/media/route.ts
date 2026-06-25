@@ -6,15 +6,21 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BYTES = 8 * 1024 * 1024; // 8MB
-const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"]);
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50MB
+const ALLOWED_IMAGE = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"]);
+const ALLOWED_VIDEO = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+
+const EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "video/quicktime": "mov",
+};
 
 function extFor(type: string): string {
-  if (type === "image/jpeg") return "jpg";
-  return type.split("/")[1] ?? "jpg";
+  return EXT[type] ?? type.split("/")[1] ?? "bin";
 }
 
-/** Uploads an image to the public `site-media` bucket and returns its URL. */
+/** Uploads an image or video to the public `site-media` bucket; returns its URL. */
 export async function POST(req: NextRequest) {
   const auth = await requireSection("content");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -30,11 +36,17 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "file field required" }, { status: 400 });
   }
-  if (!ALLOWED.has(file.type)) {
-    return NextResponse.json({ error: "unsupported image type" }, { status: 415 });
+  const isVideo = ALLOWED_VIDEO.has(file.type);
+  const isImage = ALLOWED_IMAGE.has(file.type);
+  if (!isVideo && !isImage) {
+    return NextResponse.json({ error: "unsupported file type" }, { status: 415 });
   }
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "image too large (max 8MB)" }, { status: 413 });
+  const cap = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (file.size > cap) {
+    return NextResponse.json(
+      { error: isVideo ? "video too large (max 50MB)" : "image too large (max 8MB)" },
+      { status: 413 },
+    );
   }
 
   let admin;
@@ -46,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   const bytes = Buffer.from(await file.arrayBuffer());
   const stamp = `${Date.now()}-${Math.round(bytes.length)}`;
-  const path = `gallery/${stamp}.${extFor(file.type)}`;
+  const path = `${isVideo ? "video" : "gallery"}/${stamp}.${extFor(file.type)}`;
 
   const { error } = await admin.storage
     .from("site-media")
