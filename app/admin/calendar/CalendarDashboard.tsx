@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { DayView, WeekView, MonthView, ListView } from "./CalendarViews";
@@ -164,6 +165,13 @@ export function CalendarDashboard({
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/walk-in"
+            className="flex items-center gap-1.5 rounded-lg bg-[color:var(--color-warm-clay)] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[color:var(--color-forest-deep)]"
+          >
+            <Icon name="plus" className="h-3.5 w-3.5" />
+            เพิ่มการจอง
+          </Link>
           <label className="flex items-center gap-2 rounded-lg border border-[color:var(--color-forest-deep)]/15 px-2.5 py-1.5">
             <Icon name="search" className="h-3.5 w-3.5 text-[color:var(--color-ink)]/40" />
             <input
@@ -258,7 +266,7 @@ export function CalendarDashboard({
             </div>
           )}
 
-          {view === "day" && <DayView bookings={visibleBookings} rooms={visibleRooms} anchor={anchor} />}
+          {view === "day" && <DayView bookings={visibleBookings} rooms={visibleRooms} anchor={anchor} today={today} />}
           {view === "week" && <WeekView bookings={visibleBookings} anchor={anchor} today={today} />}
           {view === "month" && <MonthView bookings={visibleBookings} rooms={visibleRooms} anchor={anchor} today={today} />}
           {view === "list" && <ListView bookings={visibleBookings} />}

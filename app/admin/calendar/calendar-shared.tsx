@@ -123,6 +123,7 @@ export type IconName =
   | "filter"
   | "download"
   | "printer"
+  | "plus"
   | "chart";
 
 const ICON_PATHS: Record<IconName, React.ReactNode> = {
@@ -142,6 +143,7 @@ const ICON_PATHS: Record<IconName, React.ReactNode> = {
   filter: <path d="M3 5h18l-7 8v5l-4 2v-7z" />,
   download: <><path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M5 21h14" /></>,
   printer: <><path d="M6 9V3h12v6" /><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="7" rx="1" /></>,
+  plus: <path d="M12 5v14M5 12h14" />,
   chart: <><path d="M3 3v18h18" /><path d="M7 14l4-4 3 3 5-6" /></>,
 };
 

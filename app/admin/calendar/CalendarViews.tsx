@@ -26,42 +26,50 @@ function softOf(status: string): string {
 }
 
 // ─────────────────────────────────────────────
-// DAY — rooms as columns, hourly time grid, stays as blocks
+// DAY — rooms as columns, hourly time grid, stays as blocks.
+// The grid height is fixed to the viewport (no vertical scroll); only the
+// room columns scroll horizontally. The time gutter sticks to the left and
+// the room header sticks to the top so staff never lose their bearings.
 // (overnight stays use default 14:00 check-in / 12:00 check-out times)
 // ─────────────────────────────────────────────
 const DAY_START = 8;
 const DAY_END = 22;
-const MIN_HOUR_PX = 34;
+const MIN_HOUR_PX = 30;
 const CHECK_IN_H = 14;
 const CHECK_OUT_H = 12;
+const PAD = 12; // top/bottom breathing room so the first/last label isn't clipped
 
 export function DayView({
   bookings,
   rooms,
   anchor,
+  today,
 }: {
   bookings: CalBooking[];
   rooms: CalRoom[];
   anchor: Date;
+  today: string;
 }) {
   const key = ymd(anchor);
+  const isToday = key === today;
   const hours = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i);
 
-  // Stretch the grid so 08:00–22:00 fills the viewport down to the bottom
-  // (no inner scroll), clamping to a minimum row height on short screens.
+  // Fit 08:00–22:00 into the available viewport height — fixed, no inner
+  // vertical scroll; clamp to a minimum row height on very short screens.
   const wrapRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
-  const [hourPx, setHourPx] = useState(54);
+  const [hourPx, setHourPx] = useState(48);
   const [availH, setAvailH] = useState<number | null>(null);
+  const [nowMin, setNowMin] = useState<number | null>(null);
 
   useEffect(() => {
     const wrap = wrapRef.current;
     if (!wrap) return;
     const compute = () => {
       const top = wrap.getBoundingClientRect().top;
-      const avail = Math.max(360, window.innerHeight - top - 20);
-      const headerH = headRef.current?.offsetHeight ?? 48;
-      const px = Math.max(MIN_HOUR_PX, (avail - headerH) / (DAY_END - DAY_START));
+      const avail = Math.max(380, window.innerHeight - top - 16);
+      const headerH = headRef.current?.offsetHeight ?? 56;
+      const px = Math.max(MIN_HOUR_PX, (avail - headerH - PAD * 2) / (DAY_END - DAY_START));
       setHourPx(px);
       setAvailH(avail);
     };
@@ -76,7 +84,19 @@ export function DayView({
     };
   }, []);
 
-  const bodyH = (DAY_END - DAY_START) * hourPx;
+  // Live "now" indicator (Bangkok time), refreshed each minute.
+  useEffect(() => {
+    const tick = () => {
+      const d = new Date(Date.now() + 7 * 3600 * 1000);
+      setNowMin(d.getUTCHours() * 60 + d.getUTCMinutes());
+    };
+    tick();
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const bodyH = (DAY_END - DAY_START) * hourPx + PAD * 2;
+  const yOf = (hour: number) => PAD + (hour - DAY_START) * hourPx;
 
   function block(b: CalBooking): { top: number; height: number; from: number; to: number } | null {
     if (b.check_in > key || b.check_out < key) return null;
@@ -84,42 +104,65 @@ export function DayView({
     const from = b.check_in === key ? CHECK_IN_H : DAY_START;
     const to = b.check_out === key ? CHECK_OUT_H : DAY_END;
     if (to <= from) return null;
-    return { top: (from - DAY_START) * hourPx, height: (to - from) * hourPx, from, to };
+    return { top: yOf(from), height: (to - from) * hourPx, from, to };
   }
 
-  const colMin = 200;
+  const colMin = 210;
+  const nowTop =
+    isToday && nowMin !== null && nowMin >= DAY_START * 60 && nowMin <= DAY_END * 60
+      ? yOf(nowMin / 60)
+      : null;
 
   return (
-    <div ref={wrapRef} className="overflow-auto" style={availH ? { maxHeight: availH } : undefined}>
-      <div style={{ minWidth: 64 + rooms.length * colMin }}>
-        {/* header */}
+    <div
+      ref={wrapRef}
+      className="overflow-x-auto overflow-y-hidden"
+      style={availH ? { height: availH } : undefined}
+    >
+      <div className="relative" style={{ minWidth: 64 + rooms.length * colMin }}>
+        {/* ── header (sticky top) ── */}
         <div ref={headRef} className="sticky top-0 z-20 flex border-b border-[color:var(--color-forest-deep)]/10 bg-white">
-          <div className="w-16 shrink-0 border-r border-[color:var(--color-forest-deep)]/8 px-2 py-3 text-[11px] font-medium uppercase text-[color:var(--color-ink)]/45">
+          <div className="sticky left-0 z-30 flex w-16 shrink-0 items-center border-r border-[color:var(--color-forest-deep)]/8 bg-white px-2 py-3 text-[11px] font-medium uppercase text-[color:var(--color-ink)]/45">
             เวลา
           </div>
-          {rooms.map((r) => (
-            <div
-              key={r.id}
-              className="flex-1 border-r border-[color:var(--color-forest-deep)]/8 px-3 py-3 last:border-r-0"
-              style={{ minWidth: colMin }}
-            >
-              <p className="flex items-center gap-1.5 text-sm font-semibold text-[color:var(--color-forest-deep)]">
-                <span className="h-2 w-2 rounded-full" style={{ background: statusColor("confirmed") }} />
-                {r.name}
-              </p>
-            </div>
-          ))}
+          {rooms.map((r) => {
+            const [primary, ...rest] = r.name.split(" · ");
+            const secondary = rest.join(" · ");
+            const count = bookings.filter((b) => b.roomId === r.id && block(b)).length;
+            return (
+              <div
+                key={r.id}
+                className="flex-1 border-r border-[color:var(--color-forest-deep)]/8 px-3 py-2.5 last:border-r-0"
+                style={{ minWidth: colMin }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: statusColor("confirmed") }} />
+                    <span className="truncate text-sm font-semibold text-[color:var(--color-forest-deep)]" title={r.name}>
+                      {primary}
+                    </span>
+                  </span>
+                  {count > 0 && (
+                    <span className="shrink-0 rounded-full bg-[color:var(--color-forest-deep)]/8 px-1.5 text-[10px] font-semibold tabular-nums text-[color:var(--color-forest-deep)]/70">
+                      {count}
+                    </span>
+                  )}
+                </div>
+                {secondary && <p className="truncate pl-3.5 text-[11px] text-[color:var(--color-ink)]/45">{secondary}</p>}
+              </div>
+            );
+          })}
         </div>
 
-        {/* body */}
-        <div className="flex">
-          {/* time gutter */}
-          <div className="relative w-16 shrink-0 border-r border-[color:var(--color-forest-deep)]/8" style={{ height: bodyH }}>
+        {/* ── body ── */}
+        <div className="relative flex" style={{ height: bodyH }}>
+          {/* time gutter (sticky left) */}
+          <div className="sticky left-0 z-20 w-16 shrink-0 border-r border-[color:var(--color-forest-deep)]/8 bg-white">
             {hours.map((h) => (
               <div
                 key={h}
                 className="absolute right-2 -translate-y-1/2 text-[11px] tabular-nums text-[color:var(--color-ink)]/40"
-                style={{ top: (h - DAY_START) * hourPx }}
+                style={{ top: yOf(h) }}
               >
                 {String(h).padStart(2, "0")}:00
               </div>
@@ -138,14 +181,18 @@ export function DayView({
               <div
                 key={r.id}
                 className="relative flex-1 border-r border-[color:var(--color-forest-deep)]/8 last:border-r-0"
-                style={{ height: bodyH, minWidth: colMin }}
+                style={{ minWidth: colMin }}
               >
-                {/* hour gridlines */}
+                {/* hour bands (zebra) + gridlines */}
                 {hours.slice(0, -1).map((h) => (
                   <div
                     key={h}
                     className="absolute inset-x-0 border-b border-[color:var(--color-forest-deep)]/6"
-                    style={{ top: (h - DAY_START) * hourPx, height: hourPx }}
+                    style={{
+                      top: yOf(h),
+                      height: hourPx,
+                      background: h % 2 === 0 ? "rgba(45,55,40,0.015)" : undefined,
+                    }}
                   />
                 ))}
                 {/* booking blocks */}
@@ -154,8 +201,8 @@ export function DayView({
                   return (
                     <div
                       key={b.id}
-                      title={`${b.code} · ${b.customer} · ${b.room}`}
-                      className="absolute left-1 right-1 overflow-hidden rounded-lg px-2.5 py-1.5"
+                      title={`${b.code} · ${b.customer} · ${b.room} · ${statusLabel(b.status)}`}
+                      className="absolute left-1 right-1 cursor-default overflow-hidden rounded-lg px-2.5 py-1.5 ring-1 ring-inset ring-black/[0.04] transition-shadow hover:shadow-md"
                       style={{
                         top: geo.top + 2,
                         height: geo.height - 4,
@@ -163,19 +210,33 @@ export function DayView({
                         borderLeft: `3px solid ${color}`,
                       }}
                     >
-                      <p className="truncate text-[12px] font-semibold text-[color:var(--color-forest-deep)]">
-                        {b.customer}
+                      <p className="flex items-center gap-1 truncate text-[12px] font-semibold text-[color:var(--color-forest-deep)]">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
+                        <span className="truncate">{b.customer}</span>
                       </p>
-                      <p className="truncate text-[11px] text-[color:var(--color-ink)]/55">
-                        {String(geo.from).padStart(2, "0")}:00 – {String(geo.to).padStart(2, "0")}:00
-                      </p>
-                      <p className="truncate font-mono text-[10px] text-[color:var(--color-ink)]/40">{b.code}</p>
+                      {geo.height > 34 && (
+                        <p className="truncate text-[11px] text-[color:var(--color-ink)]/55">
+                          {String(geo.from).padStart(2, "0")}:00 – {String(geo.to).padStart(2, "0")}:00
+                        </p>
+                      )}
+                      {geo.height > 52 && (
+                        <p className="truncate font-mono text-[10px] text-[color:var(--color-ink)]/40">{b.code}</p>
+                      )}
                     </div>
                   );
                 })}
               </div>
             );
           })}
+
+          {/* current-time line */}
+          {nowTop !== null && (
+            <div className="pointer-events-none absolute left-16 right-0 z-30" style={{ top: nowTop }}>
+              <div className="relative h-px bg-[color:var(--color-warm-clay)]">
+                <span className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-[color:var(--color-warm-clay)]" />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
