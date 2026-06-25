@@ -20,6 +20,7 @@ function BIcon({ name, className = "h-3.5 w-3.5" }: { name: string; className?: 
     star: <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z" />,
     check: <path d="M20 6 9 17l-5-5" />,
     warn: <><path d="M12 3 2 20h20z" /><path d="M12 9v5M12 17h.01" /></>,
+    broom: <><path d="M19 4 9 14M6 21l3-3M4 16l4 4M8 14l2 2" /><path d="M14 9l5 5-3 3-5-5z" /></>,
   };
   return (
     <svg viewBox="0 0 24 24" fill={name === "star" ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
@@ -32,6 +33,7 @@ export type BookingRow = {
   id: string;
   booking_code: string;
   customer_id: string;
+  room_id: string;
   room_name: string;
   room_image: string | null;
   customer: {
@@ -700,7 +702,19 @@ function BookingDetail({
   const [confirm, setConfirm] = useState<null | { title: string; message: string; label: string; danger?: boolean; run: () => void }>(null);
   const [noteDraft, setNoteDraft] = useState(r.notes ?? "");
   const [copied, setCopied] = useState<"" | "summary" | "map">("");
+  const [hkSent, setHkSent] = useState(false);
   const [audit, setAudit] = useState<{ id: string; actor: string | null; action: string; to_status: string | null; created_at: string }[]>([]);
+
+  async function sendHousekeeping() {
+    try {
+      const res = await fetch("/api/admin/housekeeping", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room_id: r.room_id, booking_id: r.id, note: "ทำความสะอาดหลังเช็คเอาท์" }) });
+      if (!res.ok) throw new Error();
+      setHkSent(true);
+      setTimeout(() => setHkSent(false), 2500);
+    } catch {
+      window.alert("ส่งงานแม่บ้านไม่สำเร็จ");
+    }
+  }
   const nights = nightsBetween(r.check_in, r.check_out);
   const inHouse = r.status === "confirmed" && Boolean(r.checked_in_at);
 
@@ -780,6 +794,7 @@ function BookingDetail({
               <button type="button" onClick={() => setEditOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="pencil" /> แก้ไขการจอง</button>
             )}
             <button type="button" onClick={() => setPayOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="cash" /> บันทึกรับเงิน</button>
+            <button type="button" onClick={sendHousekeeping} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="broom" /> {hkSent ? "ส่งงานแล้ว" : "ส่งงานแม่บ้าน"}</button>
             {c.lineUserId && <button type="button" disabled={busy} onClick={() => onResend(r.id)} className="rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50">ส่งการ์ด LINE</button>}
           </div>
         </div>

@@ -98,6 +98,7 @@ export default async function AdminBookingsPage() {
         id: b.id as string,
         booking_code: b.booking_code as string,
         customer_id: b.customer_id as string,
+        room_id: b.room_id as string,
         room_name: room?.name ?? (b.room_id as string).slice(0, 8),
         room_image: room?.image ?? null,
         customer: c ?? { name: "—", email: "", phone: "", avatar: null, provider: null, lineUserId: null, isVip: false, tags: [] },
