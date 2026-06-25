@@ -1,11 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import type { BookingStatus } from "@/types";
 import { siteConfig } from "@/data/siteConfig";
 
 const ACTIVE_STATUSES = new Set<BookingStatus>(["pending_payment", "payment_review", "confirmed"]);
+
+/* Inline professional icons (no emoji). */
+function BIcon({ name, className = "h-3.5 w-3.5" }: { name: string; className?: string }) {
+  const p: Record<string, ReactNode> = {
+    search: <><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>,
+    phone: <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" />,
+    mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,
+    pin: <><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></>,
+    clipboard: <><rect x="6" y="4" width="12" height="16" rx="2" /><path d="M9 4V3h6v1M9 9h6M9 13h6M9 17h4" /></>,
+    pencil: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></>,
+    cash: <><rect x="2.5" y="6" width="19" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /></>,
+    star: <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z" />,
+    check: <path d="M20 6 9 17l-5-5" />,
+    warn: <><path d="M12 3 2 20h20z" /><path d="M12 9v5M12 17h.01" /></>,
+  };
+  return (
+    <svg viewBox="0 0 24 24" fill={name === "star" ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      {p[name]}
+    </svg>
+  );
+}
 
 export type BookingRow = {
   id: string;
@@ -67,10 +88,10 @@ const STATUS_ACCENT: Record<BookingStatus, string> = {
   no_show: "#c0563f",
 };
 const VERIFY: Record<string, { label: string; cls: string }> = {
-  matched: { label: "✓ สลิปตรง (ยอด+บัญชีถูกต้อง)", cls: "bg-emerald-100 text-emerald-800" },
-  amount_mismatch: { label: "⚠ ยอดไม่ตรง", cls: "bg-amber-100 text-amber-800" },
-  duplicate: { label: "⚠ สลิปซ้ำ (เคยใช้แล้ว)", cls: "bg-red-100 text-red-700" },
-  unreadable: { label: "✗ อ่านสลิปไม่ออก", cls: "bg-red-100 text-red-700" },
+  matched: { label: "สลิปตรง (ยอด+บัญชีถูกต้อง)", cls: "bg-emerald-100 text-emerald-800" },
+  amount_mismatch: { label: "ยอดไม่ตรง", cls: "bg-amber-100 text-amber-800" },
+  duplicate: { label: "สลิปซ้ำ (เคยใช้แล้ว)", cls: "bg-red-100 text-red-700" },
+  unreadable: { label: "อ่านสลิปไม่ออก", cls: "bg-red-100 text-red-700" },
   error: { label: "ระบบตรวจไม่สำเร็จ", cls: "bg-neutral-200 text-neutral-600" },
   pending: { label: "ยังไม่ได้ตรวจ", cls: "bg-neutral-200 text-neutral-600" },
 };
@@ -142,7 +163,7 @@ function Stepper({ status }: { status: BookingStatus }) {
                         : "bg-neutral-200 text-neutral-500"
                   }`}
                 >
-                  {isDone ? "✓" : i + 1}
+                  {isDone ? <BIcon name="check" className="h-4 w-4" /> : i + 1}
                 </span>
                 <span className={`text-center text-[10px] leading-tight ${isCurrent ? "font-semibold text-[color:var(--color-forest-deep)]" : "text-[color:var(--color-ink)]/50"}`}>
                   {label}
@@ -374,7 +395,7 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
       <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-3 shadow-sm">
         {/* search */}
         <div className="relative">
-          <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[color:var(--color-ink)]/35">🔍</span>
+          <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--color-ink)]/35"><BIcon name="search" className="h-4 w-4" /></span>
           <input
             type="search"
             value={q}
@@ -501,7 +522,7 @@ function BookingCard({
           <div className="flex items-start justify-between gap-2">
             <span className="flex min-w-0 items-center gap-1">
               <span className="truncate text-sm font-semibold text-[color:var(--color-forest-deep)]">{r.customer.name}</span>
-              {r.customer.isVip && <span className="flex-shrink-0 text-[11px]">⭐</span>}
+              {r.customer.isVip && <span className="flex-shrink-0 text-amber-500"><BIcon name="star" className="h-3 w-3" /></span>}
             </span>
             <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_CLASS[r.status]}`}>{STATUS_TH[r.status]}</span>
           </div>
@@ -532,9 +553,9 @@ function BookingCard({
             type="button"
             disabled={busy}
             onClick={(e) => { e.stopPropagation(); onPatch(r.id, { action: "confirm" }, "confirmed"); }}
-            className="rounded-lg bg-[color:var(--color-warm-clay)] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-lg bg-[color:var(--color-warm-clay)] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50"
           >
-            ✓ ยืนยัน
+            <BIcon name="check" className="h-3.5 w-3.5" /> ยืนยัน
           </button>
         </div>
       )}
@@ -689,7 +710,7 @@ function BookingDetail({
     <div className="flex flex-col gap-4 rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-5 shadow-sm">
       {overlaps.length > 0 && (
         <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
-          <span className="text-sm leading-none">⚠</span>
+          <BIcon name="warn" className="mt-px h-4 w-4 flex-shrink-0 text-amber-600" />
           <span>
             ห้องนี้มีการจองช่วงวันที่ทับซ้อน {overlaps.length} รายการ:{" "}
             <span className="font-semibold">{overlaps.map((o) => o.booking_code).join(", ")}</span> — ตรวจสอบก่อนยืนยัน
@@ -703,24 +724,24 @@ function BookingDetail({
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-semibold text-[color:var(--color-forest-deep)]">{c.name}</h3>
             <ProviderBadge provider={c.provider} />
-            {c.isVip && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">⭐ VIP</span>}
+            {c.isVip && <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700"><BIcon name="star" className="h-3 w-3" /> VIP</span>}
             {c.tags.map((t) => <span key={t} className="rounded-full bg-[color:var(--color-bone-soft)] px-2 py-0.5 text-[11px] text-[color:var(--color-forest-deep)]/70">{t}</span>)}
           </div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[color:var(--color-ink)]/60">
-            {c.phone && <span>📞 {c.phone}</span>}
-            {c.email && <span className="truncate">✉️ {c.email}</span>}
-            {c.lineUserId && <span>🟢 LINE ผูกแล้ว</span>}
+            {c.phone && <span className="inline-flex items-center gap-1"><BIcon name="phone" className="h-3.5 w-3.5 text-[color:var(--color-ink)]/40" /> {c.phone}</span>}
+            {c.email && <span className="inline-flex items-center gap-1 truncate"><BIcon name="mail" className="h-3.5 w-3.5 text-[color:var(--color-ink)]/40" /> {c.email}</span>}
+            {c.lineUserId && <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#06C755]" /> LINE ผูกแล้ว</span>}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" onClick={() => setPhoneOpen(true)} className="inline-flex items-center gap-1 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">📞 โทร</button>
-            {c.email && <a href={`mailto:${c.email}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">อีเมล</a>}
+            <button type="button" onClick={() => setPhoneOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="phone" /> โทร</button>
+            {c.email && <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="mail" /> อีเมล</a>}
             <a href={`/admin/customers/${r.customer_id}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">ดูประวัติลูกค้า</a>
-            <button type="button" onClick={copyMap} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">📍 {copied === "map" ? "คัดลอกลิงก์แล้ว" : "แผนที่"}</button>
-            <button type="button" onClick={copySummary} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">📋 {copied === "summary" ? "คัดลอกแล้ว" : "คัดลอกสรุป"}</button>
+            <button type="button" onClick={copyMap} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="pin" /> {copied === "map" ? "คัดลอกลิงก์แล้ว" : "แผนที่"}</button>
+            <button type="button" onClick={copySummary} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="clipboard" /> {copied === "summary" ? "คัดลอกแล้ว" : "คัดลอกสรุป"}</button>
             {ACTIVE_STATUSES.has(r.status) && (
-              <button type="button" onClick={() => setEditOpen(true)} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">✏️ แก้ไขการจอง</button>
+              <button type="button" onClick={() => setEditOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="pencil" /> แก้ไขการจอง</button>
             )}
-            <button type="button" onClick={() => setPayOpen(true)} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">💵 บันทึกรับเงิน</button>
+            <button type="button" onClick={() => setPayOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="cash" /> บันทึกรับเงิน</button>
             {c.lineUserId && <button type="button" disabled={busy} onClick={() => onResend(r.id)} className="rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50">ส่งการ์ด LINE</button>}
           </div>
         </div>
@@ -1019,14 +1040,14 @@ function PhonePopup({ name, phone, onClose }: { name: string; phone: string; onC
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="w-full max-w-xs rounded-2xl bg-white p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--color-forest-deep)]/10 text-xl">📞</div>
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--color-forest-deep)]/10 text-[color:var(--color-forest-deep)]"><BIcon name="phone" className="h-5 w-5" /></div>
         <div className="text-sm text-[color:var(--color-ink)]/55">โทรหา {name}</div>
         {has ? (
           <>
             <div className="mt-1 select-all font-display text-2xl font-bold tracking-wide text-[color:var(--color-forest-deep)]">{phone}</div>
             <div className="mt-5 flex gap-2">
               <button type="button" onClick={copy} className="flex-1 rounded-lg border border-[color:var(--color-forest-deep)]/20 py-2 text-sm font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">
-                {copied ? "คัดลอกแล้ว ✓" : "คัดลอกเบอร์"}
+                {copied ? "คัดลอกแล้ว" : "คัดลอกเบอร์"}
               </button>
               <a href={`tel:${phone}`} className="flex-1 rounded-lg bg-[color:var(--color-forest-deep)] py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-warm-clay)]">โทรออก</a>
             </div>
