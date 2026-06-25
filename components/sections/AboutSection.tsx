@@ -142,70 +142,11 @@ const STAT_ICONS: IconComponent[] = [
 
 const PERK_ICONS: IconComponent[] = [WifiIcon, BreakfastIcon];
 
-type StorySlide = CarouselSlide & { orientation: "landscape" | "portrait" };
-
-const STORY_SLIDES: StorySlide[] = [
-  {
-    src: "/images/about/story/01-bathroom.jpg",
-    alt: "Indoor freestanding bathtub with garden window view",
-    title: { th: "อ่างแช่ริมสวน", en: "Tub by the Garden" },
-    subtitle: { th: "Indoor Soaking · Wood Cabin", en: "Indoor Soaking · Wood Cabin" },
-    rating: 5,
-    orientation: "landscape",
-  },
-  {
-    src: "/images/about/story/02-camper-dusk.jpg",
-    alt: "Silver Camper Van and stone garden at dusk surrounded by pines",
-    title: { th: "ค่ำคืนรอบกองไฟ", en: "Sunset Firepit" },
-    subtitle: { th: "Camper Van · Pine Grove", en: "Camper Van · Pine Grove" },
-    rating: 5,
-    orientation: "landscape",
-  },
-  {
-    src: "/images/about/story/03-bedroom.jpg",
-    alt: "Glass villa bedroom with floor-to-ceiling windows facing the garden",
-    title: { th: "วิลล่ากระจกริมสวน", en: "Glass Villa" },
-    subtitle: { th: "Floor-to-Ceiling Glass", en: "Floor-to-Ceiling Glass" },
-    rating: 5,
-    orientation: "landscape",
-  },
-  {
-    src: "/images/about/story/04-wedding.png",
-    alt: "Outdoor wedding setup with long wooden table and white floral arches",
-    title: { th: "งานแต่งกลางสวน", en: "Garden Weddings" },
-    subtitle: { th: "Open-air · Long Table", en: "Open-air · Long Table" },
-    rating: 5,
-    orientation: "portrait",
-  },
-  {
-    src: "/images/about/story/05-stone-villa.png",
-    alt: "Stone-clad villa beside a natural stream with wooden bridge",
-    title: { th: "วิลล่าหินกลางป่า", en: "Stone Villa" },
-    subtitle: { th: "Stream-side · Stone Walls", en: "Stream-side · Stone Walls" },
-    rating: 5,
-    orientation: "landscape",
-  },
-  {
-    src: "/images/about/story/06-garden-chairs.png",
-    alt: "Wooden dining set under olive trees in front of stone villa at dusk",
-    title: { th: "มื้อค่ำใต้ต้นไม้", en: "Dinner Under Trees" },
-    subtitle: { th: "Garden Table · Lantern Light", en: "Garden Table · Lantern Light" },
-    rating: 5,
-    orientation: "portrait",
-  },
-  {
-    src: "/images/about/story/07-outdoor-tub.png",
-    alt: "Outdoor wooden bath with string lights overhead",
-    title: { th: "อ่างแช่กลางแจ้ง", en: "Outdoor Soak" },
-    subtitle: { th: "Cedar Walls · String Lights", en: "Cedar Walls · String Lights" },
-    rating: 5,
-    orientation: "landscape",
-  },
-];
-
 export function AboutSection() {
   const t = useT();
   const { about } = useContent();
+  // Story slides come from the CMS; show 5-star rating as before.
+  const storySlides: CarouselSlide[] = about.story.map((s) => ({ ...s, rating: 5 }));
 
   return (
     <section
@@ -364,7 +305,7 @@ export function AboutSection() {
           transition={{ duration: 0.9, ease: EASE_SOFT, delay: 0.1 }}
           className="mt-12 sm:mt-14 lg:mt-16"
         >
-          <StoryCarousel slides={STORY_SLIDES} />
+          <StoryCarousel slides={storySlides} />
         </motion.div>
 
       </div>

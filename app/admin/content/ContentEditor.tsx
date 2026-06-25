@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Panel } from "@/components/admin/ui";
 import { GalleryManager } from "./GalleryManager";
+import { StoryManager } from "./StoryManager";
 import type { Bilingual, SiteContent } from "@/lib/content/types";
 
 type Version = {
@@ -385,6 +386,11 @@ export function ContentEditor({
                 onChange={(v) => update(["about", "perks", i, "label"], v)}
               />
             ))}
+          </div>
+
+          <div className="grid gap-3">
+            <FieldLabel>เรื่องราวของเรา (สไลด์ภาพ)</FieldLabel>
+            <StoryManager items={doc.about.story} onChange={(items) => update(["about", "story"], items)} />
           </div>
         </Panel>
       )}

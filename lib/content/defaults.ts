@@ -76,6 +76,15 @@ export const CONTENT_DEFAULTS: SiteContent = {
         },
       },
     ],
+    story: [
+      { src: "/images/about/story/01-bathroom.jpg", alt: "Indoor freestanding bathtub with garden window view", title: { th: "อ่างแช่ริมสวน", en: "Tub by the Garden" }, subtitle: { th: "Indoor Soaking · Wood Cabin", en: "Indoor Soaking · Wood Cabin" } },
+      { src: "/images/about/story/02-camper-dusk.jpg", alt: "Silver Camper Van and stone garden at dusk surrounded by pines", title: { th: "ค่ำคืนรอบกองไฟ", en: "Sunset Firepit" }, subtitle: { th: "Camper Van · Pine Grove", en: "Camper Van · Pine Grove" } },
+      { src: "/images/about/story/03-bedroom.jpg", alt: "Glass villa bedroom with floor-to-ceiling windows facing the garden", title: { th: "วิลล่ากระจกริมสวน", en: "Glass Villa" }, subtitle: { th: "Floor-to-Ceiling Glass", en: "Floor-to-Ceiling Glass" } },
+      { src: "/images/about/story/04-wedding.png", alt: "Outdoor wedding setup with long wooden table and white floral arches", title: { th: "งานแต่งกลางสวน", en: "Garden Weddings" }, subtitle: { th: "Open-air · Long Table", en: "Open-air · Long Table" } },
+      { src: "/images/about/story/05-stone-villa.png", alt: "Stone-clad villa beside a natural stream with wooden bridge", title: { th: "วิลล่าหินกลางป่า", en: "Stone Villa" }, subtitle: { th: "Stream-side · Stone Walls", en: "Stream-side · Stone Walls" } },
+      { src: "/images/about/story/06-garden-chairs.png", alt: "Wooden dining set under olive trees in front of stone villa at dusk", title: { th: "มื้อค่ำใต้ต้นไม้", en: "Dinner Under Trees" }, subtitle: { th: "Garden Table · Lantern Light", en: "Garden Table · Lantern Light" } },
+      { src: "/images/about/story/07-outdoor-tub.png", alt: "Outdoor wooden bath with string lights overhead", title: { th: "อ่างแช่กลางแจ้ง", en: "Outdoor Soak" }, subtitle: { th: "Cedar Walls · String Lights", en: "Cedar Walls · String Lights" } },
+    ],
   },
   contactSection: {
     eyebrow: { th: "จองและสอบถาม", en: "Book & Inquire" },

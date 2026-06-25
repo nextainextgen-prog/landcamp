@@ -22,6 +22,14 @@ export type GalleryImage = {
   alt: string;
 };
 
+/** A "story" slide in the About section carousel. */
+export type StorySlide = {
+  src: string;
+  alt: string;
+  title: Bilingual;
+  subtitle: Bilingual;
+};
+
 export type SiteContent = {
   brand: {
     name: string;
@@ -54,6 +62,7 @@ export type SiteContent = {
     description: Bilingual;
     stats: AboutStat[];
     perks: { label: Bilingual }[];
+    story: StorySlide[];
   };
   contactSection: {
     eyebrow: Bilingual;
