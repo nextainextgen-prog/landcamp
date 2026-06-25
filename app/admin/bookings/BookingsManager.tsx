@@ -85,6 +85,9 @@ function thaiDate(iso: string): string {
 function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short" });
 }
+function ymdLocal(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 function nightsBetween(a: string, b: string): number {
   const ms = new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime();
   return Math.max(0, Math.round(ms / 86400000));
@@ -163,6 +166,7 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
   const [filter, setFilter] = useState<"all" | BookingStatus>("all");
   const [source, setSource] = useState<"all" | "line" | "google" | "walkin">("all");
   const [dateFilter, setDateFilter] = useState<string | null>(null);
+  const [sort, setSort] = useState<"recent" | "checkin" | "amount">("recent");
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(initialRows[0]?.id ?? null);
   const [busy, setBusy] = useState(false);
@@ -191,6 +195,44 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
       return r.booking_code.toLowerCase().includes(term) || r.customer.name.toLowerCase().includes(term) || r.customer.phone.includes(term);
     });
   }, [rows, filter, source, dateFilter, q]);
+
+  const sorted = useMemo(() => {
+    const arr = [...visible];
+    if (sort === "checkin") arr.sort((a, b) => (a.check_in < b.check_in ? -1 : a.check_in > b.check_in ? 1 : 0));
+    else if (sort === "amount") arr.sort((a, b) => b.total_amount - a.total_amount);
+    else arr.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
+    return arr;
+  }, [visible, sort]);
+
+  // Group by check-in proximity when sorting by check-in.
+  const dayKeys = useMemo(() => {
+    const d = new Date();
+    const todayKey = ymdLocal(d);
+    const tomorrowKey = ymdLocal(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
+    const weekKey = ymdLocal(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7));
+    return { todayKey, tomorrowKey, weekKey };
+  }, []);
+
+  const groups = useMemo(() => {
+    if (sort !== "checkin") return null;
+    const { todayKey, tomorrowKey, weekKey } = dayKeys;
+    const buckets: { key: string; label: string; rows: BookingRow[] }[] = [
+      { key: "today", label: "เข้าพักวันนี้", rows: [] },
+      { key: "tomorrow", label: "พรุ่งนี้", rows: [] },
+      { key: "week", label: "ภายใน 7 วัน", rows: [] },
+      { key: "later", label: "ภายหลัง", rows: [] },
+      { key: "past", label: "ที่ผ่านมา", rows: [] },
+    ];
+    const by = Object.fromEntries(buckets.map((b) => [b.key, b])) as Record<string, (typeof buckets)[number]>;
+    for (const r of sorted) {
+      if (r.check_in < todayKey) by.past.rows.push(r);
+      else if (r.check_in === todayKey) by.today.rows.push(r);
+      else if (r.check_in === tomorrowKey) by.tomorrow.rows.push(r);
+      else if (r.check_in <= weekKey) by.week.rows.push(r);
+      else by.later.rows.push(r);
+    }
+    return buckets.filter((b) => b.rows.length > 0);
+  }, [sorted, sort, dayKeys]);
 
   const selected = rows.find((r) => r.id === selectedId) ?? null;
 
@@ -271,42 +313,54 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
       </aside>
 
       {/* ── Middle: list ── */}
-      <div className="min-w-0">
-        <ul className="flex max-h-[80vh] flex-col gap-2 overflow-y-auto pr-1">
-          {visible.length === 0 && <li className="rounded-lg border border-dashed p-6 text-center text-sm text-[color:var(--color-ink)]/45">ไม่พบรายการ</li>}
-          {visible.map((r) => {
-            const active = selectedId === r.id;
-            return (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(r.id)}
-                  className={`group relative flex w-full items-start gap-3 overflow-hidden rounded-2xl border py-3 pl-4 pr-3.5 text-left transition-all ${
-                    active
-                      ? "border-[color:var(--color-warm-clay)]/45 bg-[color:var(--color-warm-clay)]/[0.06] shadow-sm"
-                      : "border-[color:var(--color-forest-deep)]/10 bg-white hover:border-[color:var(--color-forest-deep)]/20 hover:shadow-sm"
-                  }`}
-                >
-                  <span className="absolute inset-y-0 left-0 w-1" style={{ background: STATUS_ACCENT[r.status] }} aria-hidden />
-                  <Avatar c={r.customer} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="flex min-w-0 items-center gap-1">
-                        <span className="truncate text-sm font-semibold text-[color:var(--color-forest-deep)]">{r.customer.name}</span>
-                        {r.customer.isVip && <span className="flex-shrink-0 text-[11px]">⭐</span>}
-                      </span>
-                      <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_CLASS[r.status]}`}>{STATUS_TH[r.status]}</span>
-                    </div>
-                    <div className="mt-0.5 flex items-end justify-between gap-2">
-                      <span className="min-w-0 truncate text-xs text-[color:var(--color-ink)]/55">{r.room_name} · {shortDate(r.check_in)}</span>
-                      <span className="flex-shrink-0 text-sm font-semibold text-[color:var(--color-forest-deep)]">฿{r.total_amount.toLocaleString("en-US")}</span>
-                    </div>
-                    <div className="mt-0.5 font-mono text-[10px] text-[color:var(--color-ink)]/35">{r.booking_code}</div>
+      <div className="flex min-w-0 flex-col gap-3">
+        {/* list toolbar: count · sort */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-[color:var(--color-ink)]/50">{sorted.length} รายการ</span>
+          <label className="flex items-center gap-1.5 text-xs text-[color:var(--color-ink)]/50">
+            เรียงโดย
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as typeof sort)}
+              className="rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-2 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] outline-none focus:border-[color:var(--color-warm-clay)]"
+            >
+              <option value="recent">ใหม่สุด</option>
+              <option value="checkin">ใกล้เข้าพัก</option>
+              <option value="amount">ยอดสูงสุด</option>
+            </select>
+          </label>
+        </div>
+
+        {/* active date-filter chip */}
+        {dateFilter && (
+          <button
+            type="button"
+            onClick={() => setDateFilter(null)}
+            className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[color:var(--color-warm-clay)]/12 px-3 py-1 text-xs font-medium text-[color:var(--color-warm-clay)] hover:bg-[color:var(--color-warm-clay)]/20"
+          >
+            เข้าพัก {thaiDate(dateFilter)} <span className="text-sm leading-none">×</span>
+          </button>
+        )}
+
+        <ul className="flex max-h-[78vh] flex-col gap-2 overflow-y-auto pr-1">
+          {sorted.length === 0 && <li className="rounded-lg border border-dashed p-6 text-center text-sm text-[color:var(--color-ink)]/45">ไม่พบรายการ</li>}
+          {groups
+            ? groups.map((g) => (
+                <li key={g.key} className="flex flex-col gap-2">
+                  <div className="sticky top-0 z-[1] flex items-center gap-2 bg-[color:var(--color-bone)]/80 py-1 backdrop-blur-sm">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/60">{g.label}</span>
+                    <span className="rounded-full bg-[color:var(--color-bone-soft)] px-1.5 text-[10px] font-medium text-[color:var(--color-ink)]/55">{g.rows.length}</span>
                   </div>
-                </button>
-              </li>
-            );
-          })}
+                  {g.rows.map((r) => (
+                    <BookingCard key={r.id} r={r} active={selectedId === r.id} onSelect={() => setSelectedId(r.id)} dayKeys={dayKeys} busy={busy} onPatch={patch} onZoom={setZoom} />
+                  ))}
+                </li>
+              ))
+            : sorted.map((r) => (
+                <li key={r.id}>
+                  <BookingCard r={r} active={selectedId === r.id} onSelect={() => setSelectedId(r.id)} dayKeys={dayKeys} busy={busy} onPatch={patch} onZoom={setZoom} />
+                </li>
+              ))}
         </ul>
       </div>
 
@@ -326,6 +380,93 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4" onClick={() => setZoom(null)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={zoom} alt="สลิป" className="max-h-full max-w-full rounded-lg" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BookingCard({
+  r,
+  active,
+  onSelect,
+  dayKeys,
+  busy,
+  onPatch,
+  onZoom,
+}: {
+  r: BookingRow;
+  active: boolean;
+  onSelect: () => void;
+  dayKeys: { todayKey: string; tomorrowKey: string };
+  busy: boolean;
+  onPatch: (id: string, body: Record<string, string>, optimistic: BookingStatus) => void;
+  onZoom: (src: string) => void;
+}) {
+  const isToday = r.check_in === dayKeys.todayKey;
+  const isTomorrow = r.check_in === dayKeys.tomorrowKey;
+  const needsAction = r.status === "payment_review";
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className={`group relative cursor-pointer overflow-hidden rounded-2xl border py-3 pl-4 pr-3.5 transition-all ${
+        active
+          ? "border-[color:var(--color-warm-clay)]/45 bg-[color:var(--color-warm-clay)]/[0.06] shadow-sm"
+          : needsAction
+            ? "border-blue-300/70 bg-white ring-1 ring-blue-200 hover:shadow-sm"
+            : "border-[color:var(--color-forest-deep)]/10 bg-white hover:border-[color:var(--color-forest-deep)]/20 hover:shadow-sm"
+      }`}
+    >
+      <span className="absolute inset-y-0 left-0 w-1" style={{ background: STATUS_ACCENT[r.status] }} aria-hidden />
+      <div className="flex items-start gap-3">
+        <Avatar c={r.customer} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-1">
+              <span className="truncate text-sm font-semibold text-[color:var(--color-forest-deep)]">{r.customer.name}</span>
+              {r.customer.isVip && <span className="flex-shrink-0 text-[11px]">⭐</span>}
+            </span>
+            <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_CLASS[r.status]}`}>{STATUS_TH[r.status]}</span>
+          </div>
+          <div className="mt-0.5 flex items-end justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-1.5">
+              {isToday && <span className="flex-shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">วันนี้</span>}
+              {isTomorrow && <span className="flex-shrink-0 rounded-full bg-[color:var(--color-warm-clay)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--color-warm-clay)]">พรุ่งนี้</span>}
+              <span className="truncate text-xs text-[color:var(--color-ink)]/55">{r.room_name} · {shortDate(r.check_in)}</span>
+            </span>
+            <span className="flex-shrink-0 text-sm font-semibold text-[color:var(--color-forest-deep)]">฿{r.total_amount.toLocaleString("en-US")}</span>
+          </div>
+          <div className="mt-0.5 font-mono text-[10px] text-[color:var(--color-ink)]/35">{r.booking_code}</div>
+        </div>
+      </div>
+
+      {needsAction && (
+        <div className="mt-2.5 flex gap-2 border-t border-[color:var(--color-forest-deep)]/8 pt-2.5">
+          {r.payment?.slip_image && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onZoom(r.payment!.slip_image!); }}
+              className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"
+            >
+              ดูสลิป
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={(e) => { e.stopPropagation(); onPatch(r.id, { action: "confirm" }, "confirmed"); }}
+            className="rounded-lg bg-[color:var(--color-warm-clay)] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50"
+          >
+            ✓ ยืนยัน
+          </button>
         </div>
       )}
     </div>
