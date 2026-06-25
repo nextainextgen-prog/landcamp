@@ -3,55 +3,19 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "@/app/providers";
-import Image from "next/image";
+import { useContent } from "@/lib/content/provider";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-// Atmosphere photos
-const ATMOSPHERE_IMAGES: { src: string; alt: string }[] = [
-  { src: "/images/atmosphere/atmosphere-01.jpeg", alt: "Aerial view of Camper Van deck and stone garden" },
-  { src: "/images/atmosphere/atmosphere-02.jpeg", alt: "Sunset deck at Camper Van" },
-  { src: "/images/atmosphere/atmosphere-03.jpeg", alt: "Stone fire pit beside the Camper Van at dusk" },
-  { src: "/images/atmosphere/atmosphere-04.png", alt: "Camper Van bedroom interior" },
-  { src: "/images/atmosphere/atmosphere-05.png", alt: "Marshall speaker corner inside the Camper Van" },
-  { src: "/images/atmosphere/atmosphere-06.png", alt: "Bathtub with garden window view" },
-  { src: "/images/atmosphere/atmosphere-07.jpeg", alt: "Camper Train deck with lounge chairs" },
-  { src: "/images/atmosphere/atmosphere-08.jpeg", alt: "Guest sitting on the Camper Van deck at sunset" },
-  { src: "/images/atmosphere/atmosphere-09.jpeg", alt: "Outdoor bath with pine view" },
-  { src: "/images/atmosphere/atmosphere-10.jpeg", alt: "Couple walking on stone path through the pines" },
-  { src: "/images/atmosphere/atmosphere-11.jpeg", alt: "Aerial view of LandCamp gardens" },
-  { src: "/images/atmosphere/atmosphere-12.png", alt: "Outdoor cedar soaking tub" },
-  { src: "/images/atmosphere/atmosphere-13.jpeg", alt: "Camper Train at golden hour" },
-  { src: "/images/atmosphere/atmosphere-14.jpeg", alt: "Outdoor tub beside the lake" },
-  { src: "/images/atmosphere/atmosphere-15.jpeg", alt: "Glass villa bedroom with garden view" },
-  { src: "/images/atmosphere/atmosphere-16.jpeg", alt: "Marshall speaker on bedside" },
-  { src: "/images/atmosphere/atmosphere-17.jpeg", alt: "Marble bathroom with shower" },
-  { src: "/images/atmosphere/atmosphere-18.jpeg", alt: "Glass villa bedroom" },
-  { src: "/images/atmosphere/atmosphere-19.jpeg", alt: "Stone villa exterior with adirondack chairs" },
-  { src: "/images/atmosphere/atmosphere-20.jpeg", alt: "Garden path through the property" },
-  { src: "/images/atmosphere/atmosphere-21.jpeg", alt: "Cabana with shade sail" },
-  { src: "/images/atmosphere/atmosphere-22.jpeg", alt: "Lawn and pine grove" },
-  { src: "/images/atmosphere/atmosphere-23.jpeg", alt: "Aerial view of stone fire pit area" },
-  { src: "/images/atmosphere/atmosphere-24.jpeg", alt: "Camper Van bedroom living space" },
-  { src: "/images/atmosphere/atmosphere-25.jpeg", alt: "Wood-paneled bathroom with shower" },
-  { src: "/images/atmosphere/atmosphere-26.jpeg", alt: "Master bedroom interior" },
-  { src: "/images/atmosphere/atmosphere-27.png", alt: "Sofa with linen pillows in living area" },
-  { src: "/images/atmosphere/atmosphere-28.jpeg", alt: "Linen sofa beside window" },
-  { src: "/images/atmosphere/atmosphere-29.jpeg", alt: "Bathroom with freestanding tub and garden view" },
-  { src: "/images/atmosphere/atmosphere-30.jpeg", alt: "Dining and living area" },
-  { src: "/images/atmosphere/atmosphere-31.jpeg", alt: "Stone villa with stream" },
-  { src: "/images/atmosphere/atmosphere-32.jpeg", alt: "Guest by adirondack chairs at golden hour" },
-  { src: "/images/atmosphere/atmosphere-33.jpeg", alt: "Marshall speaker on side table" },
-  { src: "/images/atmosphere/atmosphere-34.jpeg", alt: "Bathroom interior" },
-  { src: "/images/atmosphere/atmosphere-35.jpeg", alt: "Camper Van interior in evening light" },
-];
-
 export function GallerySection() {
   const t = useT();
+  const { gallery } = useContent();
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
 
-  const rowOne = useMemo(() => ATMOSPHERE_IMAGES.slice(0, 18), []);
-  const rowTwo = useMemo(() => ATMOSPHERE_IMAGES.slice(18), []);
+  // Split into two rows (CMS-managed; falls back to the default atmosphere set).
+  const half = Math.ceil(gallery.length / 2);
+  const rowOne = useMemo(() => gallery.slice(0, half), [gallery, half]);
+  const rowTwo = useMemo(() => gallery.slice(half), [gallery, half]);
 
   useEffect(() => {
     document.body.style.overflow = lightbox ? "hidden" : "";
@@ -158,12 +122,11 @@ export function GallerySection() {
               </button>
 
               <div className="relative w-full aspect-[4/3] rounded-[12px] overflow-hidden bg-[color:var(--color-forest-night)]">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={lightbox.src}
                   alt={lightbox.alt}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 1024px"
-                  className="object-contain"
+                  className="absolute inset-0 h-full w-full object-contain"
                 />
               </div>
             </motion.div>
@@ -318,13 +281,13 @@ function DragRow({
             draggable={false}
             className="relative flex-shrink-0 h-[200px] sm:h-[240px] lg:h-[280px] w-[260px] sm:w-[320px] lg:w-[380px] overflow-hidden rounded-[14px] bg-[color:var(--color-bone-soft)] group cursor-zoom-in"
           >
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={img.src}
               alt={img.alt}
-              fill
-              sizes="(max-width: 640px) 260px, (max-width: 1024px) 320px, 380px"
+              loading="lazy"
               draggable={false}
-              className="object-cover pointer-events-none transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+              className="absolute inset-0 h-full w-full object-cover pointer-events-none transition-transform duration-700 ease-out group-hover:scale-[1.06]"
             />
           </button>
         ))}

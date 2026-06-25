@@ -3,17 +3,18 @@
 import { motion } from "framer-motion";
 import type { SVGProps } from "react";
 import { useState } from "react";
-import { siteConfig } from "@/data/siteConfig";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { cn } from "@/lib/cn";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-const LINE_QR = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
-  siteConfig.contact.lineUrl,
-)}&bgcolor=4D584B&color=F5F1EA&margin=10&format=svg`;
+const lineQrUrl = (lineUrl: string) =>
+  `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
+    lineUrl,
+  )}&bgcolor=4D584B&color=F5F1EA&margin=10&format=svg`;
 
 const GOOGLE_REVIEW_URL =
   "https://www.google.com/maps/place/LandCamp+Villa+Khao+Yai/@14.6042662,101.4386857,17z/data=!4m8!3m7!1s0x311c2fa1d1a6dd03:0x200fb4eac8430519!8m2!3d14.6042662!4d101.4386857!9m1!1b1!16s%2Fg%2F11l5srt2_w?hl=th-TH";
@@ -74,7 +75,9 @@ function StarIcon({ filled, ...props }: SVGProps<SVGSVGElement> & { filled: bool
 
 export function ContactSection() {
   const t = useT();
+  const { contact, contactSection } = useContent();
   const [hoverStar, setHoverStar] = useState(5);
+  const lineQr = lineQrUrl(contact.lineUrl);
 
   const openGoogleReview = () => {
     window.open(GOOGLE_REVIEW_URL, "_blank", "noopener,noreferrer");
@@ -138,7 +141,7 @@ export function ContactSection() {
                 <span className="text-[color:var(--color-warm-clay)]">10</span>
                 <span aria-hidden className="h-px w-8 bg-[color:var(--color-bone)]/40" />
                 <span className="text-[color:var(--color-bone)]/65">
-                  {t({ th: "จองและสอบถาม", en: "Book & Inquire" })}
+                  {t(contactSection.eyebrow)}
                 </span>
               </div>
 
@@ -146,18 +149,12 @@ export function ContactSection() {
                 className="font-display text-[26px] sm:text-[32px] lg:text-[38px] leading-[1.1] text-[color:var(--color-bone)]"
                 style={{ letterSpacing: "-0.02em" }}
               >
-                {t({
-                  th: "พูดคุยกับเราโดยตรง ผ่าน Line @landcamp",
-                  en: "Talk to us directly via Line @landcamp",
-                })}
+                {t(contactSection.heading)}
               </h2>
             </motion.div>
 
             <p className="text-sm sm:text-base leading-[1.65] text-[color:var(--color-bone)]/75 max-w-md">
-              {t({
-                th: "ทีมงานตอบทุกข้อความภายใน 3 ชั่วโมง ไม่ผ่านเอเจนซี ไม่มีค่าธรรมเนียมแอบแฝง — แอด Line แล้วจองได้เลย",
-                en: "Our team responds within 3 hours. No agency, no hidden fees — add us on Line and book directly.",
-              })}
+              {t(contactSection.lead)}
             </p>
 
             <motion.div
@@ -170,8 +167,8 @@ export function ContactSection() {
               <div className="relative h-28 w-28 sm:h-32 sm:w-32 rounded-[10px] overflow-hidden bg-[color:var(--color-forest-deep)] flex-shrink-0 flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={LINE_QR}
-                  alt={`Line QR code for ${siteConfig.contact.line}`}
+                  src={lineQr}
+                  alt={`Line QR code for ${contact.line}`}
                   width={120}
                   height={120}
                   className="h-full w-full"
@@ -186,10 +183,10 @@ export function ContactSection() {
                   {t({ th: "สแกนเพื่อแอด Line", en: "Scan to add on Line" })}
                 </span>
                 <p className="font-display text-2xl sm:text-3xl text-[color:var(--color-bone)]">
-                  {siteConfig.contact.line}
+                  {contact.line}
                 </p>
                 <a
-                  href={siteConfig.contact.lineUrl}
+                  href={contact.lineUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/80 hover:text-[color:var(--color-warm-clay)] transition-colors"
@@ -213,31 +210,31 @@ export function ContactSection() {
                 {[
                   {
                     label: "Line",
-                    href: siteConfig.contact.lineUrl,
+                    href: contact.lineUrl,
                     Icon: LineIcon,
                     color: "hover:bg-[#06C755] hover:text-white hover:border-[#06C755]",
                   },
                   {
                     label: "Instagram",
-                    href: siteConfig.contact.instagram,
+                    href: contact.instagram,
                     Icon: InstagramIcon,
                     color: "hover:bg-gradient-to-br hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] hover:text-white hover:border-transparent",
                   },
                   {
                     label: "Facebook",
-                    href: siteConfig.contact.facebook,
+                    href: contact.facebook,
                     Icon: FacebookIcon,
                     color: "hover:bg-[#1877F2] hover:text-white hover:border-[#1877F2]",
                   },
                   {
                     label: "Phone",
-                    href: `tel:${siteConfig.contact.phoneE164}`,
+                    href: `tel:${contact.phoneE164}`,
                     Icon: PhoneIcon,
                     color: "hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)] hover:border-[color:var(--color-warm-clay)]",
                   },
                   {
                     label: "Email",
-                    href: `mailto:${siteConfig.contact.email}`,
+                    href: `mailto:${contact.email}`,
                     Icon: MailIcon,
                     color: "hover:bg-[color:var(--color-bone)] hover:text-[color:var(--color-forest-night)] hover:border-[color:var(--color-bone)]",
                   },

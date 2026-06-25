@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Inter, Noto_Sans_Thai } from "next/font/google";
+import { Anuphan, Cormorant_Garamond, Inter, Noto_Sans_Thai } from "next/font/google";
 import { siteConfig } from "@/data/siteConfig";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { Providers } from "./providers";
@@ -14,6 +14,14 @@ const inter = Inter({
 
 const notoThai = Noto_Sans_Thai({
   variable: "--font-noto-thai",
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+// Anuphan — modern loopless Thai for the admin backoffice (paired with Inter).
+const anuphan = Anuphan({
+  variable: "--font-anuphan",
   subsets: ["thai", "latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
@@ -98,7 +106,7 @@ export default function RootLayout({
   return (
     <html
       lang="th"
-      className={`${inter.variable} ${notoThai.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${inter.variable} ${notoThai.variable} ${anuphan.variable} ${cormorant.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[color:var(--color-bone)] text-[color:var(--color-ink)]">
         <StructuredData />

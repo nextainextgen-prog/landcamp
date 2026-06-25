@@ -7,6 +7,9 @@ import { useT } from "@/app/providers";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { MagneticButton } from "@/components/ui/MagneticButton";
+import { scrollToSection } from "@/lib/scrollToSection";
+import { NavAuth } from "./NavAuth";
+import { CUSTOMER_AUTH_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/cn";
 
 const SCROLL_THRESHOLD = 60;
@@ -94,10 +97,16 @@ export function Navbar() {
               <LanguageToggle variant="light" />
             </div>
 
+            {CUSTOMER_AUTH_ENABLED && (
+              <div className="hidden md:block">
+                <NavAuth variant="desktop" />
+              </div>
+            )}
+
             <div className="hidden md:block">
               <MagneticButton
-                href={siteConfig.contact.lineUrl}
-                ariaLabel="Book via Line"
+                onClick={() => scrollToSection("rooms")}
+                ariaLabel={t({ th: "เลื่อนไปดูห้องพัก", en: "Jump to rooms" })}
               >
                 <span
                   className={cn(
@@ -216,6 +225,8 @@ export function Navbar() {
 
               <div className="mt-auto px-6 pb-10 space-y-6">
                 <LanguageToggle variant="light" />
+
+                {CUSTOMER_AUTH_ENABLED && <NavAuth variant="mobile" />}
 
                 <a
                   href={siteConfig.contact.lineUrl}

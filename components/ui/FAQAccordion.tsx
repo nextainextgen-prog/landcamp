@@ -2,8 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { faqItems } from "@/data/faq";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { cn } from "@/lib/cn";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -15,17 +15,18 @@ type FAQAccordionProps = {
 
 export function FAQAccordion({ tone = "bone", className }: FAQAccordionProps) {
   const t = useT();
-  const [open, setOpen] = useState<string | null>(faqItems[0]?.id ?? null);
+  const { faq } = useContent();
+  const [open, setOpen] = useState<number | null>(0);
 
   const isInk = tone === "ink";
 
   return (
     <ul className={cn("flex flex-col", className)}>
-      {faqItems.map((item, i) => {
-        const isOpen = open === item.id;
+      {faq.map((item, i) => {
+        const isOpen = open === i;
         return (
           <li
-            key={item.id}
+            key={i}
             className={cn(
               "border-b",
               isInk
@@ -36,8 +37,8 @@ export function FAQAccordion({ tone = "bone", className }: FAQAccordionProps) {
             <motion.button
               type="button"
               aria-expanded={isOpen}
-              aria-controls={`faq-${item.id}`}
-              onClick={() => setOpen(isOpen ? null : item.id)}
+              aria-controls={`faq-${i}`}
+              onClick={() => setOpen(isOpen ? null : i)}
               className={cn(
                 "w-full flex items-baseline justify-between gap-6 py-6 sm:py-7 text-left",
                 isInk
@@ -74,7 +75,7 @@ export function FAQAccordion({ tone = "bone", className }: FAQAccordionProps) {
               {isOpen && (
                 <motion.div
                   key="content"
-                  id={`faq-${item.id}`}
+                  id={`faq-${i}`}
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}

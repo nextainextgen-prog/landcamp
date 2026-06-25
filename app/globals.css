@@ -35,6 +35,9 @@
     "Noto Sans Thai", system-ui, sans-serif;
   --font-serif: var(--font-cormorant), "Cormorant Garamond",
     var(--font-noto-thai), "Noto Sans Thai", serif;
+  /* Admin backoffice — Inter (Latin) with Anuphan handling Thai glyphs. */
+  --font-admin: var(--font-inter), var(--font-anuphan), "Inter",
+    "Anuphan", system-ui, sans-serif;
 
   /* ──────────────────────────────────────────
      Motion
@@ -137,6 +140,19 @@ body {
 }
 
 /* ──────────────────────────────────────────
+   Admin backoffice typeface (scoped to /admin)
+   Anuphan handles Thai, Inter handles Latin.
+   Tabular figures keep money/number columns aligned.
+   ────────────────────────────────────────── */
+.admin-type,
+.admin-type .font-display {
+  font-family: var(--font-admin);
+}
+.admin-type {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ──────────────────────────────────────────
    Selection
    ────────────────────────────────────────── */
 ::selection {
@@ -207,4 +223,14 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Slide-over drawer + overlay (used by admin customers drawer) */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }

@@ -12,6 +12,14 @@ import * as THREE from "three";
  * Uses InstancedMesh with sprite billboards. Rotation, position and
  * size jitter per instance so the field never feels mechanical.
  */
+// Deterministic pseudo-random in [0, 1) from a seed. Pure (no Math.random),
+// so it can run during render without violating React's purity rule while
+// still scattering the particles so the field doesn't look mechanical.
+function seeded(n: number): number {
+  const x = Math.sin(n) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 function Dust({ count = 90 }: { count?: number }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   const positions = useMemo(() => {
@@ -19,18 +27,18 @@ function Dust({ count = 90 }: { count?: number }) {
       [];
     for (let i = 0; i < count; i++) {
       arr.push({
-        x: (Math.random() - 0.5) * 12,
-        y: (Math.random() - 0.5) * 8,
-        z: (Math.random() - 0.5) * 4,
-        speed: 0.04 + Math.random() * 0.08,
-        drift: (Math.random() - 0.5) * 0.4,
-        size: 0.012 + Math.random() * 0.022,
+        x: (seeded(i * 12.9898 + 1) - 0.5) * 12,
+        y: (seeded(i * 78.233 + 2) - 0.5) * 8,
+        z: (seeded(i * 37.719 + 3) - 0.5) * 4,
+        speed: 0.04 + seeded(i * 19.123 + 4) * 0.08,
+        drift: (seeded(i * 51.07 + 5) - 0.5) * 0.4,
+        size: 0.012 + seeded(i * 93.41 + 6) * 0.022,
       });
     }
     return arr;
   }, [count]);
 
-  useFrame((state, dt) => {
+  useFrame((state) => {
     if (!mesh.current) return;
     const dummy = new THREE.Object3D();
     const time = state.clock.elapsedTime;

@@ -9,92 +9,17 @@ import {
   useVelocity,
 } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { FullMenuModal } from "@/components/sections/FullMenuModal";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 type MenuImage = { src: string; alt: string };
 
-// Row 1 — คาเฟ่ (ขนม + เครื่องดื่ม)
-const CAFE_IMAGES: MenuImage[] = [
-  { src: "/images/menu/cafe/dessert-01.jpg", alt: "Honey toast brick, caramel croissant and blueberry cheesecake at Try Cafe" },
-  { src: "/images/menu/cafe/dessert-02.jpg", alt: "Honey being poured onto toast brick at Try Cafe" },
-  { src: "/images/menu/cafe/dessert-03.jpg", alt: "Pastry spread — toast brick, caramel croissant, blueberry cheesecake, banana cake" },
-  { src: "/images/menu/cafe/dessert-04.jpg", alt: "Blueberry cheesecake on wooden tray, Try Cafe" },
-  { src: "/images/menu/cafe/dessert-05.jpg", alt: "Plain and caramel cashew croissants with banana cake" },
-  { src: "/images/menu/cafe/dessert-06.jpg", alt: "Caramel cashew croissant alongside almond banana cake" },
-  { src: "/images/menu/cafe/drink-01.jpg", alt: "Iced Americano with orange slices on Try Cafe board" },
-  { src: "/images/menu/cafe/drink-02.jpg", alt: "Iced latte in Try Cafe cup" },
-  { src: "/images/menu/cafe/drink-03.jpg", alt: "Iced latte and orange Americano on Try Cafe board" },
-  { src: "/images/menu/cafe/drink-04.jpg", alt: "Iced caramel macchiato in Try Cafe cup" },
-  { src: "/images/menu/cafe/drink-05.jpg", alt: "Iced caramel latte with art on top" },
-  { src: "/images/menu/cafe/drink-06.jpg", alt: "Strawberry matcha with strawberry topping at Try Cafe" },
-  { src: "/images/menu/cafe/drink-07.jpg", alt: "Iced orange Americano in Try Cafe cup" },
-  { src: "/images/menu/cafe/drink-08.jpg", alt: "Matcha latte in hand at Try Cafe" },
-  { src: "/images/menu/cafe/drink-09.jpg", alt: "Fresh orange juice at Try Cafe" },
-  { src: "/images/menu/cafe/drink-10.jpg", alt: "Iced latte in hand at Try Cafe" },
-  { src: "/images/menu/cafe/drink-11.jpg", alt: "Try Cafe signature drinks lineup" },
-  { src: "/images/menu/cafe/drink-12.jpg", alt: "Strawberry chocolate frappe at Try Cafe" },
-  { src: "/images/menu/cafe/drink-13.jpg", alt: "Strawberry chocolate frappe in hand by the stream" },
-  { src: "/images/menu/cafe/drink-14.jpg", alt: "Berry soda with mixed berries at Try Cafe" },
-  { src: "/images/menu/cafe/drink-15.jpg", alt: "Thai tea in Try Cafe cup" },
-];
-
-// Row 2 — อาหารตามสั่ง (Thai a la carte / rice plates)
-const DISHES_IMAGES: MenuImage[] = [
-  { src: "/images/menu/dishes/dish-01.jpg", alt: "Crispy pork belly, fried chicken wings and rice with crispy pork" },
-  { src: "/images/menu/dishes/dish-02.jpg", alt: "Crispy pork rice, deep-fried pork belly and fried wings on banana leaf" },
-  { src: "/images/menu/dishes/dish-03.jpg", alt: "Stir-fried basil beef and basil chicken with rice" },
-  { src: "/images/menu/dishes/dish-04.jpg", alt: "Top-down spread of Thai stir-fry rice dishes" },
-  { src: "/images/menu/dishes/dish-05.jpg", alt: "Basil rice, basil shrimp, basil squid spread" },
-  { src: "/images/menu/dishes/dish-06.jpg", alt: "Crispy pork belly, fried chicken wings, basil shrimp rice" },
-  { src: "/images/menu/dishes/dish-07.jpg", alt: "Mixed Thai stir-fry plates with rice and chili dipping sauce" },
-];
-
-// Row 3 — อาหารเช้า + หมูกระทะ
-const BREAKFAST_KRATA_IMAGES: MenuImage[] = [
-  { src: "/images/menu/breakfast-krata/bf-01.jpg", alt: "Pan breakfast with eggs, ham, sausage, salad and fresh juice" },
-  { src: "/images/menu/breakfast-krata/bf-04.jpg", alt: "Skillet eggs with toast, sausage, orange juice and fresh salad" },
-  { src: "/images/menu/breakfast-krata/bf-02.jpg", alt: "Close-up of pan breakfast with eggs, bacon and toast" },
-  { src: "/images/menu/breakfast-krata/bf-05.jpg", alt: "Rattan breakfast basket — skillet eggs, rice soup, fruits and fresh juice" },
-  { src: "/images/menu/breakfast-krata/bf-06.jpg", alt: "Top-down skillet eggs with sausage and ground pork on wooden deck" },
-  { src: "/images/menu/breakfast-krata/bf-03.jpg", alt: "Full breakfast spread — pan eggs, salad, soup and orange juice" },
-  { src: "/images/menu/breakfast-krata/bf-07.jpg", alt: "Full Thai breakfast spread — rice soup, skillet eggs, juice and fruits" },
-  { src: "/images/menu/breakfast-krata/krata-01.jpg", alt: "Moo krata clay pot set with raw meats and vegetables" },
-  { src: "/images/menu/breakfast-krata/krata-02.jpg", alt: "Charcoal clay-pot moo krata being cooked outdoors" },
-  { src: "/images/menu/breakfast-krata/krata-03.jpg", alt: "Moo krata outdoor setup with vegetables and dipping sauces" },
-];
-
-const ROWS: {
-  id: string;
-  label: { th: string; en: string };
-  images: MenuImage[];
-  duration: number;
-}[] = [
-  {
-    id: "cafe",
-    label: { th: "คาเฟ่ · ขนม & เครื่องดื่ม", en: "Cafe · Sweets & Drinks" },
-    images: CAFE_IMAGES,
-    duration: 90,
-  },
-  {
-    id: "dishes",
-    label: { th: "อาหารตามสั่ง", en: "Thai à la carte" },
-    images: DISHES_IMAGES,
-    duration: 90,
-  },
-  {
-    id: "breakfast-krata",
-    label: { th: "อาหารเช้า & หมูกระทะ", en: "Breakfast & Moo Krata" },
-    images: BREAKFAST_KRATA_IMAGES,
-    duration: 90,
-  },
-];
-
 export function MenuSection() {
   const t = useT();
+  const { menu } = useContent();
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -139,19 +64,14 @@ export function MenuSection() {
           >
             <span className="text-[color:var(--color-warm-clay)]">06</span>
             <span aria-hidden className="h-px w-8 bg-[color:var(--color-forest-deep)]/40" />
-            <span className="text-[color:var(--color-forest-deep)]/65">
-              {t({ th: "อาหาร & เครื่องดื่ม", en: "Food & Drinks" })}
-            </span>
+            <span className="text-[color:var(--color-forest-deep)]/65">{t(menu.eyebrow)}</span>
           </div>
 
           <h2
             className="font-display text-[22px] sm:text-[30px] lg:text-[38px] leading-[1.15] text-[color:var(--color-forest-deep)] lg:whitespace-nowrap"
             style={{ letterSpacing: "-0.02em" }}
           >
-            {t({
-              th: "ครัว คาเฟ่ และมื้อค่ำริมลำธาร",
-              en: "Kitchen, cafe and dinner by the stream",
-            })}
+            {t(menu.heading)}
           </h2>
 
           <button
@@ -168,7 +88,7 @@ export function MenuSection() {
 
       {/* Three marquee rows */}
       <div className="mt-12 sm:mt-16 flex flex-col gap-8 sm:gap-10">
-        {ROWS.map((row) => (
+        {menu.rows.map((row) => (
           <div key={row.id} className="flex flex-col gap-3">
             <div className="mx-auto max-w-[1440px] w-full px-6 sm:px-10 lg:px-14">
               <span
@@ -179,7 +99,7 @@ export function MenuSection() {
                 {t(row.label)}
               </span>
             </div>
-            <MarqueeRow images={row.images} duration={row.duration} boost={boost} />
+            {row.images.length > 0 && <MarqueeRow images={row.images} duration={90} boost={boost} />}
           </div>
         ))}
       </div>
@@ -192,10 +112,7 @@ export function MenuSection() {
           transition={{ duration: 1, delay: 0.2 }}
           className="mt-12 sm:mt-16 text-center text-sm text-[color:var(--color-ink)]/55 max-w-2xl mx-auto"
         >
-          {t({
-            th: "อาหารเช้ารวมในแพ็กเกจ · อาหารตามสั่ง คาเฟ่ และหมูกระทะ สั่งเพิ่มได้ทาง Line @landcamp",
-            en: "Breakfast included with every stay · Thai à la carte, cafe and moo krata available on order via Line @landcamp.",
-          })}
+          {t(menu.lead)}
         </motion.p>
       </div>
 
@@ -350,13 +267,13 @@ function MarqueeRow({
             key={`${img.src}-${i}`}
             className="relative flex-shrink-0 h-[200px] sm:h-[240px] lg:h-[280px] w-[260px] sm:w-[320px] lg:w-[380px] overflow-hidden rounded-[14px] bg-[color:var(--color-bone-soft)] group"
           >
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={img.src}
               alt={img.alt}
-              fill
-              sizes="(max-width: 640px) 260px, (max-width: 1024px) 320px, 380px"
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06] pointer-events-none"
+              loading="lazy"
               draggable={false}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06] pointer-events-none"
             />
           </div>
         ))}

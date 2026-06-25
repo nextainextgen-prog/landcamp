@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { cn } from "@/lib/cn";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -14,51 +15,6 @@ type ReviewVideo = {
   handle: string;
   tag: { th: string; en: string };
 };
-
-const VIDEOS: ReviewVideo[] = [
-  {
-    id: "reel-01",
-    src: "/videos/reviews/reel-01.mp4",
-    title: { th: "รีวิวจากผู้เข้าพัก", en: "Guest reel" },
-    handle: "@landcamp_khaoyai",
-    tag: { th: "Guest Reel", en: "Guest Reel" },
-  },
-  {
-    id: "reel-02",
-    src: "/videos/reviews/reel-02.mp4",
-    title: { th: "บรรยากาศ LandCamp", en: "LandCamp vibes" },
-    handle: "@landcamp_khaoyai",
-    tag: { th: "Vibes", en: "Vibes" },
-  },
-  {
-    id: "overview",
-    src: "/videos/reviews/overview.mp4",
-    title: { th: "ภาพรวม LandCamp", en: "LandCamp overview" },
-    handle: "@landcamp_khaoyai",
-    tag: { th: "ทัวร์ทั่วโครงการ", en: "Property tour" },
-  },
-  {
-    id: "camper-train",
-    src: "/videos/reviews/camper-train.mp4",
-    title: { th: "นอนบ้านรถไฟ", en: "Sleeping in the Camper Train" },
-    handle: "@landcamp_khaoyai",
-    tag: { th: "Camper Train", en: "Camper Train" },
-  },
-  {
-    id: "glass-villa",
-    src: "/videos/reviews/glass-villa.mp4",
-    title: { th: "วิลล่ากระจกใส", en: "Glass villa" },
-    handle: "@landcamp_khaoyai",
-    tag: { th: "Glass Villa", en: "Glass Villa" },
-  },
-  {
-    id: "villa-2bedroom",
-    src: "/videos/reviews/villa-2bedroom.mp4",
-    title: { th: "วิลล่า 2 ห้องนอน", en: "2-bedroom villa" },
-    handle: "@landcamp_khaoyai",
-    tag: { th: "Villa 2BR", en: "Villa 2BR" },
-  },
-];
 
 function VideoCard({
   video,
@@ -216,7 +172,9 @@ function VideoCard({
 
 export function VideoSection() {
   const t = useT();
+  const { video } = useContent();
   const [activeMute, setActiveMute] = useState<string | null>(null);
+  const clips: ReviewVideo[] = video.clips.map((c, i) => ({ ...c, id: c.src || `clip-${i}` }));
 
   return (
     <section
@@ -238,26 +196,18 @@ export function VideoSection() {
           >
             <span className="text-[color:var(--color-warm-clay)]">05</span>
             <span aria-hidden className="h-px w-8 bg-[color:var(--color-bone)]/40" />
-            <span className="text-[color:var(--color-bone)]/65">
-              {t({ th: "วิดีโอบรรยากาศ", en: "Atmosphere on Film" })}
-            </span>
+            <span className="text-[color:var(--color-bone)]/65">{t(video.eyebrow)}</span>
           </div>
 
           <h2
             className="font-display text-[28px] sm:text-[36px] lg:text-[44px] leading-[1.1] text-[color:var(--color-bone)] max-w-xl whitespace-pre-line"
             style={{ letterSpacing: "-0.02em" }}
           >
-            {t({
-              th: "ชมบรรยากาศจริงผ่าน\nมุมมองของผู้เข้าพัก",
-              en: "See it through\nour guests' eyes",
-            })}
+            {t(video.heading)}
           </h2>
 
           <p className="max-w-md text-sm sm:text-base leading-relaxed text-[color:var(--color-bone)]/65">
-            {t({
-              th: "วิดีโอรีวิวสไตล์ Reels จากผู้เข้าพักจริง — แตะที่ลำโพงเพื่อเปิดเสียง",
-              en: "Reels-style clips from real guests — tap the speaker to hear sound.",
-            })}
+            {t(video.lead)}
           </p>
         </motion.div>
 
@@ -265,7 +215,7 @@ export function VideoSection() {
         <div
           className="mt-10 sm:mt-14 -mx-6 sm:mx-0 flex gap-4 sm:gap-5 lg:gap-6 overflow-x-auto sm:overflow-visible sm:grid sm:grid-cols-2 lg:grid-cols-3 px-6 sm:px-0 pb-4 sm:pb-0 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {VIDEOS.map((v, i) => (
+          {clips.map((v, i) => (
             <VideoCard
               key={v.id}
               video={v}
