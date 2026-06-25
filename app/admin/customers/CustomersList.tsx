@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
+import { Metric, MetricStrip, MetricDelta } from "@/components/admin/ui";
+
 export type Channel = "line" | "google" | "walk_in" | "online";
 export type SortKey = "name" | "bookings" | "spent" | "last";
 export type Density = "comfortable" | "compact";
@@ -21,6 +23,7 @@ export type CustomerRow = {
   email: string;
   phone: string;
   line_user_id: string | null;
+  avatarUrl: string;
   created_at: string;
   tags: string[];
   channel: Channel;
@@ -70,6 +73,39 @@ function initials(name: string): string {
   const parts = clean.split(/\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+/** Customer avatar — real profile photo when available, initials fallback. */
+function Avatar({
+  row,
+  size,
+  textCls = "text-xs",
+  shape = "circle",
+}: {
+  row: CustomerRow;
+  size: string;
+  textCls?: string;
+  shape?: "circle" | "rounded";
+}) {
+  const radius = shape === "rounded" ? "rounded-2xl" : "rounded-full";
+  const ring = `ring-2 ${CHANNEL_META[row.channel].ring}`;
+  if (row.avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={row.avatarUrl}
+        alt={row.name}
+        referrerPolicy="no-referrer"
+        className={`flex-shrink-0 object-cover ${radius} ${ring} ${size}`}
+      />
+    );
+  }
+  return (
+    <span
+      className={`flex flex-shrink-0 items-center justify-center bg-[color:var(--color-forest-deep)]/8 font-semibold text-[color:var(--color-forest-deep)] ${textCls} ${radius} ${ring} ${size}`}
+    >
+      {initials(row.name)}
+    </span>
+  );
 }
 function pctChange(now: number, prev: number): number {
   if (prev > 0) return Math.round(((now - prev) / prev) * 100);
@@ -328,12 +364,12 @@ export function CustomersList({
   return (
     <div className="flex flex-col gap-5">
       {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi label="ลูกค้าทั้งหมด" value={stats.total.toLocaleString("en-US")} tone="forest" icon={ICONS.users} sub={stats.newThisMonth > 0 ? `+${stats.newThisMonth} เดือนนี้` : "—"} />
-        <Kpi label="ใหม่เดือนนี้" value={stats.newThisMonth.toLocaleString("en-US")} tone="sage" icon={ICONS.calendar} delta={pctChange(stats.newThisMonth, stats.newLastMonth)} />
-        <Kpi label="รายได้รวม" value={`฿${stats.revenue.toLocaleString("en-US")}`} tone="clay" icon={ICONS.cash} delta={pctChange(stats.revenueThisMonth, stats.revenueLastMonth)} />
-        <Kpi label="การจองทั้งหมด" value={stats.bookings.toLocaleString("en-US")} tone="ink" icon={ICONS.bookings} delta={pctChange(stats.bookingsThisMonth, stats.bookingsLastMonth)} />
-      </div>
+      <MetricStrip cols={4}>
+        <Metric primary label="ลูกค้าทั้งหมด" value={stats.total.toLocaleString("en-US")} foot={stats.newThisMonth > 0 ? `+${stats.newThisMonth} เดือนนี้` : "—"} />
+        <Metric label="ใหม่เดือนนี้" value={stats.newThisMonth.toLocaleString("en-US")} foot={<MetricDelta pct={pctChange(stats.newThisMonth, stats.newLastMonth)} />} accent="forest" />
+        <Metric label="รายได้รวม" value={`฿${stats.revenue.toLocaleString("en-US")}`} foot={<MetricDelta pct={pctChange(stats.revenueThisMonth, stats.revenueLastMonth)} />} accent="sage" />
+        <Metric label="การจองทั้งหมด" value={stats.bookings.toLocaleString("en-US")} foot={<MetricDelta pct={pctChange(stats.bookingsThisMonth, stats.bookingsLastMonth)} />} accent="neutral" />
+      </MetricStrip>
 
       <section className={CARD}>
         <header className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4">
@@ -436,7 +472,7 @@ export function CustomersList({
                         </td>
                         <td className={`px-5 ${rowPad}`}>
                           <button type="button" onClick={() => setDrawerId(r.id)} className="flex items-center gap-3 text-left">
-                            <span className={`flex flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--color-forest-deep)]/8 text-xs font-semibold text-[color:var(--color-forest-deep)] ring-2 ${CHANNEL_META[r.channel].ring} ${density === "compact" ? "h-8 w-8" : "h-9 w-9"}`}>{initials(r.name)}</span>
+                            <Avatar row={r} size={density === "compact" ? "h-8 w-8" : "h-9 w-9"} />
                             <span className="min-w-0">
                               <span className="flex items-center gap-1.5">
                                 <span className="font-medium text-[color:var(--color-forest-deep)] group-hover:text-[color:var(--color-warm-clay)]">{r.name}</span>
@@ -476,7 +512,7 @@ export function CustomersList({
                     <Checkbox checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} ariaLabel={`เลือก ${r.name}`} />
                     <button type="button" onClick={() => setDrawerId(r.id)} className="min-w-0 flex-1 text-left">
                       <div className="flex items-center gap-2">
-                        <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--color-forest-deep)]/8 text-xs font-semibold text-[color:var(--color-forest-deep)] ring-2 ${CHANNEL_META[r.channel].ring}`}>{initials(r.name)}</span>
+                        <Avatar row={r} size="h-9 w-9" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="truncate font-medium text-[color:var(--color-forest-deep)]">{r.name}</span>
@@ -546,7 +582,7 @@ function CustomerDrawer({ row, onClose, onOpenFull }: { row: CustomerRow; onClos
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
           <div className="flex items-center gap-3.5">
-            <span className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[color:var(--color-forest-deep)]/8 text-lg font-semibold text-[color:var(--color-forest-deep)] ring-2 ${CHANNEL_META[row.channel].ring}`}>{initials(row.name)}</span>
+            <Avatar row={row} size="h-14 w-14" textCls="text-lg" shape="rounded" />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-display text-xl font-semibold text-[color:var(--color-forest-deep)]">{row.name}</span>
@@ -760,40 +796,8 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   return <button type="button" onClick={onClick} className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${active ? "bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)]" : "border border-slate-200 text-slate-500 hover:bg-slate-50"}`}>{children}</button>;
 }
 
-/* ── KPI card ──────────────────────────────────────────────────── */
-function Kpi({ label, value, sub, delta, tone, icon }: { label: string; value: ReactNode; sub?: string; delta?: number; tone: "forest" | "sage" | "clay" | "ink"; icon: ReactNode }) {
-  const tints: Record<string, string> = {
-    forest: "bg-[color:var(--color-forest-deep)]/10 text-[color:var(--color-forest-deep)]",
-    sage: "bg-[color:var(--color-sage-mid)]/15 text-[color:var(--color-sage-mid)]",
-    clay: "bg-[color:var(--color-warm-clay)]/12 text-[color:var(--color-warm-clay)]",
-    ink: "bg-slate-200/70 text-slate-600",
-  };
-  return (
-    <div className={`${CARD} flex items-center gap-4 p-4`}>
-      <span className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${tints[tone]}`}>{icon}</span>
-      <div className="min-w-0">
-        <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">{label}</div>
-        <div className="font-display text-2xl font-semibold leading-tight tabular-nums text-[color:var(--color-forest-deep)]">{value}</div>
-        {delta !== undefined ? (
-          <div className="mt-0.5 flex items-center gap-1 text-[11px]">
-            <span className={`inline-flex items-center gap-0.5 font-medium tabular-nums ${delta > 0 ? "text-emerald-600" : delta < 0 ? "text-red-500" : "text-slate-400"}`}>{delta > 0 ? "▲" : delta < 0 ? "▼" : "—"} {delta !== 0 ? `${Math.abs(delta)}%` : ""}</span>
-            <span className="text-slate-400">เทียบเดือนก่อน</span>
-          </div>
-        ) : (sub && <div className="mt-0.5 text-[11px] text-slate-400">{sub}</div>)}
-      </div>
-    </div>
-  );
-}
-
 /* ── icons ─────────────────────────────────────────────────────── */
 function IconPhone() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" /></svg>; }
 function IconChat() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z" /></svg>; }
 function IconMail() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>; }
 function IconEye() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.8" /></svg>; }
-
-const ICONS: Record<string, ReactNode> = {
-  users: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><circle cx="9" cy="8" r="3.5" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 5.5a3.5 3.5 0 0 1 0 6.4M21 20c0-2.5-1.4-4.7-3.5-5.6" /></svg>,
-  calendar: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /></svg>,
-  cash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="2.5" y="6" width="19" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 9v6M18 9v6" /></svg>,
-  bookings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4M7 13h4M7 17h7" /></svg>,
-};

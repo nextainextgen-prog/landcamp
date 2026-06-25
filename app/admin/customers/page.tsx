@@ -55,7 +55,7 @@ export default async function AdminCustomersPage({
       admin
         .from("customers")
         .select(
-          "id, full_name, email, phone, line_user_id, created_at, is_vip, tags, source, auth_provider, profile_completed_at",
+          "id, full_name, email, phone, line_user_id, avatar_url, created_at, is_vip, tags, source, auth_provider, profile_completed_at",
         )
         .order("created_at", { ascending: false }),
       admin.from("bookings").select("customer_id, status, total_amount, created_at"),
@@ -90,6 +90,7 @@ export default async function AdminCustomersPage({
         email: (c.email as string) ?? "—",
         phone: (c.phone as string) ?? "",
         line_user_id: (c.line_user_id as string) ?? null,
+        avatarUrl: (c.avatar_url as string) ?? "",
         created_at: c.created_at as string,
         tags: (c.tags as string[]) ?? [],
         channel,

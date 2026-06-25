@@ -99,6 +99,84 @@ export function StatCard({
   );
 }
 
+/**
+ * Financial-style KPI strip — one bordered container split by hairline dividers
+ * (à la Stripe / Bloomberg), instead of separate floating cards. Wrap a row of
+ * <Metric> in <MetricStrip>. Used across revenue / dashboard / customers /
+ * occupancy so every overview reads the same.
+ */
+export function MetricStrip({
+  children,
+  cols = 6,
+}: {
+  children: ReactNode;
+  cols?: 3 | 4 | 6;
+}) {
+  const grid =
+    cols === 4
+      ? "grid-cols-2 lg:grid-cols-4"
+      : cols === 3
+        ? "grid-cols-1 sm:grid-cols-3"
+        : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-6";
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[color:var(--color-forest-deep)]/12 bg-[color:var(--color-forest-deep)]/[0.09] shadow-[0_18px_44px_-30px_rgba(45,55,40,0.35)]">
+      <div className={`grid gap-px bg-[color:var(--color-forest-deep)]/[0.09] ${grid}`}>{children}</div>
+    </div>
+  );
+}
+
+const METRIC_TICK: Record<string, string> = {
+  clay: "bg-[color:var(--color-warm-clay)]",
+  forest: "bg-[color:var(--color-forest-deep)]",
+  sage: "bg-[color:var(--color-sage-mid)]",
+  amber: "bg-amber-500",
+  neutral: "bg-[color:var(--color-sage-light)]",
+};
+
+export function Metric({
+  label,
+  value,
+  foot,
+  icon,
+  primary,
+  accent = "clay",
+}: {
+  label: string;
+  value: ReactNode;
+  foot?: ReactNode;
+  icon?: ReactNode;
+  primary?: boolean;
+  accent?: "clay" | "forest" | "sage" | "amber" | "neutral";
+}) {
+  return (
+    <div className={`flex flex-col gap-2.5 px-4 py-4 ${primary ? "bg-[color:var(--color-warm-clay)]/[0.07]" : "bg-white"}`}>
+      <div className="flex items-center gap-2">
+        <span className={`h-3 w-[3px] rounded-full ${METRIC_TICK[primary ? "clay" : accent]}`} aria-hidden />
+        <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-[color:var(--color-ink)]/45">{label}</span>
+        {icon && <span className="ml-auto text-[color:var(--color-ink)]/25">{icon}</span>}
+      </div>
+      <span className="font-display text-[26px] font-semibold leading-none tabular-nums text-[color:var(--color-forest-deep)]">
+        {value}
+      </span>
+      {foot && <span className="text-xs text-[color:var(--color-ink)]/50">{foot}</span>}
+    </div>
+  );
+}
+
+/** Trend delta badge (▲/▼ %) for a Metric foot. `pct` null renders "ใหม่". */
+export function MetricDelta({ pct, label = "เทียบเดือนก่อน" }: { pct: number | null; label?: string }) {
+  if (pct === null) return <span className="text-[color:var(--color-ink)]/45">ใหม่</span>;
+  const up = pct >= 0;
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className={`inline-flex items-center gap-0.5 font-medium tabular-nums ${up ? "text-emerald-600" : "text-red-500"}`}>
+        {up ? "▲" : "▼"} {Math.abs(pct)}%
+      </span>
+      <span className="text-[color:var(--color-ink)]/40">{label}</span>
+    </span>
+  );
+}
+
 const BADGE_TONES: Record<string, string> = {
   clay: "bg-[color:var(--color-warm-clay)]/12 text-[color:var(--color-warm-clay)] ring-[color:var(--color-warm-clay)]/25",
   forest: "bg-[color:var(--color-forest-deep)]/10 text-[color:var(--color-forest-deep)] ring-[color:var(--color-forest-deep)]/20",

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PageHeader, Panel, StatCard, Badge, DataTable, EmptyState } from "@/components/admin/ui";
+import { PageHeader, Panel, Metric, MetricStrip, Badge, DataTable, EmptyState } from "@/components/admin/ui";
 import { RevenueAreaChart, StatusDonut } from "./DashboardCharts";
 import type { BookingStatus } from "@/types";
 
@@ -107,12 +107,12 @@ export default async function AdminDashboardPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="ภาพรวม" description="สรุปการจองและรายได้ของ LandCamp" />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard tone="clay" label="รายได้รวม" value={`฿${revenueTotal.toLocaleString("en-US")}`} sub="จองที่ยืนยันแล้ว" />
-        <StatCard tone="forest" label="จองเดือนนี้" value={bookingsThisMonth} />
-        <StatCard tone="ink" label="รอตรวจสลิป" value={pendingReview} sub="ต้องดำเนินการ" />
-        <StatCard tone="sage" label="ห้องเปิดจอง" value={`${roomsAvailable}/${rooms.length}`} />
-      </div>
+      <MetricStrip cols={4}>
+        <Metric primary label="รายได้รวม" value={`฿${revenueTotal.toLocaleString("en-US")}`} foot="จองที่ยืนยันแล้ว" />
+        <Metric label="จองเดือนนี้" value={bookingsThisMonth} foot="รายการ" accent="forest" />
+        <Metric label="รอตรวจสลิป" value={pendingReview} foot="ต้องดำเนินการ" accent={pendingReview > 0 ? "amber" : "neutral"} />
+        <Metric label="ห้องเปิดจอง" value={`${roomsAvailable}/${rooms.length}`} foot="พร้อมขาย" accent="sage" />
+      </MetricStrip>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Panel title="รายได้ย้อนหลัง 6 เดือน" className="lg:col-span-2">

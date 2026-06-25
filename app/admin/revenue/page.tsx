@@ -2,68 +2,108 @@ import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PageHeader } from "@/components/admin/ui";
-import { RevenueReport, type RevenueBooking, type MonthRow } from "./RevenueReport";
+import { bangkokToday } from "@/lib/revenue/metrics";
+import type { RevBooking, RevPayment, RevEntry } from "@/lib/revenue/metrics";
+import { RevenueReport, type RevenueData } from "./RevenueReport";
 
 export const dynamic = "force-dynamic";
 
-const EARNING_STATUSES = ["confirmed", "completed"];
+// Wrapped so the impure Date.now() call lives outside the component render.
+function resolveToday(): string {
+  return bangkokToday(Date.now());
+}
 
 export default async function AdminRevenuePage() {
   if (!(await requireSection("revenue")).ok) redirect("/admin");
 
-  let bookings: RevenueBooking[] = [];
-  let months: MonthRow[] = [];
-  let total = 0;
   let errorMsg: string | null = null;
+  const today = resolveToday();
+  let data: RevenueData | null = null;
 
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("bookings")
-      .select("booking_code, status, check_in, check_out, total_amount, created_at")
-      .in("status", EARNING_STATUSES)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
 
-    bookings = (data ?? []).map((b) => ({
+    const [bookingsRes, paymentsRes, roomsRes, customersRes] = await Promise.all([
+      admin
+        .from("bookings")
+        .select("id, booking_code, room_id, customer_id, status, total_amount, check_in, created_at, source")
+        .order("created_at", { ascending: false }),
+      admin.from("payments").select("id, booking_id, amount, status, method, paid_at, created_at"),
+      admin.from("rooms").select("id, name_th").order("name_th"),
+      admin.from("customers").select("id, full_name"),
+    ]);
+    if (bookingsRes.error) throw bookingsRes.error;
+
+    // revenue_entries is optional — tolerate a missing table (migration 019 not run yet).
+    const entriesRes = await admin
+      .from("revenue_entries")
+      .select("id, occurred_at, label, category, amount, method, customer_name, room_id, source")
+      .order("occurred_at", { ascending: false });
+
+    const bookings: RevBooking[] = (bookingsRes.data ?? []).map((b) => ({
+      id: b.id as string,
       booking_code: b.booking_code as string,
+      room_id: (b.room_id as string) ?? null,
+      customer_id: (b.customer_id as string) ?? null,
       status: b.status as string,
-      check_in: b.check_in as string,
-      check_out: b.check_out as string,
       total_amount: (b.total_amount as number) ?? 0,
+      check_in: (b.check_in as string) ?? null,
       created_at: b.created_at as string,
+      source: (b.source as string) ?? null,
     }));
 
-    const byMonth = new Map<string, { revenue: number; count: number }>();
-    for (const b of bookings) {
-      const key = b.created_at.slice(0, 7); // YYYY-MM
-      const cur = byMonth.get(key) ?? { revenue: 0, count: 0 };
-      cur.revenue += b.total_amount;
-      cur.count += 1;
-      byMonth.set(key, cur);
-      total += b.total_amount;
+    const payments: RevPayment[] = (paymentsRes.data ?? []).map((p) => ({
+      id: p.id as string,
+      booking_id: p.booking_id as string,
+      amount: (p.amount as number) ?? 0,
+      status: p.status as string,
+      method: (p.method as string) ?? null,
+      paid_at: (p.paid_at as string) ?? null,
+      created_at: p.created_at as string,
+    }));
+
+    const entries: RevEntry[] = (entriesRes.data ?? []).map((e) => ({
+      id: e.id as string,
+      occurred_at: e.occurred_at as string,
+      label: e.label as string,
+      category: (e.category as string) ?? "other",
+      amount: (e.amount as number) ?? 0,
+      method: (e.method as string) ?? null,
+      customer_name: (e.customer_name as string) ?? null,
+      room_id: (e.room_id as string) ?? null,
+      source: (e.source as string) ?? "manual",
+    }));
+
+    // Earliest data point → the "ทั้งหมด" preset lower bound.
+    let earliest = today;
+    for (const d of [
+      ...bookings.map((b) => b.created_at.slice(0, 10)),
+      ...payments.map((p) => (p.paid_at ?? p.created_at).slice(0, 10)),
+      ...entries.map((e) => e.occurred_at.slice(0, 10)),
+    ]) {
+      if (d && d < earliest) earliest = d;
     }
-    months = [...byMonth.entries()]
-      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-      .map(([month, v]) => ({ month, revenue: v.revenue, count: v.count }));
+
+    data = {
+      bookings,
+      payments,
+      entries,
+      rooms: (roomsRes.data ?? []).map((r) => ({ id: r.id as string, name: r.name_th as string })),
+      customers: (customersRes.data ?? []).map((c) => [c.id as string, (c.full_name as string) ?? "—"] as [string, string]),
+      today,
+      earliest,
+    };
   } catch (err) {
     errorMsg = err instanceof Error ? err.message : "failed to load revenue";
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="รายงานรายได้"
-        description="รายได้จากการจองที่ยืนยันแล้ว (confirmed / completed)"
-      />
-      {errorMsg ? (
-        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          โหลดข้อมูลไม่สำเร็จ: {errorMsg}
-        </div>
-      ) : (
-        <RevenueReport total={total} count={bookings.length} months={months} bookings={bookings} />
-      )}
-    </div>
-  );
+  if (errorMsg || !data) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        โหลดข้อมูลไม่สำเร็จ: {errorMsg ?? "unknown error"}
+      </div>
+    );
+  }
+
+  return <RevenueReport {...data} />;
 }
