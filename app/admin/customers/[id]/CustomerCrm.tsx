@@ -19,6 +19,14 @@ export type CrmContact = {
   created_at: string;
 };
 
+export type CrmTax = {
+  taxId: string;
+  taxName: string;
+  taxAddress: string;
+  taxBranch: string;
+  isVat: boolean;
+};
+
 const inputClass =
   "w-full rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-3 py-2 text-sm outline-none focus:border-[color:var(--color-forest-deep)] focus:ring-1 focus:ring-[color:var(--color-forest-deep)]/30";
 
@@ -46,19 +54,145 @@ export function CustomerCrm({
   initialTags,
   initialNotes,
   initialContacts,
+  initialTax,
 }: {
   customerId: string;
   initialIsVip: boolean;
   initialTags: string[];
   initialNotes: CrmNote[];
   initialContacts: CrmContact[];
+  initialTax: CrmTax;
 }) {
   return (
     <>
       <VipTagsPanel customerId={customerId} initialIsVip={initialIsVip} initialTags={initialTags} />
+      <TaxPanel customerId={customerId} initialTax={initialTax} />
       <NotesPanel customerId={customerId} initialNotes={initialNotes} />
       <ContactsPanel customerId={customerId} initialContacts={initialContacts} />
     </>
+  );
+}
+
+// ── Tax / billing details ──
+function TaxPanel({ customerId, initialTax }: { customerId: string; initialTax: CrmTax }) {
+  const [tax, setTax] = useState<CrmTax>(initialTax);
+  const [draft, setDraft] = useState<CrmTax>(initialTax);
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const hasData = tax.taxId || tax.taxName || tax.taxAddress || tax.taxBranch;
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/customers/${customerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taxId: draft.taxId.trim(),
+          taxName: draft.taxName.trim(),
+          taxAddress: draft.taxAddress.trim(),
+          taxBranch: draft.taxBranch.trim(),
+          isVat: draft.isVat,
+        }),
+      });
+      const d = (await res.json()) as { ok?: boolean; tax?: CrmTax; error?: string };
+      if (!res.ok || !d.ok || !d.tax) throw new Error(d.error ?? "บันทึกไม่สำเร็จ");
+      setTax(d.tax);
+      setDraft(d.tax);
+      setEditing(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Panel
+      title="ข้อมูลภาษี / ใบกำกับ"
+      actions={
+        !editing && (
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(tax);
+              setEditing(true);
+            }}
+            className="text-xs font-medium text-[color:var(--color-forest-deep)] hover:text-[color:var(--color-warm-clay)]"
+          >
+            {hasData ? "แก้ไข" : "+ เพิ่ม"}
+          </button>
+        )
+      }
+    >
+      {editing ? (
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-[color:var(--color-ink)]/50">เลขประจำตัวผู้เสียภาษี</span>
+            <input className={inputClass} value={draft.taxId} onChange={(e) => setDraft({ ...draft, taxId: e.target.value })} placeholder="13 หลัก" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-[color:var(--color-ink)]/50">ชื่อผู้เสียภาษี / บริษัท</span>
+            <input className={inputClass} value={draft.taxName} onChange={(e) => setDraft({ ...draft, taxName: e.target.value })} placeholder="ถ้าต่างจากชื่อลูกค้า" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-[color:var(--color-ink)]/50">ที่อยู่ออกใบกำกับ</span>
+            <textarea className={`${inputClass} min-h-[60px] resize-y`} value={draft.taxAddress} onChange={(e) => setDraft({ ...draft, taxAddress: e.target.value })} />
+          </label>
+          <div className="flex gap-2">
+            <label className="flex flex-1 flex-col gap-1">
+              <span className="text-xs text-[color:var(--color-ink)]/50">สาขา</span>
+              <input className={inputClass} value={draft.taxBranch} onChange={(e) => setDraft({ ...draft, taxBranch: e.target.value })} placeholder="สำนักงานใหญ่" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-[color:var(--color-ink)]/50">ประเภท</span>
+              <button
+                type="button"
+                onClick={() => setDraft({ ...draft, isVat: !draft.isVat })}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  draft.isVat
+                    ? "bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)]"
+                    : "border border-[color:var(--color-forest-deep)]/20 text-[color:var(--color-ink)]/60"
+                }`}
+              >
+                {draft.isVat ? "VAT" : "Non-VAT"}
+              </button>
+            </label>
+          </div>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditing(false)} disabled={busy} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-3 py-2 text-sm text-[color:var(--color-ink)]/60 hover:bg-[color:var(--color-bone-soft)]">
+              ยกเลิก
+            </button>
+            <button type="button" onClick={save} disabled={busy} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-medium text-[color:var(--color-bone)] hover:bg-[color:var(--color-warm-clay)] disabled:opacity-50">
+              {busy ? "กำลังบันทึก…" : "บันทึก"}
+            </button>
+          </div>
+        </div>
+      ) : hasData ? (
+        <dl className="flex flex-col gap-2.5 text-sm">
+          <TaxRow label="เลขผู้เสียภาษี" value={tax.taxId} />
+          {tax.taxName && <TaxRow label="ชื่อผู้เสียภาษี" value={tax.taxName} />}
+          {tax.taxAddress && <TaxRow label="ที่อยู่" value={tax.taxAddress} />}
+          {tax.taxBranch && <TaxRow label="สาขา" value={tax.taxBranch} />}
+          <TaxRow label="ประเภท" value={tax.isVat ? "VAT" : "Non-VAT"} />
+        </dl>
+      ) : (
+        <p className="text-xs text-[color:var(--color-ink)]/40">ยังไม่มีข้อมูลภาษี</p>
+      )}
+    </Panel>
+  );
+}
+
+function TaxRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <dt className="shrink-0 text-[color:var(--color-ink)]/50">{label}</dt>
+      <dd className="text-right font-medium text-[color:var(--color-forest-deep)]">{value}</dd>
+    </div>
   );
 }
 

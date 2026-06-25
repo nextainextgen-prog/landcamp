@@ -54,6 +54,14 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "authentication required" }, { status: 401 });
   }
+  // Online bookings require a completed profile (name + phone). The UI collects
+  // this before submitting; this guards direct API calls.
+  if (!session.profileComplete) {
+    return NextResponse.json(
+      { error: "profile incomplete", code: "profile_incomplete" },
+      { status: 422 },
+    );
+  }
   // The session is the source of truth for the customer id.
   const customer = { id: session.id };
 

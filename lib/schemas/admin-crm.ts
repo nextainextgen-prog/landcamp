@@ -16,15 +16,29 @@ export const CreateContactSchema = z.object({
 });
 export type CreateContactInput = z.infer<typeof CreateContactSchema>;
 
-// ── Customer profile patch (VIP flag / tags) ──
+// ── Customer profile patch (VIP flag / tags / tax-billing details) ──
 export const PatchCustomerSchema = z
   .object({
     isVip: z.boolean().optional(),
     tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+    // Tax / billing — empty string clears the field.
+    taxId: z.string().trim().max(20).optional(),
+    taxName: z.string().trim().max(160).optional(),
+    taxAddress: z.string().trim().max(400).optional(),
+    taxBranch: z.string().trim().max(80).optional(),
+    isVat: z.boolean().optional(),
   })
-  .refine((v) => v.isVip !== undefined || v.tags !== undefined, {
-    message: "nothing to update",
-  });
+  .refine(
+    (v) =>
+      v.isVip !== undefined ||
+      v.tags !== undefined ||
+      v.taxId !== undefined ||
+      v.taxName !== undefined ||
+      v.taxAddress !== undefined ||
+      v.taxBranch !== undefined ||
+      v.isVat !== undefined,
+    { message: "nothing to update" },
+  );
 export type PatchCustomerInput = z.infer<typeof PatchCustomerSchema>;
 
 // ── Walk-in booking (front desk) ──

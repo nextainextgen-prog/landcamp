@@ -38,6 +38,13 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     // de-dupe while preserving order
     update.tags = Array.from(new Set(parsed.data.tags));
   }
+  // Tax / billing — store empty strings as NULL to keep the column clean.
+  const orNull = (v: string | undefined) => (v === undefined ? undefined : v === "" ? null : v);
+  if (parsed.data.taxId !== undefined) update.tax_id = orNull(parsed.data.taxId);
+  if (parsed.data.taxName !== undefined) update.tax_name = orNull(parsed.data.taxName);
+  if (parsed.data.taxAddress !== undefined) update.tax_address = orNull(parsed.data.taxAddress);
+  if (parsed.data.taxBranch !== undefined) update.tax_branch = orNull(parsed.data.taxBranch);
+  if (parsed.data.isVat !== undefined) update.is_vat = parsed.data.isVat;
 
   let admin;
   try {
@@ -50,7 +57,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     .from("customers")
     .update(update)
     .eq("id", id)
-    .select("id, is_vip, tags")
+    .select("id, is_vip, tags, tax_id, tax_name, tax_address, tax_branch, is_vat")
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -60,5 +67,12 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     ok: true,
     isVip: data.is_vip as boolean,
     tags: (data.tags as string[]) ?? [],
+    tax: {
+      taxId: (data.tax_id as string) ?? "",
+      taxName: (data.tax_name as string) ?? "",
+      taxAddress: (data.tax_address as string) ?? "",
+      taxBranch: (data.tax_branch as string) ?? "",
+      isVat: Boolean(data.is_vat),
+    },
   });
 }

@@ -4,8 +4,10 @@ import { redirect, notFound } from "next/navigation";
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader, Panel, StatCard, Badge, DataTable, EmptyState } from "@/components/admin/ui";
+import { computeCustomerMetrics, type MetricsBooking } from "@/lib/customers/metrics";
 import type { BookingStatus } from "@/types";
-import { CustomerCrm, type CrmNote, type CrmContact } from "./CustomerCrm";
+import { CustomerCrm, type CrmNote, type CrmContact, type CrmTax } from "./CustomerCrm";
+import { CustomerTimeline, type TimelineItem } from "./CustomerTimeline";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +42,9 @@ export default async function CustomerDetailPage({ params }: Ctx) {
   const admin = createAdminClient();
   const { data: customer } = await admin
     .from("customers")
-    .select("id, full_name, email, phone, avatar_url, is_vip, tags, source, created_at")
+    .select(
+      "id, full_name, email, phone, avatar_url, is_vip, tags, source, auth_provider, created_at, tax_id, tax_name, tax_address, tax_branch, is_vat",
+    )
     .eq("id", id)
     .maybeSingle();
   if (!customer) notFound();
@@ -49,7 +53,7 @@ export default async function CustomerDetailPage({ params }: Ctx) {
     await Promise.all([
       admin
         .from("bookings")
-        .select("id, booking_code, room_id, check_in, check_out, status, total_amount")
+        .select("id, booking_code, room_id, check_in, check_out, status, total_amount, created_at")
         .eq("customer_id", id)
         .order("created_at", { ascending: false }),
       admin.from("rooms").select("id, name_th"),
@@ -73,11 +77,54 @@ export default async function CustomerDetailPage({ params }: Ctx) {
     .filter((b) => EARNING.has(b.status as string))
     .reduce((s, b) => s + ((b.total_amount as number) ?? 0), 0);
 
+  // ── Analytics (RFM / CLV / health) ──
+  // Per-request "now" for recency — this page is force-dynamic, so it renders
+  // fresh on every request (no stale-cache concern from the impure call).
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now();
+  const metrics = computeCustomerMetrics(
+    bookings.map((b): MetricsBooking => ({
+      status: b.status as string,
+      total_amount: (b.total_amount as number) ?? 0,
+      created_at: b.created_at as string,
+    })),
+    nowMs,
+  );
+
+  // ── Unified activity timeline (bookings + contacts + notes) ──
+  const timeline: TimelineItem[] = [
+    ...bookings.map((b): TimelineItem => ({
+      kind: "booking",
+      at: b.created_at as string,
+      title: `จอง ${roomName.get(b.room_id as string) ?? "ห้องพัก"} · ฿${((b.total_amount as number) ?? 0).toLocaleString("en-US")}`,
+      detail: `${STATUS_TH[b.status as BookingStatus]} · ${b.booking_code as string}`,
+    })),
+    ...contacts.map((c): TimelineItem => ({
+      kind: "contact",
+      at: c.created_at,
+      title: `ติดต่อ — ${c.summary}`,
+      detail: `${c.direction === "inbound" ? "ลูกค้าติดต่อมา" : "เราติดต่อไป"} · ${c.author_name ?? "—"}`,
+    })),
+    ...notes.map((n): TimelineItem => ({
+      kind: "note",
+      at: n.created_at,
+      title: n.body,
+      detail: `โน้ตโดย ${n.author_name ?? "—"}`,
+    })),
+  ].sort((a, b) => (a.at < b.at ? 1 : -1));
+
   const name = (customer.full_name as string) ?? "—";
   const isVip = Boolean(customer.is_vip);
   const tags = (customer.tags as string[]) ?? [];
   const avatarUrl = (customer.avatar_url as string) ?? "";
   const isWalkIn = (customer.source as string) === "walk_in";
+  const tax: CrmTax = {
+    taxId: (customer.tax_id as string) ?? "",
+    taxName: (customer.tax_name as string) ?? "",
+    taxAddress: (customer.tax_address as string) ?? "",
+    taxBranch: (customer.tax_branch as string) ?? "",
+    isVat: Boolean(customer.is_vat),
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -97,6 +144,33 @@ export default async function CustomerDetailPage({ params }: Ctx) {
         <StatCard tone="sage" label="อีเมล" value={<span className="text-base">{(customer.email as string) ?? "—"}</span>} />
         <StatCard tone="ink" label="เบอร์โทร" value={<span className="text-base">{(customer.phone as string) || "—"}</span>} />
       </div>
+
+      {/* Analytics: RFM / segment / CLV / health */}
+      <Panel title="การวิเคราะห์ลูกค้า">
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+          <Metric label="กลุ่มลูกค้า" value={<Badge tone={metrics.segment.tone}>{metrics.segment.label}</Badge>} />
+          <Metric
+            label="RFM"
+            value={<span className="font-mono text-2xl">{metrics.rfm.code}</span>}
+            sub={`R${metrics.rfm.r} · F${metrics.rfm.f} · M${metrics.rfm.m}`}
+          />
+          <Metric
+            label="CLV (คาดการณ์)"
+            value={<span className="text-2xl">฿{metrics.clv.toLocaleString("en-US")}</span>}
+            sub={metrics.avgOrderValue > 0 ? `เฉลี่ย ฿${metrics.avgOrderValue.toLocaleString("en-US")}/ครั้ง` : undefined}
+          />
+          <Metric
+            label="Health Score"
+            value={
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-2xl">{metrics.health.score}</span>
+                <Badge tone={metrics.health.tone}>{metrics.health.label}</Badge>
+              </span>
+            }
+            sub={metrics.recencyDays === null ? "ยังไม่เคยจอง" : `จองล่าสุด ${metrics.recencyDays} วันก่อน`}
+          />
+        </div>
+      </Panel>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Panel title="ประวัติการจอง" className="lg:col-span-2" bodyClassName="p-0">
@@ -175,9 +249,28 @@ export default async function CustomerDetailPage({ params }: Ctx) {
             initialTags={tags}
             initialNotes={notes}
             initialContacts={contacts}
+            initialTax={tax}
           />
         </div>
       </div>
+
+      <Panel title="ไทม์ไลน์กิจกรรม" bodyClassName="p-0">
+        {timeline.length === 0 ? (
+          <div className="p-5"><EmptyState>ยังไม่มีกิจกรรม</EmptyState></div>
+        ) : (
+          <CustomerTimeline items={timeline} />
+        )}
+      </Panel>
+    </div>
+  );
+}
+
+function Metric({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[color:var(--color-ink)]/45">{label}</span>
+      <span className="font-display font-semibold leading-none text-[color:var(--color-forest-deep)]">{value}</span>
+      {sub && <span className="text-[11px] text-[color:var(--color-ink)]/45">{sub}</span>}
     </div>
   );
 }

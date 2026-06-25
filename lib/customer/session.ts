@@ -24,6 +24,9 @@ export type CustomerSession = {
   displayName: string | null;
   pictureUrl: string | null;
   provider: AuthProvider;
+  phone: string | null;
+  /** True once the customer has supplied name + phone (profile_completed_at set). */
+  profileComplete: boolean;
 };
 
 function sessionSecret(): string {
@@ -78,6 +81,8 @@ function rowToSession(
     displayName: (data.full_name as string) ?? null,
     pictureUrl: (data.avatar_url as string) ?? null,
     provider,
+    phone: (data.phone as string) ?? null,
+    profileComplete: data.profile_completed_at != null,
   };
 }
 
@@ -103,7 +108,7 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
     if (customerId) {
       const { data } = await admin
         .from("customers")
-        .select("id, line_user_id, full_name, avatar_url, auth_provider")
+        .select("id, line_user_id, full_name, avatar_url, auth_provider, phone, profile_completed_at")
         .eq("id", customerId)
         .maybeSingle();
       if (data) return rowToSession(data, "line");
@@ -119,7 +124,7 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
     if (user) {
       const { data } = await admin
         .from("customers")
-        .select("id, line_user_id, full_name, avatar_url, auth_provider")
+        .select("id, line_user_id, full_name, avatar_url, auth_provider, phone, profile_completed_at")
         .eq("auth_user_id", user.id)
         .maybeSingle();
       if (data) return rowToSession(data, "google");

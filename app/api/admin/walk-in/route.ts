@@ -138,6 +138,8 @@ export async function POST(req: NextRequest) {
         phone: cleanPhone || null,
         email: cleanEmail || null,
         source: "walk_in",
+        // Front desk already collected name + phone, so the profile is complete.
+        profile_completed_at: new Date().toISOString(),
       })
       .select("id")
       .single();

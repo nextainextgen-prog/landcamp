@@ -13,6 +13,7 @@ import {
 } from "@/lib/booking/intent";
 import { bankLabel } from "@/lib/payment/banks";
 import { AuthOptions } from "@/components/auth/AuthOptions";
+import { CompleteProfileForm } from "@/components/auth/CompleteProfileForm";
 import { useAvailability } from "@/hooks/useAvailability";
 import type { Room } from "@/types";
 
@@ -87,8 +88,11 @@ export function BookingModal({
 
   const [roomId, setRoomId] = useState<string | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [profileComplete, setProfileComplete] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   const [authReady, setAuthReady] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   const [phase, setPhase] = useState<Phase>("form");
   const [submit, setSubmit] = useState<SubmitState>("idle");
@@ -129,9 +133,11 @@ export function BookingModal({
     let active = true;
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d: { user: unknown }) => {
+      .then((d: { user: { profileComplete?: boolean; displayName?: string | null } | null }) => {
         if (!active) return;
         setLoggedIn(Boolean(d.user));
+        setProfileComplete(Boolean(d.user?.profileComplete));
+        setDisplayName(d.user?.displayName ?? "");
         setAuthReady(true);
       })
       .catch(() => {
@@ -201,7 +207,7 @@ export function BookingModal({
     }
   }
 
-  async function handleSubmit() {
+  function handleSubmit() {
     if (!canSubmit) return;
 
     if (!loggedIn) {
@@ -212,6 +218,18 @@ export function BookingModal({
       return;
     }
 
+    // Signed in but we still don't have name + phone — collect them once before
+    // the first booking (OAuth never gives us a phone number).
+    if (!profileComplete) {
+      setShowProfile(true);
+      return;
+    }
+
+    void submitBooking();
+  }
+
+  async function submitBooking() {
+    if (submit === "submitting") return;
     setSubmit("submitting");
     setErrorMsg("");
     try {
@@ -431,6 +449,24 @@ export function BookingModal({
                   </p>
                   <AuthOptions next="/" />
                 </div>
+              ) : showProfile && loggedIn && !profileComplete ? (
+                <div className="rounded-2xl border border-[color:var(--color-forest-deep)]/12 bg-[color:var(--color-bone-soft)]/40 p-4">
+                  <p className="mb-3 text-center text-[13px] text-[color:var(--color-ink)]/70">
+                    {t({
+                      th: "กรอกชื่อและเบอร์โทรเพื่อยืนยันการจอง (ครั้งเดียว)",
+                      en: "Enter your name and phone to confirm (one time only).",
+                    })}
+                  </p>
+                  <CompleteProfileForm
+                    initialName={displayName}
+                    submitLabel={t({ th: "บันทึกและจองต่อ", en: "Save & continue" })}
+                    onDone={() => {
+                      setProfileComplete(true);
+                      setShowProfile(false);
+                      void submitBooking();
+                    }}
+                  />
+                </div>
               ) : (
                 <button
                   type="button"
@@ -443,7 +479,9 @@ export function BookingModal({
                     ? t({ th: "กำลังจอง…", en: "Booking…" })
                     : !loggedIn && authReady
                       ? t({ th: "เข้าสู่ระบบเพื่อจอง", en: "Sign in to book" })
-                      : t({ th: "ยืนยันการจอง", en: "Confirm booking" })}
+                      : loggedIn && authReady && !profileComplete
+                        ? t({ th: "กรอกข้อมูลเพื่อจอง", en: "Add details to book" })
+                        : t({ th: "ยืนยันการจอง", en: "Confirm booking" })}
                 </button>
               )}
 

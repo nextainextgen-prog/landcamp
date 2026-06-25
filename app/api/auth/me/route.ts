@@ -15,6 +15,8 @@ export async function GET() {
       displayName: session.displayName,
       pictureUrl: session.pictureUrl,
       provider: session.provider,
+      phone: session.phone,
+      profileComplete: session.profileComplete,
     },
   });
 }
