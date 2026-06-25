@@ -1,0 +1,396 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
+import type { BookingStatus } from "@/types";
+
+export type BookingRow = {
+  id: string;
+  booking_code: string;
+  customer_id: string;
+  room_name: string;
+  room_image: string | null;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    avatar: string | null;
+    provider: string | null;
+    lineUserId: string | null;
+    isVip: boolean;
+    tags: string[];
+  };
+  check_in: string;
+  check_out: string;
+  adults: number;
+  children: number;
+  status: BookingStatus;
+  total_amount: number;
+  created_at: string;
+  payment: {
+    amount: number;
+    kind: string;
+    status: string;
+    verify_status: string | null;
+    verify_note: string | null;
+    slip_image: string | null;
+  } | null;
+};
+
+const STATUS_TH: Record<BookingStatus, string> = {
+  pending_payment: "รอชำระ",
+  payment_review: "รอตรวจสลิป",
+  confirmed: "ยืนยันแล้ว",
+  cancelled: "ยกเลิก",
+  completed: "เสร็จสิ้น",
+  no_show: "ไม่มาตามนัด",
+};
+const STATUS_CLASS: Record<BookingStatus, string> = {
+  pending_payment: "bg-amber-100 text-amber-800",
+  payment_review: "bg-blue-100 text-blue-800",
+  confirmed: "bg-emerald-100 text-emerald-800",
+  cancelled: "bg-neutral-200 text-neutral-600",
+  completed: "bg-teal-100 text-teal-800",
+  no_show: "bg-red-100 text-red-700",
+};
+const VERIFY: Record<string, { label: string; cls: string }> = {
+  matched: { label: "✓ สลิปตรง (ยอด+บัญชีถูกต้อง)", cls: "bg-emerald-100 text-emerald-800" },
+  amount_mismatch: { label: "⚠ ยอดไม่ตรง", cls: "bg-amber-100 text-amber-800" },
+  duplicate: { label: "⚠ สลิปซ้ำ (เคยใช้แล้ว)", cls: "bg-red-100 text-red-700" },
+  unreadable: { label: "✗ อ่านสลิปไม่ออก", cls: "bg-red-100 text-red-700" },
+  error: { label: "ระบบตรวจไม่สำเร็จ", cls: "bg-neutral-200 text-neutral-600" },
+  pending: { label: "ยังไม่ได้ตรวจ", cls: "bg-neutral-200 text-neutral-600" },
+};
+const FILTERS: { key: "all" | BookingStatus; label: string }[] = [
+  { key: "all", label: "ทั้งหมด" },
+  { key: "payment_review", label: "รอตรวจสลิป" },
+  { key: "pending_payment", label: "รอชำระ" },
+  { key: "confirmed", label: "ยืนยันแล้ว" },
+  { key: "completed", label: "เสร็จสิ้น" },
+  { key: "cancelled", label: "ยกเลิก" },
+];
+
+function thaiDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+}
+function nightsBetween(a: string, b: string): number {
+  const ms = new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime();
+  return Math.max(0, Math.round(ms / 86400000));
+}
+function parseNote(note: string | null): Record<string, unknown> | null {
+  if (!note) return null;
+  try {
+    return JSON.parse(note) as Record<string, unknown>;
+  } catch {
+    return { message: note };
+  }
+}
+
+const STEPS = ["จองห้อง", "แนบสลิป", "ตรวจ & ยืนยัน", "เข้าพัก", "เสร็จสิ้น"];
+function completedSteps(status: BookingStatus): number {
+  switch (status) {
+    case "pending_payment": return 1;
+    case "payment_review": return 2;
+    case "confirmed": return 3;
+    case "completed": return 5;
+    default: return 0; // cancelled / no_show
+  }
+}
+
+function Stepper({ status }: { status: BookingStatus }) {
+  const terminal = status === "cancelled" || status === "no_show";
+  const done = completedSteps(status);
+  return (
+    <div>
+      {terminal && (
+        <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+          การจองนี้{STATUS_TH[status]}
+        </div>
+      )}
+      <ol className="flex items-center">
+        {STEPS.map((label, i) => {
+          const isDone = i < done;
+          const isCurrent = i === done && !terminal;
+          return (
+            <li key={label} className="flex flex-1 items-center last:flex-none">
+              <div className="flex flex-col items-center gap-1.5">
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                    isDone
+                      ? "bg-emerald-500 text-white"
+                      : isCurrent
+                        ? "bg-[color:var(--color-warm-clay)] text-white ring-4 ring-[color:var(--color-warm-clay)]/20"
+                        : "bg-neutral-200 text-neutral-500"
+                  }`}
+                >
+                  {isDone ? "✓" : i + 1}
+                </span>
+                <span className={`text-center text-[10px] leading-tight ${isCurrent ? "font-semibold text-[color:var(--color-forest-deep)]" : "text-[color:var(--color-ink)]/50"}`}>
+                  {label}
+                </span>
+              </div>
+              {i < STEPS.length - 1 && (
+                <span className={`mx-1 mb-4 h-0.5 flex-1 ${i < done ? "bg-emerald-500" : "bg-neutral-200"}`} />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function ProviderBadge({ provider }: { provider: string | null }) {
+  if (provider === "line") return <span className="rounded-full bg-[#06C755]/12 px-2 py-0.5 text-[11px] font-medium text-[#06A94B]">LINE</span>;
+  if (provider === "google") return <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-600">Google</span>;
+  return <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-neutral-500">Walk-in</span>;
+}
+
+export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) {
+  const [rows, setRows] = useState<BookingRow[]>(initialRows);
+  const [filter, setFilter] = useState<"all" | BookingStatus>("all");
+  const [q, setQ] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(initialRows[0]?.id ?? null);
+  const [busy, setBusy] = useState(false);
+  const [zoom, setZoom] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: rows.length };
+    for (const r of rows) c[r.status] = (c[r.status] ?? 0) + 1;
+    return c;
+  }, [rows]);
+
+  const visible = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (filter !== "all" && r.status !== filter) return false;
+      if (!term) return true;
+      return r.booking_code.toLowerCase().includes(term) || r.customer.name.toLowerCase().includes(term) || r.customer.phone.includes(term);
+    });
+  }, [rows, filter, q]);
+
+  const selected = rows.find((r) => r.id === selectedId) ?? null;
+
+  async function patch(id: string, body: Record<string, string>, optimistic: BookingStatus) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error();
+      setRows((l) => l.map((r) => (r.id === id ? { ...r, status: optimistic } : r)));
+    } catch {
+      window.alert("ทำรายการไม่สำเร็จ ลองใหม่");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function resendCard(id: string) {
+    setBusy(true);
+    try {
+      await fetch(`/api/admin/bookings/${id}/resend-card`, { method: "POST" });
+      setToast("ส่งการ์ด LINE แล้ว (ถ้าลูกค้าผูก LINE ไว้)");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,360px)_1fr]">
+      {/* ── List ── */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap gap-1.5">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${filter === f.key ? "bg-[color:var(--color-warm-clay)] text-white" : "bg-[color:var(--color-bone-soft)] text-[color:var(--color-ink)]/65 hover:bg-[color:var(--color-bone-soft)]/70"}`}
+            >
+              {f.label}{counts[f.key] ? ` ${counts[f.key]}` : ""}
+            </button>
+          ))}
+        </div>
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา ชื่อ / เบอร์ / รหัสจอง" className="w-full rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-3 py-2 text-sm outline-none focus:border-[color:var(--color-warm-clay)]" />
+
+        <ul className="flex max-h-[72vh] flex-col gap-2 overflow-y-auto pr-1">
+          {visible.length === 0 && <li className="rounded-lg border border-dashed p-6 text-center text-sm text-[color:var(--color-ink)]/45">ไม่พบรายการ</li>}
+          {visible.map((r) => (
+            <li key={r.id}>
+              <button
+                type="button"
+                onClick={() => setSelectedId(r.id)}
+                className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors ${selectedId === r.id ? "border-[color:var(--color-warm-clay)] bg-[color:var(--color-warm-clay)]/[0.06]" : "border-[color:var(--color-forest-deep)]/10 bg-white hover:bg-[color:var(--color-bone-soft)]/40"}`}
+              >
+                <Avatar c={r.customer} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-semibold text-[color:var(--color-forest-deep)]">{r.customer.name}</span>
+                    {r.customer.isVip && <span className="text-[11px]">⭐</span>}
+                  </div>
+                  <div className="truncate text-xs text-[color:var(--color-ink)]/55">{r.room_name} · {thaiDate(r.check_in)}</div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${STATUS_CLASS[r.status]}`}>{STATUS_TH[r.status]}</span>
+                  <span className="text-[11px] text-[color:var(--color-ink)]/50">฿{r.total_amount.toLocaleString("en-US")}</span>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* ── Detail ── */}
+      <div className="min-w-0">
+        {!selected ? (
+          <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-[color:var(--color-forest-deep)]/15 text-sm text-[color:var(--color-ink)]/45">
+            เลือกการจองทางซ้ายเพื่อดูรายละเอียด
+          </div>
+        ) : (
+          <BookingDetail key={selected.id} r={selected} busy={busy} onPatch={patch} onResend={resendCard} onZoom={setZoom} />
+        )}
+        {toast && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{toast}</div>}
+      </div>
+
+      {zoom && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4" onClick={() => setZoom(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={zoom} alt="สลิป" className="max-h-full max-w-full rounded-lg" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Avatar({ c }: { c: BookingRow["customer"] }) {
+  return (
+    <span className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)]">
+      {c.avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={c.avatar} alt={c.name} referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold">{(c.name || "?").charAt(0)}</span>
+      )}
+    </span>
+  );
+}
+
+function BookingDetail({
+  r,
+  busy,
+  onPatch,
+  onResend,
+  onZoom,
+}: {
+  r: BookingRow;
+  busy: boolean;
+  onPatch: (id: string, body: Record<string, string>, optimistic: BookingStatus) => void;
+  onResend: (id: string) => void;
+  onZoom: (src: string) => void;
+}) {
+  const c = r.customer;
+  const nights = nightsBetween(r.check_in, r.check_out);
+  const note = parseNote(r.payment?.verify_note ?? null);
+  const verify = r.payment?.verify_status ? VERIFY[r.payment.verify_status] ?? VERIFY.pending : null;
+
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-5 shadow-sm">
+      {/* Customer */}
+      <div className="flex items-start gap-3 border-b border-[color:var(--color-forest-deep)]/8 pb-4">
+        <Avatar c={c} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-semibold text-[color:var(--color-forest-deep)]">{c.name}</h3>
+            <ProviderBadge provider={c.provider} />
+            {c.isVip && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">⭐ VIP</span>}
+            {c.tags.map((t) => <span key={t} className="rounded-full bg-[color:var(--color-bone-soft)] px-2 py-0.5 text-[11px] text-[color:var(--color-forest-deep)]/70">{t}</span>)}
+          </div>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[color:var(--color-ink)]/60">
+            {c.phone && <span>📞 {c.phone}</span>}
+            {c.email && <span className="truncate">✉️ {c.email}</span>}
+            {c.lineUserId && <span>🟢 LINE ผูกแล้ว</span>}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {c.phone && <a href={`tel:${c.phone}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">โทร</a>}
+            {c.email && <a href={`mailto:${c.email}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">อีเมล</a>}
+            <a href={`/admin/customers/${r.customer_id}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">ดูประวัติลูกค้า</a>
+            {c.lineUserId && <button type="button" disabled={busy} onClick={() => onResend(r.id)} className="rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50">ส่งการ์ด LINE</button>}
+          </div>
+        </div>
+      </div>
+
+      {/* Booking detail */}
+      <div className="flex gap-4">
+        <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-[color:var(--color-bone-soft)]">
+          {r.room_image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={r.room_image} alt={r.room_name} className="absolute inset-0 h-full w-full object-cover" />
+          ) : null}
+        </div>
+        <div className="min-w-0 flex-1 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-[color:var(--color-ink)]/50">{r.booking_code}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] ${STATUS_CLASS[r.status]}`}>{STATUS_TH[r.status]}</span>
+          </div>
+          <div className="mt-0.5 font-semibold text-[color:var(--color-forest-deep)]">{r.room_name}</div>
+          <div className="mt-1 text-[color:var(--color-ink)]/75">
+            <span className="font-medium">{thaiDate(r.check_in)}</span> → <span className="font-medium">{thaiDate(r.check_out)}</span>
+            <span className="text-[color:var(--color-ink)]/50"> ({nights} คืน)</span>
+          </div>
+          <div className="mt-0.5 text-xs text-[color:var(--color-ink)]/55">
+            ผู้ใหญ่ {r.adults}{r.children > 0 ? ` · เด็ก ${r.children}` : ""} · {r.payment?.kind === "deposit" ? "มัดจำ" : "ชำระเต็ม"} · จองเมื่อ {thaiDate(r.created_at)}
+          </div>
+          <div className="mt-1 font-display text-xl text-[color:var(--color-forest-deep)]">฿{r.total_amount.toLocaleString("en-US")}</div>
+        </div>
+      </div>
+
+      {/* Stepper */}
+      <div className="border-y border-[color:var(--color-forest-deep)]/8 py-4">
+        <Stepper status={r.status} />
+      </div>
+
+      {/* Slip + verdict */}
+      {r.payment && (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/70">สลิปการชำระเงิน</span>
+            {verify && <span className={`rounded-full px-2 py-0.5 text-[11px] ${verify.cls}`}>{verify.label}</span>}
+          </div>
+          {note && (note.amountInSlip || note.sender) ? (
+            <div className="text-xs text-[color:var(--color-ink)]/55">
+              {note.amountInSlip ? <>ยอดในสลิป ฿{String(note.amountInSlip)} </> : null}
+              {note.sender ? <>· ผู้โอน {String(note.sender)}</> : null}
+            </div>
+          ) : null}
+          {r.payment.slip_image ? (
+            <button type="button" onClick={() => onZoom(r.payment!.slip_image!)} className="self-start">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={r.payment.slip_image} alt="สลิป" className="h-40 w-auto rounded-lg border border-[color:var(--color-forest-deep)]/10 object-contain" />
+            </button>
+          ) : (
+            <p className="text-xs text-[color:var(--color-ink)]/45">ยังไม่มีสลิป</p>
+          )}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex flex-wrap gap-2 border-t border-[color:var(--color-forest-deep)]/8 pt-4">
+        {r.status === "payment_review" && (
+          <>
+            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { action: "confirm" }, "confirmed")} className="rounded-lg bg-[color:var(--color-warm-clay)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50">ยืนยันการจอง</button>
+            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { action: "reject" }, "cancelled")} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">ปฏิเสธ</button>
+          </>
+        )}
+        {r.status === "confirmed" && (
+          <>
+            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "completed" }, "completed")} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">มาร์คเสร็จสิ้น</button>
+            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "no_show" }, "no_show")} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50">ไม่มาตามนัด</button>
+          </>
+        )}
+        {(r.status === "pending_payment" || r.status === "payment_review" || r.status === "confirmed") && (
+          <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "cancelled" }, "cancelled")} className="ml-auto rounded-lg px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50">ยกเลิกการจอง</button>
+        )}
+      </div>
+    </div>
+  );
+}

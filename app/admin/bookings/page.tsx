@@ -3,14 +3,20 @@ import { redirect } from "next/navigation";
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/admin/ui";
-import { BookingReviewList, type ReviewRow } from "./BookingReviewList";
+import { BookingsManager, type BookingRow } from "./BookingsManager";
 
 export const dynamic = "force-dynamic";
+
+function firstImage(images: unknown): string | null {
+  if (!Array.isArray(images)) return null;
+  const first = images.find((x) => x && typeof x === "object" && typeof (x as { src?: unknown }).src === "string");
+  return first ? (first as { src: string }).src : null;
+}
 
 export default async function AdminBookingsPage() {
   if (!(await requireSection("bookings")).ok) redirect("/admin");
 
-  let rows: ReviewRow[] = [];
+  let rows: BookingRow[] = [];
   let errorMsg: string | null = null;
 
   try {
@@ -22,7 +28,7 @@ export default async function AdminBookingsPage() {
         "id, booking_code, room_id, customer_id, check_in, check_out, adults, children, status, total_amount, created_at",
       )
       .order("created_at", { ascending: false })
-      .limit(60);
+      .limit(80);
 
     const list = bookings ?? [];
     const ids = list.map((b) => b.id as string);
@@ -38,14 +44,19 @@ export default async function AdminBookingsPage() {
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [] as Record<string, unknown>[] }),
       roomIds.length
-        ? admin.from("rooms").select("id, name_th").in("id", roomIds)
+        ? admin.from("rooms").select("id, name_th, images").in("id", roomIds)
         : Promise.resolve({ data: [] as Record<string, unknown>[] }),
       customerIds.length
-        ? admin.from("customers").select("id, full_name, email, phone").in("id", customerIds)
+        ? admin
+            .from("customers")
+            .select("id, full_name, email, phone, avatar_url, line_user_id, auth_provider, is_vip, tags")
+            .in("id", customerIds)
         : Promise.resolve({ data: [] as Record<string, unknown>[] }),
     ]);
 
-    const roomName = new Map((rooms ?? []).map((r) => [r.id as string, r.name_th as string]));
+    const roomMap = new Map(
+      (rooms ?? []).map((r) => [r.id as string, { name: (r.name_th as string) ?? "—", image: firstImage(r.images) }]),
+    );
     const customerMap = new Map(
       (customers ?? []).map((c) => [
         c.id as string,
@@ -53,17 +64,21 @@ export default async function AdminBookingsPage() {
           name: (c.full_name as string) ?? "—",
           email: (c.email as string) ?? "",
           phone: (c.phone as string) ?? "",
+          avatar: (c.avatar_url as string) ?? null,
+          provider: (c.auth_provider as string) ?? null,
+          lineUserId: (c.line_user_id as string) ?? null,
+          isVip: c.is_vip === true,
+          tags: Array.isArray(c.tags) ? (c.tags as string[]) : [],
         },
       ]),
     );
-    // Keep only the latest payment per booking (payments already desc by created_at).
+
     const latestPayment = new Map<string, Record<string, unknown>>();
     for (const p of payments ?? []) {
       const bid = p.booking_id as string;
       if (!latestPayment.has(bid)) latestPayment.set(bid, p);
     }
 
-    // Sign slip object paths (private bucket) so the admin can view them.
     const slipPaths = [...latestPayment.values()]
       .map((p) => p.slip_url as string | null)
       .filter((v): v is string => Boolean(v));
@@ -77,20 +92,22 @@ export default async function AdminBookingsPage() {
 
     rows = list.map((b) => {
       const p = latestPayment.get(b.id as string);
+      const room = roomMap.get(b.room_id as string);
       const c = customerMap.get(b.customer_id as string);
       return {
         id: b.id as string,
         booking_code: b.booking_code as string,
-        room_name: roomName.get(b.room_id as string) ?? (b.room_id as string).slice(0, 8),
-        customer_name: c?.name ?? "—",
-        customer_email: c?.email ?? "",
-        customer_phone: c?.phone ?? "",
+        customer_id: b.customer_id as string,
+        room_name: room?.name ?? (b.room_id as string).slice(0, 8),
+        room_image: room?.image ?? null,
+        customer: c ?? { name: "—", email: "", phone: "", avatar: null, provider: null, lineUserId: null, isVip: false, tags: [] },
         check_in: b.check_in as string,
         check_out: b.check_out as string,
         adults: b.adults as number,
         children: b.children as number,
-        status: b.status as ReviewRow["status"],
+        status: b.status as BookingRow["status"],
         total_amount: b.total_amount as number,
+        created_at: b.created_at as string,
         payment: p
           ? {
               amount: p.amount as number,
@@ -98,7 +115,6 @@ export default async function AdminBookingsPage() {
               status: p.status as string,
               verify_status: (p.verify_status as string) ?? null,
               verify_note: (p.verify_note as string) ?? null,
-              // Prefer the signed Storage URL; fall back to legacy base64 rows.
               slip_image:
                 (p.slip_url ? signed.get(p.slip_url as string) : null) ??
                 (p.slip_image as string) ??
@@ -115,15 +131,14 @@ export default async function AdminBookingsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="รายการจอง"
-        description="ตรวจสอบสลิปและยืนยันการจอง — ผลตรวจสลิปอัตโนมัติแสดงเฉพาะหน้านี้"
+        description="ข้อมูลลูกค้า + รายละเอียดการจอง + ขั้นตอน — ตรวจสลิปและยืนยันได้ในที่เดียว"
       />
-
       {errorMsg ? (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           โหลดข้อมูลไม่สำเร็จ: {errorMsg}
         </div>
       ) : (
-        <BookingReviewList initialRows={rows} />
+        <BookingsManager initialRows={rows} />
       )}
     </div>
   );
