@@ -17,7 +17,7 @@ export default async function AdminRoomsPage() {
     const { data, error } = await admin
       .from("rooms")
       .select(
-        "id, slug, room_type, name_th, name_en, description_th, description_en, price_weekday, price_weekend, max_guests, is_available, display_order",
+        "id, slug, room_type, name_th, name_en, description_th, description_en, price_weekday, price_weekend, max_guests, is_available, display_order, amenities, images, details",
       )
       .order("display_order");
     if (error) throw error;
@@ -30,7 +30,7 @@ export default async function AdminRoomsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="ห้องพัก"
-        description="จัดการชื่อ ราคา จำนวนผู้เข้าพัก และสถานะเปิด–ปิดของแต่ละห้อง"
+        description="จัดการรูป ข้อความ ราคา รายละเอียด และป้ายโปรโมชันที่แสดงบนหน้าเว็บ — แก้ได้ทุกอย่างที่นี่"
       />
       {errorMsg ? (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
