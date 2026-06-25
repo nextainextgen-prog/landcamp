@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   Pie,
@@ -14,6 +17,7 @@ import {
 } from "recharts";
 
 const CLAY = "#9a795b";
+const FOREST = "#4d584b";
 
 export function RevenueAreaChart({ data }: { data: { month: string; revenue: number }[] }) {
   return (
@@ -37,6 +41,53 @@ export function RevenueAreaChart({ data }: { data: { month: string; revenue: num
           <Area type="monotone" dataKey="revenue" stroke={CLAY} strokeWidth={2.5} fill="url(#rev)" dot={{ r: 3, fill: CLAY }} />
         </AreaChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+type TrendPoint = { label: string; count: number };
+
+/** Daily new-bookings trend with a 7 / 30 / 90-day period toggle (Pack 8). */
+export function BookingTrendChart({ d7, d30, d90 }: { d7: TrendPoint[]; d30: TrendPoint[]; d90: TrendPoint[] }) {
+  const [range, setRange] = useState<"7" | "30" | "90">("30");
+  const data = range === "7" ? d7 : range === "30" ? d30 : d90;
+  const total = data.reduce((s, p) => s + p.count, 0);
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm text-[color:var(--color-ink)]/55">
+          รวม <span className="font-semibold tabular-nums text-[color:var(--color-forest-deep)]">{total}</span> การจอง
+        </span>
+        <div className="flex rounded-lg border border-[color:var(--color-forest-deep)]/12 p-0.5">
+          {(["7", "30", "90"] as const).map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRange(r)}
+              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                range === r ? "bg-[color:var(--color-forest-deep)] text-[color:var(--color-bone)]" : "text-[color:var(--color-ink)]/55 hover:text-[color:var(--color-forest-deep)]"
+              }`}
+            >
+              {r} วัน
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="h-56 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(45,55,40,0.08)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: "rgba(26,24,20,0.5)" }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "rgba(26,24,20,0.5)" }} axisLine={false} tickLine={false} width={32} />
+            <Tooltip
+              formatter={(value) => [`${value} การจอง`, ""] as [string, string]}
+              labelFormatter={(l) => `วันที่ ${l}`}
+              contentStyle={{ borderRadius: 12, border: "1px solid rgba(45,55,40,0.12)", fontSize: 12 }}
+            />
+            <Bar dataKey="count" fill={FOREST} radius={[3, 3, 0, 0]} maxBarSize={26} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
