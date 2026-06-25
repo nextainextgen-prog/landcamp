@@ -53,6 +53,15 @@ const STATUS_CLASS: Record<BookingStatus, string> = {
   completed: "bg-teal-100 text-teal-800",
   no_show: "bg-red-100 text-red-700",
 };
+// Solid accent colours for the left status bar on list cards.
+const STATUS_ACCENT: Record<BookingStatus, string> = {
+  pending_payment: "#d9a441",
+  payment_review: "#5b8baf",
+  confirmed: "#3fa173",
+  cancelled: "#c0bbb0",
+  completed: "#2f9e8f",
+  no_show: "#c0563f",
+};
 const VERIFY: Record<string, { label: string; cls: string }> = {
   matched: { label: "✓ สลิปตรง (ยอด+บัญชีถูกต้อง)", cls: "bg-emerald-100 text-emerald-800" },
   amount_mismatch: { label: "⚠ ยอดไม่ตรง", cls: "bg-amber-100 text-amber-800" },
@@ -72,6 +81,9 @@ const FILTERS: { key: "all" | BookingStatus; label: string }[] = [
 
 function thaiDate(iso: string): string {
   return new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+}
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short" });
 }
 function nightsBetween(a: string, b: string): number {
   const ms = new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime();
@@ -262,28 +274,39 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
       <div className="min-w-0">
         <ul className="flex max-h-[80vh] flex-col gap-2 overflow-y-auto pr-1">
           {visible.length === 0 && <li className="rounded-lg border border-dashed p-6 text-center text-sm text-[color:var(--color-ink)]/45">ไม่พบรายการ</li>}
-          {visible.map((r) => (
-            <li key={r.id}>
-              <button
-                type="button"
-                onClick={() => setSelectedId(r.id)}
-                className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors ${selectedId === r.id ? "border-[color:var(--color-warm-clay)] bg-[color:var(--color-warm-clay)]/[0.06]" : "border-[color:var(--color-forest-deep)]/10 bg-white hover:bg-[color:var(--color-bone-soft)]/40"}`}
-              >
-                <Avatar c={r.customer} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-semibold text-[color:var(--color-forest-deep)]">{r.customer.name}</span>
-                    {r.customer.isVip && <span className="text-[11px]">⭐</span>}
+          {visible.map((r) => {
+            const active = selectedId === r.id;
+            return (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(r.id)}
+                  className={`group relative flex w-full items-start gap-3 overflow-hidden rounded-2xl border py-3 pl-4 pr-3.5 text-left transition-all ${
+                    active
+                      ? "border-[color:var(--color-warm-clay)]/45 bg-[color:var(--color-warm-clay)]/[0.06] shadow-sm"
+                      : "border-[color:var(--color-forest-deep)]/10 bg-white hover:border-[color:var(--color-forest-deep)]/20 hover:shadow-sm"
+                  }`}
+                >
+                  <span className="absolute inset-y-0 left-0 w-1" style={{ background: STATUS_ACCENT[r.status] }} aria-hidden />
+                  <Avatar c={r.customer} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1">
+                        <span className="truncate text-sm font-semibold text-[color:var(--color-forest-deep)]">{r.customer.name}</span>
+                        {r.customer.isVip && <span className="flex-shrink-0 text-[11px]">⭐</span>}
+                      </span>
+                      <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_CLASS[r.status]}`}>{STATUS_TH[r.status]}</span>
+                    </div>
+                    <div className="mt-0.5 flex items-end justify-between gap-2">
+                      <span className="min-w-0 truncate text-xs text-[color:var(--color-ink)]/55">{r.room_name} · {shortDate(r.check_in)}</span>
+                      <span className="flex-shrink-0 text-sm font-semibold text-[color:var(--color-forest-deep)]">฿{r.total_amount.toLocaleString("en-US")}</span>
+                    </div>
+                    <div className="mt-0.5 font-mono text-[10px] text-[color:var(--color-ink)]/35">{r.booking_code}</div>
                   </div>
-                  <div className="truncate text-xs text-[color:var(--color-ink)]/55">{r.room_name} · {thaiDate(r.check_in)}</div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${STATUS_CLASS[r.status]}`}>{STATUS_TH[r.status]}</span>
-                  <span className="text-[11px] text-[color:var(--color-ink)]/50">฿{r.total_amount.toLocaleString("en-US")}</span>
-                </div>
-              </button>
-            </li>
-          ))}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </div>
 

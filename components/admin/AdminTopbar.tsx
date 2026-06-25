@@ -336,14 +336,19 @@ export function AdminTopbar({
           <button
             type="button"
             onClick={() => setPanel((p) => (p === "user" ? null : "user"))}
-            className="flex items-center gap-2 rounded-full border border-[color:var(--color-forest-deep)]/10 bg-white/60 py-1 pl-1 pr-2 transition-colors hover:bg-[color:var(--color-bone-soft)]"
+            className={clsx(
+              "flex items-center gap-2.5 rounded-full border py-1 pl-1 pr-2.5 transition-all",
+              panel === "user"
+                ? "border-[color:var(--color-warm-clay)]/30 bg-[color:var(--color-warm-clay)]/[0.06]"
+                : "border-[color:var(--color-forest-deep)]/10 bg-white/70 hover:bg-[color:var(--color-bone-soft)] hover:shadow-sm",
+            )}
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--color-forest-deep)] text-sm font-semibold text-[color:var(--color-bone)]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[color:var(--color-forest-deep)] to-[color:var(--color-forest-night)] text-sm font-semibold text-[color:var(--color-bone)] ring-1 ring-white/30">
               {username.slice(0, 1).toUpperCase()}
             </span>
             <span className="hidden text-left leading-tight sm:block">
-              <span className="block text-sm font-medium text-[color:var(--color-forest-deep)]">{username}</span>
-              <span className="block text-[11px] text-[color:var(--color-warm-clay)]">{roleLabel}</span>
+              <span className="block max-w-[140px] truncate text-sm font-semibold text-[color:var(--color-forest-deep)]">{username}</span>
+              <span className="block text-[11px] font-medium text-[color:var(--color-warm-clay)]">{roleLabel}</span>
             </span>
             <span className="text-[color:var(--color-ink)]/40">
               <I name="chevron" className={clsx("h-4 w-4 transition-transform", panel === "user" && "rotate-180")} />
@@ -352,12 +357,17 @@ export function AdminTopbar({
 
           {panel === "user" && (
             <div className="absolute right-0 mt-2 w-[260px] overflow-hidden rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white shadow-xl shadow-black/5">
-              <div className="border-b border-[color:var(--color-forest-deep)]/8 px-4 py-3">
-                <div className="text-sm font-semibold text-[color:var(--color-forest-deep)]">{username}</div>
-                {email && <div className="truncate text-[12px] text-[color:var(--color-ink)]/50">{email}</div>}
-                <span className="mt-2 inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
-                  {roleLabel}
+              <div className="flex items-center gap-3 border-b border-[color:var(--color-forest-deep)]/8 px-4 py-3.5">
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[color:var(--color-forest-deep)] to-[color:var(--color-forest-night)] text-sm font-semibold text-[color:var(--color-bone)] ring-1 ring-white/30">
+                  {username.slice(0, 1).toUpperCase()}
                 </span>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-[color:var(--color-forest-deep)]">{username}</div>
+                  {email && <div className="truncate text-[12px] text-[color:var(--color-ink)]/50">{email}</div>}
+                  <span className="mt-1 inline-flex items-center rounded-full bg-[color:var(--color-warm-clay)]/12 px-2 py-0.5 text-[11px] font-medium text-[color:var(--color-warm-clay)]">
+                    {roleLabel}
+                  </span>
+                </div>
               </div>
               <div className="py-1">
                 {canSettings && (
