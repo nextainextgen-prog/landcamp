@@ -6,6 +6,7 @@ import { Badge } from "@/components/admin/ui";
 import type { CustomerMetrics } from "@/lib/customers/metrics";
 import type { BookingStatus } from "@/types";
 import { CustomerTimeline, type TimelineItem } from "./CustomerTimeline";
+import { CustomerAnalytics } from "./CustomerAnalytics";
 import {
   VipTagsPanel,
   TaxPanel,
@@ -24,6 +25,8 @@ export type ProfileBooking = {
   checkOut: string;
   status: BookingStatus;
   total: number;
+  adults: number;
+  children: number;
   createdAt: string;
 };
 
@@ -168,30 +171,14 @@ export function CustomerProfile({
 }) {
   const [tab, setTab] = useState<TabKey>("overview");
 
-  const extras = useMemo(() => {
+  const upcoming = useMemo(() => {
     const todayKey = ymd(new Date());
-    const upcoming = bookings
+    return bookings
       .filter((b) => ACTIVE.has(b.status) && b.checkIn >= todayKey)
       .sort((a, b) => (a.checkIn < b.checkIn ? -1 : 1));
-    // preferred room
-    const roomCount = new Map<string, number>();
-    for (const b of bookings) roomCount.set(b.roomName, (roomCount.get(b.roomName) ?? 0) + 1);
-    let preferredRoom = "—";
-    let max = 0;
-    for (const [r, n] of roomCount) if (n > max) { max = n; preferredRoom = r; }
-    // avg lead time (days between booking created and check-in)
-    let leadSum = 0, leadN = 0;
-    for (const b of bookings) {
-      const lead = Math.round((new Date(b.checkIn).getTime() - new Date(b.createdAt).getTime()) / 86_400_000);
-      if (lead >= 0) { leadSum += lead; leadN += 1; }
-    }
-    const avgLead = leadN > 0 ? Math.round(leadSum / leadN) : 0;
-    const cancelled = bookings.filter((b) => b.status === "cancelled" || b.status === "no_show").length;
-    const cancelRate = bookings.length > 0 ? Math.round((cancelled / bookings.length) * 100) : 0;
-    return { upcoming, preferredRoom, avgLead, cancelRate };
   }, [bookings]);
 
-  const nextStay = extras.upcoming[0];
+  const nextStay = upcoming[0];
 
   const payStats = useMemo(() => {
     let paid = 0;
@@ -431,24 +418,7 @@ export function CustomerProfile({
       {tab === "communications" && <ContactsPanel customerId={customer.id} initialContacts={contacts} />}
 
       {tab === "analytics" && (
-        <div className="flex flex-col gap-5">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <MiniStat label="ห้องที่จองบ่อย" value={extras.preferredRoom} />
-            <MiniStat label="จองล่วงหน้าเฉลี่ย" value={`${extras.avgLead} วัน`} />
-            <MiniStat label="อัตรายกเลิก" value={`${extras.cancelRate}%`} />
-            <MiniStat label="จองที่จ่ายแล้ว" value={`${metrics.paidBookings}/${metrics.totalBookings}`} />
-          </div>
-          <SectionCard title="คะแนน RFM">
-            <div className="flex flex-col gap-3">
-              <RfmBar label="Recency (ความใหม่)" score={metrics.rfm.r} />
-              <RfmBar label="Frequency (ความถี่)" score={metrics.rfm.f} />
-              <RfmBar label="Monetary (มูลค่า)" score={metrics.rfm.m} />
-            </div>
-            <p className="mt-3 text-xs text-[color:var(--color-ink)]/45">
-              {metrics.recencyDays === null ? "ยังไม่เคยจอง" : `จองล่าสุด ${metrics.recencyDays} วันก่อน`} · กลุ่ม {metrics.segment.label}
-            </p>
-          </SectionCard>
-        </div>
+        <CustomerAnalytics bookings={bookings} payments={payments} metrics={metrics} memberSince={customer.createdAt} />
       )}
     </div>
   );
@@ -519,15 +489,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={`${CARD} p-4`}>
-      <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-[color:var(--color-ink)]/45">{label}</div>
-      <div className="mt-1 font-display text-lg font-semibold text-[color:var(--color-forest-deep)]">{value}</div>
-    </div>
-  );
-}
-
 function PayStat({ label, value, tone, icon }: { label: string; value: string; tone: "sage" | "clay" | "forest"; icon: ReactNode }) {
   const tints: Record<string, string> = {
     sage: "bg-[color:var(--color-sage-mid)]/15 text-[color:var(--color-sage-mid)]",
@@ -540,20 +501,6 @@ function PayStat({ label, value, tone, icon }: { label: string; value: string; t
       <div className="min-w-0">
         <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-[color:var(--color-ink)]/45">{label}</div>
         <div className="font-display text-xl font-semibold text-[color:var(--color-forest-deep)]">{value}</div>
-      </div>
-    </div>
-  );
-}
-
-function RfmBar({ label, score }: { label: string; score: number }) {
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-xs">
-        <span className="text-[color:var(--color-ink)]/55">{label}</span>
-        <span className="font-medium text-[color:var(--color-forest-deep)]">{score}/3</span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-[color:var(--color-bone-soft)]">
-        <div className="h-full rounded-full bg-[color:var(--color-warm-clay)]" style={{ width: `${(score / 3) * 100}%` }} />
       </div>
     </div>
   );

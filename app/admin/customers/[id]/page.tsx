@@ -42,7 +42,7 @@ export default async function CustomerDetailPage({ params }: Ctx) {
     await Promise.all([
       admin
         .from("bookings")
-        .select("id, booking_code, room_id, check_in, check_out, status, total_amount, created_at")
+        .select("id, booking_code, room_id, check_in, check_out, status, total_amount, adults, children, created_at")
         .eq("customer_id", id)
         .order("created_at", { ascending: false }),
       admin.from("rooms").select("id, name_th"),
@@ -116,6 +116,8 @@ export default async function CustomerDetailPage({ params }: Ctx) {
     checkOut: b.check_out as string,
     status: b.status as BookingStatus,
     total: (b.total_amount as number) ?? 0,
+    adults: (b.adults as number) ?? 0,
+    children: (b.children as number) ?? 0,
     createdAt: b.created_at as string,
   }));
 
