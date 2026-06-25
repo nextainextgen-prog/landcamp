@@ -2,14 +2,48 @@ import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CustomersList, type CustomerRow, type CustomerStats } from "./CustomersList";
+import {
+  CustomersList,
+  type Channel,
+  type CustomerRow,
+  type CustomerStats,
+  type InitialFilters,
+  type SortKey,
+} from "./CustomersList";
 
 export const dynamic = "force-dynamic";
 
 const EARNING_STATUSES = new Set(["confirmed", "completed"]);
+const CHANNELS = new Set<Channel>(["line", "google", "walk_in", "online"]);
+const SORTS = new Set<SortKey>(["name", "bookings", "spent", "last"]);
 
-export default async function AdminCustomersPage() {
+function parseFilters(sp: Record<string, string | string[] | undefined>): InitialFilters {
+  const get = (k: string) => {
+    const v = sp[k];
+    return Array.isArray(v) ? v[0] : v;
+  };
+  const channels = (get("ch") ?? "")
+    .split(",")
+    .filter((c): c is Channel => CHANNELS.has(c as Channel));
+  const sortRaw = get("sort") ?? "";
+  const sortKey = SORTS.has(sortRaw as SortKey) ? (sortRaw as SortKey) : "last";
+  return {
+    q: get("q") ?? "",
+    channels,
+    sortKey,
+    sortDir: get("dir") === "asc" ? "asc" : "desc",
+    density: get("d") === "compact" ? "compact" : "comfortable",
+  };
+}
+
+export default async function AdminCustomersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   if (!(await requireSection("customers")).ok) redirect("/admin");
+
+  const initialFilters = parseFilters(await searchParams);
 
   let rows: CustomerRow[] = [];
   let allBookings: Record<string, unknown>[] = [];
@@ -115,5 +149,5 @@ export default async function AdminCustomersPage() {
     );
   }
 
-  return <CustomersList initialRows={rows} stats={stats} />;
+  return <CustomersList initialRows={rows} stats={stats} initialFilters={initialFilters} />;
 }
