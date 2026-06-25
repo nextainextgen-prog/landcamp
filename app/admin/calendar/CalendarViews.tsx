@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Avatar,
   STATUS,
   WEEKDAYS_TH,
   addDays,
@@ -20,67 +19,138 @@ function activeOn(b: CalBooking, key: string): boolean {
   return b.check_in <= key && key < b.check_out;
 }
 
-// ─────────────────────────────────────────────
-// DAY — check-ins / staying / check-outs for one day
-// ─────────────────────────────────────────────
-export function DayView({ bookings, anchor, today }: { bookings: CalBooking[]; anchor: Date; today: string }) {
-  const key = ymd(anchor);
-  const checkIns = bookings.filter((b) => b.check_in === key);
-  const checkOuts = bookings.filter((b) => b.check_out === key);
-  const staying = bookings.filter((b) => activeOn(b, key) && b.check_in !== key);
-
-  const groups = [
-    { title: "เช็คอินวันนี้", items: checkIns, accent: "#4d584b" },
-    { title: "กำลังเข้าพัก", items: staying, accent: "#778475" },
-    { title: "เช็คเอาท์วันนี้", items: checkOuts, accent: "#b5654d" },
-  ];
-
-  const empty = checkIns.length + checkOuts.length + staying.length === 0;
-
-  return (
-    <div className="flex flex-col gap-5 p-5">
-      {empty && (
-        <p className="py-10 text-center text-sm text-[color:var(--color-ink)]/40">
-          ไม่มีรายการในวันนี้
-        </p>
-      )}
-      {groups
-        .filter((g) => g.items.length > 0)
-        .map((g) => (
-          <section key={g.title} className="flex flex-col gap-2">
-            <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[color:var(--color-ink)]/55">
-              <span className="h-2 w-2 rounded-full" style={{ background: g.accent }} />
-              {g.title}
-              <span className="text-[color:var(--color-ink)]/35">({g.items.length})</span>
-            </h4>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {g.items.map((b) => (
-                <BookingRow key={`${g.title}-${b.id}`} b={b} />
-              ))}
-            </div>
-          </section>
-        ))}
-      <span className="sr-only">{today}</span>
-    </div>
-  );
+function softOf(status: string): string {
+  const s = STATUS[status as keyof typeof STATUS];
+  return s ? s.soft : "rgba(154,143,125,0.12)";
 }
 
-function BookingRow({ b }: { b: CalBooking }) {
+// ─────────────────────────────────────────────
+// DAY — rooms as columns, hourly time grid, stays as blocks
+// (overnight stays use default 14:00 check-in / 12:00 check-out times)
+// ─────────────────────────────────────────────
+const DAY_START = 8;
+const DAY_END = 22;
+const HOUR_PX = 54;
+const CHECK_IN_H = 14;
+const CHECK_OUT_H = 12;
+
+export function DayView({
+  bookings,
+  rooms,
+  anchor,
+}: {
+  bookings: CalBooking[];
+  rooms: CalRoom[];
+  anchor: Date;
+}) {
+  const key = ymd(anchor);
+  const hours = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i);
+  const bodyH = (DAY_END - DAY_START) * HOUR_PX;
+
+  function block(b: CalBooking): { top: number; height: number; from: number; to: number } | null {
+    if (b.check_in > key || b.check_out < key) return null;
+    if (key === b.check_out && key === b.check_in) return null;
+    const from = b.check_in === key ? CHECK_IN_H : DAY_START;
+    const to = b.check_out === key ? CHECK_OUT_H : DAY_END;
+    if (to <= from) return null;
+    return { top: (from - DAY_START) * HOUR_PX, height: (to - from) * HOUR_PX, from, to };
+  }
+
+  const colMin = 200;
+
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[color:var(--color-forest-deep)]/10 bg-white px-3 py-2.5">
-      <Avatar name={b.customer} url={b.avatarUrl} vip={b.isVip} size={38} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-[color:var(--color-forest-deep)]">{b.customer}</p>
-        <p className="truncate text-xs text-[color:var(--color-ink)]/55">
-          {b.room} · {b.guests} คน · {b.nights} คืน
-        </p>
+    <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 240px)" }}>
+      <div style={{ minWidth: 64 + rooms.length * colMin }}>
+        {/* header */}
+        <div className="sticky top-0 z-20 flex border-b border-[color:var(--color-forest-deep)]/10 bg-white">
+          <div className="w-16 shrink-0 border-r border-[color:var(--color-forest-deep)]/8 px-2 py-3 text-[11px] font-medium uppercase text-[color:var(--color-ink)]/45">
+            เวลา
+          </div>
+          {rooms.map((r) => (
+            <div
+              key={r.id}
+              className="flex-1 border-r border-[color:var(--color-forest-deep)]/8 px-3 py-2.5 last:border-r-0"
+              style={{ minWidth: colMin }}
+            >
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-[color:var(--color-forest-deep)]">
+                <span className="h-2 w-2 rounded-full" style={{ background: statusColor("confirmed") }} />
+                {r.name}
+              </p>
+              <p className="mt-0.5 text-[11px] text-[color:var(--color-ink)]/50">
+                {r.maxGuests > 0 ? `${r.maxGuests} ท่าน` : "—"}
+                {r.price > 0 ? ` · ฿${r.price.toLocaleString("en-US")}/คืน` : ""}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* body */}
+        <div className="flex">
+          {/* time gutter */}
+          <div className="relative w-16 shrink-0 border-r border-[color:var(--color-forest-deep)]/8" style={{ height: bodyH }}>
+            {hours.map((h) => (
+              <div
+                key={h}
+                className="absolute right-2 -translate-y-1/2 text-[11px] tabular-nums text-[color:var(--color-ink)]/40"
+                style={{ top: (h - DAY_START) * HOUR_PX }}
+              >
+                {String(h).padStart(2, "0")}:00
+              </div>
+            ))}
+          </div>
+
+          {/* room columns */}
+          {rooms.map((r) => {
+            const blocks = bookings
+              .filter((b) => b.roomId === r.id)
+              .map((b) => ({ b, geo: block(b) }))
+              .filter((x): x is { b: CalBooking; geo: NonNullable<ReturnType<typeof block>> } =>
+                Boolean(x.geo),
+              );
+            return (
+              <div
+                key={r.id}
+                className="relative flex-1 border-r border-[color:var(--color-forest-deep)]/8 last:border-r-0"
+                style={{ height: bodyH, minWidth: colMin }}
+              >
+                {/* hour gridlines */}
+                {hours.slice(0, -1).map((h) => (
+                  <div
+                    key={h}
+                    className="absolute inset-x-0 border-b border-[color:var(--color-forest-deep)]/6"
+                    style={{ top: (h - DAY_START) * HOUR_PX, height: HOUR_PX }}
+                  />
+                ))}
+                {/* booking blocks */}
+                {blocks.map(({ b, geo }) => {
+                  const color = statusColor(b.status);
+                  return (
+                    <div
+                      key={b.id}
+                      title={`${b.code} · ${b.customer} · ${b.room}`}
+                      className="absolute left-1 right-1 overflow-hidden rounded-lg px-2.5 py-1.5"
+                      style={{
+                        top: geo.top + 2,
+                        height: geo.height - 4,
+                        background: softOf(b.status),
+                        borderLeft: `3px solid ${color}`,
+                      }}
+                    >
+                      <p className="truncate text-[12px] font-semibold text-[color:var(--color-forest-deep)]">
+                        {b.customer}
+                      </p>
+                      <p className="truncate text-[11px] text-[color:var(--color-ink)]/55">
+                        {String(geo.from).padStart(2, "0")}:00 – {String(geo.to).padStart(2, "0")}:00
+                      </p>
+                      <p className="truncate font-mono text-[10px] text-[color:var(--color-ink)]/40">{b.code}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
-      <span
-        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
-        style={{ background: statusColor(b.status) }}
-      >
-        {statusLabel(b.status)}
-      </span>
     </div>
   );
 }
@@ -101,39 +171,35 @@ export function WeekView({ bookings, anchor, today }: { bookings: CalBooking[]; 
         return (
           <div
             key={key}
-            className={`min-h-[260px] border-r border-[color:var(--color-forest-deep)]/8 last:border-r-0 ${
-              isToday ? "bg-[color:var(--color-warm-clay)]/6" : ""
-            } ${i % 2 === 1 ? "bg-[color:var(--color-bone-soft)]/15" : ""}`}
+            className={`min-h-[320px] border-r border-[color:var(--color-forest-deep)]/8 last:border-r-0 ${
+              isToday ? "bg-[color:var(--color-warm-clay)]/6" : i % 2 === 1 ? "bg-[color:var(--color-bone-soft)]/15" : ""
+            }`}
           >
-            <div className="flex items-center justify-between border-b border-[color:var(--color-forest-deep)]/8 px-2 py-2">
+            <div className="flex items-center justify-between border-b border-[color:var(--color-forest-deep)]/8 px-2.5 py-2">
               <span className="text-[11px] font-medium uppercase text-[color:var(--color-ink)]/45">
                 {WEEKDAYS_TH[d.getDay()]}
               </span>
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-                  isToday ? "bg-[color:var(--color-warm-clay)] font-semibold text-white" : "text-[color:var(--color-ink)]/70"
+                  isToday ? "bg-[color:var(--color-forest-deep)] font-semibold text-[color:var(--color-bone)]" : "text-[color:var(--color-ink)]/70"
                 }`}
               >
                 {d.getDate()}
               </span>
             </div>
-            <div className="flex flex-col gap-1 p-1.5">
+            <div className="flex flex-col gap-1.5 p-2">
               {dayBookings.length === 0 && <span className="px-1 text-[10px] text-[color:var(--color-ink)]/25">—</span>}
-              {dayBookings.map((b) => {
-                const isCheckIn = b.check_in === key;
-                return (
-                  <div
-                    key={b.id}
-                    title={`${b.code} · ${b.customer} · ${b.room}`}
-                    className="rounded-md px-1.5 py-1 text-[10px] font-medium text-white"
-                    style={{ background: statusColor(b.status) }}
-                  >
-                    <span className="opacity-80">{isCheckIn ? "▸ " : ""}</span>
-                    <span className="truncate">{b.customer}</span>
-                    <div className="truncate text-[9px] opacity-80">{b.room}</div>
-                  </div>
-                );
-              })}
+              {dayBookings.map((b) => (
+                <div
+                  key={b.id}
+                  title={`${b.code} · ${b.customer} · ${b.room}`}
+                  className="overflow-hidden rounded-md px-2 py-1.5"
+                  style={{ background: softOf(b.status), borderLeft: `3px solid ${statusColor(b.status)}` }}
+                >
+                  <p className="truncate text-[11px] font-semibold text-[color:var(--color-forest-deep)]">{b.customer}</p>
+                  <p className="truncate text-[10px] text-[color:var(--color-ink)]/55">{b.room}</p>
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -164,13 +230,12 @@ export function MonthView({
   const todayCol =
     todayDate.getFullYear() === year && todayDate.getMonth() === month ? todayDate.getDate() : -1;
 
-  const firstOfNext = new Date(year, month, total + 1); // exclusive month end
+  const firstOfNext = new Date(year, month, total + 1);
   const monthStart = new Date(year, month, 1);
 
-  // Booking → {startCol, endColExclusive} clamped to the visible month.
   function span(b: CalBooking): { start: number; end: number } | null {
     const ci = parseYmd(b.check_in);
-    const co = parseYmd(b.check_out); // exclusive
+    const co = parseYmd(b.check_out);
     const vis = ci < monthStart ? monthStart : ci;
     const visEnd = co > firstOfNext ? firstOfNext : co;
     if (vis >= visEnd) return null;
@@ -179,15 +244,13 @@ export function MonthView({
     return { start, end };
   }
 
-  const DAY = "minmax(34px, 1fr)";
-  const template = `repeat(${total}, ${DAY})`;
+  const template = `repeat(${total}, minmax(34px, 1fr))`;
 
   return (
     <div className="overflow-x-auto">
-      <div style={{ minWidth: total * 34 + 160 }}>
-        {/* header: day numbers */}
-        <div className="flex border-b border-[color:var(--color-forest-deep)]/8">
-          <div className="sticky left-0 z-10 w-40 shrink-0 bg-[color:var(--color-bone-soft)]/50 px-3 py-2 text-[11px] font-semibold uppercase text-[color:var(--color-forest-deep)]/55">
+      <div style={{ minWidth: total * 34 + 176 }}>
+        <div className="flex border-b border-[color:var(--color-forest-deep)]/10">
+          <div className="sticky left-0 z-10 w-44 shrink-0 bg-[color:var(--color-bone-soft)]/50 px-4 py-2 text-[11px] font-semibold uppercase text-[color:var(--color-forest-deep)]/55">
             ห้องพัก
           </div>
           <div className="grid flex-1 bg-[color:var(--color-bone-soft)]/50" style={{ gridTemplateColumns: template }}>
@@ -197,7 +260,7 @@ export function MonthView({
               return (
                 <div
                   key={d}
-                  className={`py-1.5 text-center text-[10px] ${
+                  className={`py-1.5 text-center text-[10px] tabular-nums ${
                     d === todayCol
                       ? "font-bold text-[color:var(--color-warm-clay)]"
                       : weekend
@@ -212,9 +275,8 @@ export function MonthView({
           </div>
         </div>
 
-        {/* one row per room */}
         {rooms.length === 0 && (
-          <p className="px-3 py-8 text-center text-sm text-[color:var(--color-ink)]/40">ยังไม่มีห้องพัก</p>
+          <p className="px-4 py-8 text-center text-sm text-[color:var(--color-ink)]/40">ยังไม่มีห้องพัก</p>
         )}
         {rooms.map((room) => {
           const roomBookings = bookings
@@ -222,31 +284,25 @@ export function MonthView({
             .filter((x): x is { b: CalBooking; s: { start: number; end: number } } => Boolean(x && x.s));
           return (
             <div key={room.id} className="flex border-b border-[color:var(--color-forest-deep)]/6">
-              <div className="sticky left-0 z-10 flex w-40 shrink-0 items-center bg-white px-3 py-2 text-xs font-medium text-[color:var(--color-forest-deep)]">
+              <div className="sticky left-0 z-10 flex w-44 shrink-0 items-center bg-white px-4 py-2 text-xs font-medium text-[color:var(--color-forest-deep)]">
                 <span className="truncate">{room.name}</span>
               </div>
               <div className="relative grid flex-1" style={{ gridTemplateColumns: template }}>
-                {/* background grid cells */}
                 {days.map((d) => (
                   <div
                     key={d}
-                    className={`h-10 border-r border-[color:var(--color-forest-deep)]/5 ${
+                    className={`h-11 border-r border-[color:var(--color-forest-deep)]/5 ${
                       d === todayCol ? "bg-[color:var(--color-warm-clay)]/8" : ""
                     }`}
                     style={{ gridColumn: `${d} / span 1`, gridRow: 1 }}
                   />
                 ))}
-                {/* booking bars */}
                 {roomBookings.map(({ b, s }) => (
                   <div
                     key={b.id}
                     title={`${b.code} · ${b.customer} · ${thaiShortDate(b.check_in)}–${thaiShortDate(b.check_out)}`}
-                    className="z-[1] m-1 flex items-center overflow-hidden rounded-md px-1.5 text-[10px] font-medium text-white"
-                    style={{
-                      gridColumn: `${s.start} / ${s.end}`,
-                      gridRow: 1,
-                      background: statusColor(b.status),
-                    }}
+                    className="z-[1] m-1 flex items-center overflow-hidden rounded-md px-2 text-[10px] font-medium text-white"
+                    style={{ gridColumn: `${s.start} / ${s.end}`, gridRow: 1, background: statusColor(b.status) }}
                   >
                     <span className="truncate">{b.customer}</span>
                   </div>
@@ -255,17 +311,58 @@ export function MonthView({
             </div>
           );
         })}
-
-        {/* legend */}
-        <div className="flex flex-wrap items-center gap-3 px-3 py-3">
-          {Object.values(STATUS).map((s) => (
-            <span key={s.label} className="flex items-center gap-1.5 text-[11px] text-[color:var(--color-ink)]/55">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: s.color }} />
-              {s.label}
-            </span>
-          ))}
-        </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// LIST — flat table of bookings (filtered) sorted by check-in
+// ─────────────────────────────────────────────
+export function ListView({ bookings }: { bookings: CalBooking[] }) {
+  const rows = [...bookings].sort((a, b) => a.check_in.localeCompare(b.check_in));
+  if (rows.length === 0) {
+    return <p className="px-5 py-10 text-center text-sm text-[color:var(--color-ink)]/40">ไม่มีรายการจองตามตัวกรอง</p>;
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-[color:var(--color-forest-deep)]/8 text-left text-[11px] uppercase text-[color:var(--color-ink)]/45">
+            <th className="px-4 py-2.5 font-medium">รหัส</th>
+            <th className="px-4 py-2.5 font-medium">ลูกค้า</th>
+            <th className="px-4 py-2.5 font-medium">ห้อง</th>
+            <th className="px-4 py-2.5 font-medium">เข้า–ออก</th>
+            <th className="px-4 py-2.5 text-center font-medium">คืน</th>
+            <th className="px-4 py-2.5 text-right font-medium">ยอด</th>
+            <th className="px-4 py-2.5 font-medium">สถานะ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((b) => (
+            <tr key={b.id} className="border-b border-[color:var(--color-forest-deep)]/6 hover:bg-[color:var(--color-bone-soft)]/30">
+              <td className="px-4 py-2.5 font-mono text-[12px] text-[color:var(--color-forest-deep)]">{b.code}</td>
+              <td className="px-4 py-2.5 text-[color:var(--color-ink)]/80">{b.customer}</td>
+              <td className="px-4 py-2.5 text-[color:var(--color-ink)]/70">{b.room}</td>
+              <td className="px-4 py-2.5 text-[color:var(--color-ink)]/70">
+                {thaiShortDate(b.check_in)} – {thaiShortDate(b.check_out)}
+              </td>
+              <td className="px-4 py-2.5 text-center text-[color:var(--color-ink)]/70">{b.nights}</td>
+              <td className="px-4 py-2.5 text-right font-medium text-[color:var(--color-forest-deep)]">
+                ฿{b.total.toLocaleString("en-US")}
+              </td>
+              <td className="px-4 py-2.5">
+                <span
+                  className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                  style={{ background: statusColor(b.status) }}
+                >
+                  {statusLabel(b.status)}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

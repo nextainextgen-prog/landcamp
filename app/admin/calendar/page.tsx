@@ -12,11 +12,6 @@ function bangkokToday(): string {
   return new Date(Date.now() + BKK_OFFSET_MS).toISOString().slice(0, 10);
 }
 
-/** Wall-clock at request time (force-dynamic page) for relative "time ago". */
-function serverNowMs(): number {
-  return Date.now();
-}
-
 function nights(checkIn: string, checkOut: string): number {
   const a = Date.parse(`${checkIn}T00:00:00Z`);
   const b = Date.parse(`${checkOut}T00:00:00Z`);
@@ -31,11 +26,14 @@ export default async function AdminCalendarPage() {
     admin
       .from("bookings")
       .select(
-        "id, booking_code, room_id, customer_id, check_in, check_out, status, total_amount, adults, children, created_at",
+        "id, booking_code, room_id, customer_id, check_in, check_out, status, total_amount, adults, children, source, created_at",
       )
       .neq("status", "cancelled")
       .order("check_in", { ascending: true }),
-    admin.from("rooms").select("id, name_th, display_order").order("display_order"),
+    admin
+      .from("rooms")
+      .select("id, name_th, name_en, max_guests, price_weekday, display_order")
+      .order("display_order"),
     admin.from("customers").select("id, full_name, avatar_url, phone, is_vip"),
   ]);
 
@@ -70,6 +68,7 @@ export default async function AdminCalendarPage() {
       guests: ((b.adults as number) ?? 0) + ((b.children as number) ?? 0),
       total: (b.total_amount as number) ?? 0,
       nights: nights(b.check_in as string, b.check_out as string),
+      source: (b.source as string) ?? "online",
       createdAt: (b.created_at as string) ?? "",
     };
   });
@@ -77,9 +76,10 @@ export default async function AdminCalendarPage() {
   const roomList: CalRoom[] = (rooms ?? []).map((r) => ({
     id: r.id as string,
     name: r.name_th as string,
+    nameEn: (r.name_en as string) ?? "",
+    maxGuests: (r.max_guests as number) ?? 0,
+    price: (r.price_weekday as number) ?? 0,
   }));
 
-  return (
-    <CalendarDashboard bookings={bookings} rooms={roomList} today={bangkokToday()} now={serverNowMs()} />
-  );
+  return <CalendarDashboard bookings={bookings} rooms={roomList} today={bangkokToday()} />;
 }
