@@ -37,6 +37,7 @@ const TABS = [
   { key: "video", label: "วิดีโอ" },
   { key: "menu", label: "เมนูอาหาร" },
   { key: "reviews", label: "รีวิว" },
+  { key: "map", label: "แผนที่/การเดินทาง" },
   { key: "gallery", label: "รูปภาพ (แกลเลอรี)" },
   { key: "versions", label: "ประวัติเวอร์ชัน" },
 ] as const;
@@ -52,6 +53,7 @@ const TAB_ANCHOR: Partial<Record<TabKey, string>> = {
   wedding: "#wedding",
   menu: "#menu",
   reviews: "#reviews",
+  map: "#location",
   gallery: "#atmosphere",
 };
 
@@ -480,6 +482,24 @@ export function ContentEditor({
               <FieldLabel>จำนวนรีวิว</FieldLabel>
               <input type="number" min="0" className={inputCls} value={doc.reviews.ratingCount} onChange={(e) => update(["reviews", "ratingCount"], Number(e.target.value))} />
             </label>
+          </div>
+        </Panel>
+      )}
+
+      {tab === "map" && (
+        <Panel title="ส่วนแผนที่ / การเดินทาง" bodyClassName="flex flex-col gap-6">
+          <BiField label="หัวข้อย่อย" value={doc.map.eyebrow} onChange={(v) => update(["map", "eyebrow"], v)} />
+          <BiField label="หัวข้อ บรรทัด 1" value={doc.map.titleLine1} onChange={(v) => update(["map", "titleLine1"], v)} />
+          <BiField label="หัวข้อ บรรทัด 2" value={doc.map.titleLine2} onChange={(v) => update(["map", "titleLine2"], v)} />
+          <BiField label="ป้ายหัวข้อเส้นทาง" value={doc.map.directionsLabel} onChange={(v) => update(["map", "directionsLabel"], v)} />
+          <div className="grid gap-4">
+            <FieldLabel>ขั้นตอนการเดินทาง</FieldLabel>
+            {doc.map.directions.map((d, i) => (
+              <div key={i} className="grid gap-3 rounded-xl border border-[color:var(--color-forest-deep)]/10 p-4">
+                <BiField label={`ขั้นที่ ${i + 1} — รายละเอียด`} long value={d.text} onChange={(v) => update(["map", "directions", i, "text"], v)} />
+                <BiField label="ระยะทาง/เวลา" value={d.distance} onChange={(v) => update(["map", "directions", i, "distance"], v)} />
+              </div>
+            ))}
           </div>
         </Panel>
       )}

@@ -99,6 +99,13 @@ export type SiteContent = {
     ratingValue: number;
     ratingCount: number;
   };
+  map: {
+    eyebrow: Bilingual;
+    titleLine1: Bilingual;
+    titleLine2: Bilingual;
+    directionsLabel: Bilingual;
+    directions: { text: Bilingual; distance: Bilingual }[];
+  };
 };
 
 export type DeepPartial<T> = T extends (infer U)[]

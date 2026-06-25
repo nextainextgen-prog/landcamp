@@ -3,35 +3,16 @@
 import { motion } from "framer-motion";
 import { siteConfig } from "@/data/siteConfig";
 import { useT } from "@/app/providers";
+import { useContent } from "@/lib/content/provider";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 const MAP_EMBED_URL = `https://maps.google.com/maps?q=${siteConfig.address.coordinates.lat},${siteConfig.address.coordinates.lng}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
-const DIRECTIONS = [
-  {
-    no: "01",
-    th: "ออกจากกรุงเทพใช้ทางหลวงหมายเลข 1 (พหลโยธิน) มุ่งสู่ อ.ปากช่อง",
-    en: "From Bangkok, take Highway 1 (Phahonyothin) north toward Pak Chong.",
-    distance: { th: "ประมาณ 2 ชั่วโมง", en: "≈ 2 hours" },
-  },
-  {
-    no: "02",
-    th: "เลี้ยวเข้าถนนธนะรัชต์ (เส้นทางสู่อุทยานแห่งชาติเขาใหญ่)",
-    en: "Turn onto Thanarat Road toward Khao Yai National Park.",
-    distance: { th: "12 กม.", en: "12 km" },
-  },
-  {
-    no: "03",
-    th: "ตำบลขนงพระ เลี้ยวขวาตรงป้าย LandCamp",
-    en: "In Khanong Phra, follow the LandCamp signage to the right.",
-    distance: { th: "ตรงเข้าที่พักอีก 600 ม.", en: "600 m to entrance" },
-  },
-] as const;
-
 export function MapSection() {
   const t = useT();
+  const { map, contact } = useContent();
 
   return (
     <section
@@ -43,15 +24,11 @@ export function MapSection() {
         <SectionHeading
           number="07"
           tone="ink"
-          eyebrow={t({ th: "ที่ตั้ง & การเดินทาง", en: "Location & Directions" })}
+          eyebrow={t(map.eyebrow)}
           title={
             <>
-              <span className="block">
-                {t({ th: "ปากช่อง · นครราชสีมา", en: "Pak Chong · Nakhon Ratchasima" })}
-              </span>
-              <span className="block opacity-70">
-                {t({ th: "ห่างจากเขาใหญ่ 12.6 กม.", en: "12.6 km from Khao Yai" })}
-              </span>
+              <span className="block">{t(map.titleLine1)}</span>
+              <span className="block opacity-70">{t(map.titleLine2)}</span>
             </>
           }
         />
@@ -74,7 +51,7 @@ export function MapSection() {
               style={{ border: 0, filter: "saturate(0.85) brightness(0.95)" }}
             />
             <a
-              href={siteConfig.contact.googleMaps}
+              href={contact.googleMaps}
               target="_blank"
               rel="noopener noreferrer"
               className="absolute bottom-4 right-4 z-10 inline-flex items-center gap-2 rounded-full bg-[color:var(--color-bone)] text-[color:var(--color-forest-night)] px-5 py-2.5 text-[10px] uppercase tracking-[0.32em] hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)] transition-colors duration-500"
@@ -140,18 +117,18 @@ export function MapSection() {
                 </dt>
                 <dd className="leading-relaxed">
                   <a
-                    href={siteConfig.contact.lineUrl}
+                    href={contact.lineUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[color:var(--color-forest-deep)] hover:text-[color:var(--color-warm-clay)] transition-colors block"
                   >
-                    Line {siteConfig.contact.line}
+                    Line {contact.line}
                   </a>
                   <a
-                    href={`tel:${siteConfig.contact.phoneE164}`}
+                    href={`tel:${contact.phoneE164}`}
                     className="text-[color:var(--color-forest-deep)] hover:text-[color:var(--color-warm-clay)] transition-colors block tabular-nums"
                   >
-                    {siteConfig.contact.phone}
+                    {contact.phone}
                   </a>
                 </dd>
               </div>
@@ -187,13 +164,13 @@ export function MapSection() {
             style={{ fontFamily: "var(--font-ui)" }}
           >
             <span aria-hidden className="h-px w-10 bg-current opacity-60" />
-            {t({ th: "เส้นทางจากกรุงเทพ", en: "From Bangkok" })}
+            {t(map.directionsLabel)}
           </p>
 
           <ol className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {DIRECTIONS.map((d, i) => (
+            {map.directions.map((d, i) => (
               <motion.li
-                key={d.no}
+                key={i}
                 initial={{ opacity: 0, y: 22 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-10% 0px" }}
@@ -204,10 +181,10 @@ export function MapSection() {
                   className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
                   style={{ fontFamily: "var(--font-ui)" }}
                 >
-                  {d.no}
+                  {String(i + 1).padStart(2, "0")}
                 </span>
                 <p className="text-[color:var(--color-ink)]/85 leading-relaxed text-[15px]">
-                  {t({ th: d.th, en: d.en })}
+                  {t(d.text)}
                 </p>
                 <span
                   className="mt-auto text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/60"

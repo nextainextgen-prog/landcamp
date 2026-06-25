@@ -209,4 +209,33 @@ export const CONTENT_DEFAULTS: SiteContent = {
     ratingValue: 4.9,
     ratingCount: 47,
   },
+  map: {
+    eyebrow: { th: "ที่ตั้ง & การเดินทาง", en: "Location & Directions" },
+    titleLine1: { th: "ปากช่อง · นครราชสีมา", en: "Pak Chong · Nakhon Ratchasima" },
+    titleLine2: { th: "ห่างจากเขาใหญ่ 12.6 กม.", en: "12.6 km from Khao Yai" },
+    directionsLabel: { th: "เส้นทางจากกรุงเทพ", en: "From Bangkok" },
+    directions: [
+      {
+        text: {
+          th: "ออกจากกรุงเทพใช้ทางหลวงหมายเลข 1 (พหลโยธิน) มุ่งสู่ อ.ปากช่อง",
+          en: "From Bangkok, take Highway 1 (Phahonyothin) north toward Pak Chong.",
+        },
+        distance: { th: "ประมาณ 2 ชั่วโมง", en: "≈ 2 hours" },
+      },
+      {
+        text: {
+          th: "เลี้ยวเข้าถนนธนะรัชต์ (เส้นทางสู่อุทยานแห่งชาติเขาใหญ่)",
+          en: "Turn onto Thanarat Road toward Khao Yai National Park.",
+        },
+        distance: { th: "12 กม.", en: "12 km" },
+      },
+      {
+        text: {
+          th: "ตำบลขนงพระ เลี้ยวขวาตรงป้าย LandCamp",
+          en: "In Khanong Phra, follow the LandCamp signage to the right.",
+        },
+        distance: { th: "ตรงเข้าที่พักอีก 600 ม.", en: "600 m to entrance" },
+      },
+    ],
+  },
 };
