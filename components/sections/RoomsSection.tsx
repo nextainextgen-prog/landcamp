@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { rooms } from "@/data/rooms";
+import { rooms as staticRooms } from "@/data/rooms";
 import { siteConfig } from "@/data/siteConfig";
 import { useT } from "@/app/providers";
 import Image from "next/image";
@@ -15,7 +15,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 const COVER_DURATION_MS = 5000;
 const SLIDE_DURATION_MS = 4000;
 
-export function RoomsSection() {
+export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
   const t = useT();
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
   const [bookingRoom, setBookingRoom] = useState<Room | null>(null);
@@ -45,7 +45,7 @@ export function RoomsSection() {
       setBookingRoom(room);
     }, 0);
     return () => window.clearTimeout(id);
-  }, []);
+  }, [rooms]);
 
   function openBooking(room: Room) {
     setBookingIntent(null);
@@ -139,6 +139,15 @@ export function RoomsSection() {
                     en: `Sleeps ${room.maxGuests}`,
                   })}
                 </span>
+
+                {room.badge && t(room.badge).trim() && (
+                  <span
+                    className="absolute bottom-4 left-4 z-10 rounded-full bg-[color:var(--color-warm-clay)] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_6px_18px_-4px_rgba(0,0,0,0.4)]"
+                    style={{ fontFamily: "var(--font-ui)" }}
+                  >
+                    {t(room.badge)}
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-4 p-6 sm:p-7 lg:p-8">

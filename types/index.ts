@@ -33,6 +33,8 @@ export type Room = {
   amenities: Bilingual[];
   images: { src: string; alt: Bilingual }[];
   available: boolean;
+  /** Optional promo/decoy ribbon shown on the card (e.g. "เหลือ 1 ห้องสุดท้าย"). */
+  badge?: Bilingual;
 };
 
 export type MenuCategory = "food" | "drinks" | "desserts";

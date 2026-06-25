@@ -16,6 +16,12 @@ export interface RoomInput {
   max_guests?: number;
   is_available?: boolean;
   display_order?: number;
+  /** jsonb: [{ src, alt: {th,en} }] */
+  images?: unknown[];
+  /** jsonb: [{ th, en }] */
+  amenities?: unknown[];
+  /** jsonb: { startingPrice, bedSize, roomSize, layout, breakfast, extraBed, services, checkIn, checkOut, badge } */
+  details?: Record<string, unknown>;
 }
 
 export type ValidationResult<T> =
@@ -92,6 +98,20 @@ export function validateRoomInput(
   if (input.is_available !== undefined) {
     if (typeof input.is_available !== "boolean") errors.is_available = "is_available must be a boolean.";
     else data.is_available = input.is_available;
+  }
+
+  // jsonb passthrough (shape validated lightly).
+  if (input.images !== undefined) {
+    if (!Array.isArray(input.images)) errors.images = "images must be an array.";
+    else data.images = input.images;
+  }
+  if (input.amenities !== undefined) {
+    if (!Array.isArray(input.amenities)) errors.amenities = "amenities must be an array.";
+    else data.amenities = input.amenities;
+  }
+  if (input.details !== undefined) {
+    if (!isObj(input.details)) errors.details = "details must be an object.";
+    else data.details = input.details;
   }
 
   if (Object.keys(errors).length) return { ok: false, errors };
