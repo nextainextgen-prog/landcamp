@@ -23,7 +23,7 @@ const EXTRA_TOP = [
   { key: "dashboard", label: "ภาพรวม", href: "/admin/dashboard" },
   { key: "calendar", label: "ปฏิทินการจอง", href: "/admin/calendar" },
   { key: "occupancy", label: "ห้องว่าง", href: "/admin/occupancy" },
-  { key: "walkin", label: "Walk-in", href: "/admin/walk-in" },
+  { key: "walkin", label: "จองห้องพัก", href: "/admin/walk-in" },
 ] as const;
 
 function Icon({ name, className = "h-[18px] w-[18px]" }: { name: string; className?: string }) {
@@ -178,11 +178,8 @@ export function AdminShell({
 
 function SidebarHead() {
   return (
-    <div className="border-b border-white/10 px-5 py-5">
-      <div className="leading-tight">
-        <div className="font-display text-base font-semibold text-[color:var(--color-bone)]">LandCamp</div>
-        <div className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--color-bone)]/40">Backoffice</div>
-      </div>
+    <div className="border-b border-white/10 px-5 py-4">
+      <div className="font-serif text-[1.6rem] font-medium leading-none text-[color:var(--color-bone)]">LandCamp</div>
     </div>
   );
 }

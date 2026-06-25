@@ -93,7 +93,7 @@ export function AdminLogin() {
               สู่หลังบ้าน LandCamp
             </h1>
             <p className="mt-5 max-w-md text-[15px] font-light leading-relaxed text-[color:var(--color-bone)]/70">
-              ยินดีต้อนรับสู่พื้นที่ทำงานของคุณ
+              พื้นที่ทำงานสำหรับทีมดูแล Villa Khao Yai
             </p>
           </div>
 

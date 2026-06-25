@@ -5,7 +5,7 @@ export type TopbarMeta = { title: string; subtitle: string };
 
 // Order matters — longest / most specific prefixes first.
 const TOPBAR_META: { prefix: string; meta: TopbarMeta }[] = [
-  { prefix: "/admin/walk-in", meta: { title: "ลงข้อมูลการจอง", subtitle: "ฟอร์ม + ปฏิทิน real-time · AI ช่วยตัดสินใจ" } },
+  { prefix: "/admin/walk-in", meta: { title: "จองห้องพัก", subtitle: "" } },
   { prefix: "/admin/dashboard", meta: { title: "ภาพรวม", subtitle: "สรุปผลการดำเนินงานแบบ real-time" } },
   { prefix: "/admin/bookings", meta: { title: "รายการจอง", subtitle: "จัดการคำสั่งจอง ตรวจสลิป และยืนยัน" } },
   { prefix: "/admin/calendar", meta: { title: "ปฏิทินการจอง", subtitle: "ดูคิวเข้าพักแบบรายวัน / รายเดือน" } },

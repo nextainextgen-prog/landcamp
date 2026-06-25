@@ -221,9 +221,11 @@ export function AdminTopbar({
           <h1 className="truncate font-display text-base font-semibold leading-tight text-[color:var(--color-forest-deep)] md:text-lg">
             {meta.title}
           </h1>
-          <p className="hidden truncate text-[12px] text-[color:var(--color-ink)]/50 sm:block">
-            {meta.subtitle}
-          </p>
+          {meta.subtitle && (
+            <p className="hidden truncate text-[12px] text-[color:var(--color-ink)]/50 sm:block">
+              {meta.subtitle}
+            </p>
+          )}
         </div>
 
         {/* search */}

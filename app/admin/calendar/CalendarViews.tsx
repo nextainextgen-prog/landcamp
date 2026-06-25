@@ -98,13 +98,17 @@ export function DayView({
   const bodyH = (DAY_END - DAY_START) * hourPx + PAD * 2;
   const yOf = (hour: number) => PAD + (hour - DAY_START) * hourPx;
 
-  function block(b: CalBooking): { top: number; height: number; from: number; to: number } | null {
+  function block(
+    b: CalBooking,
+  ): { top: number; height: number; from: number; to: number; isCheckIn: boolean; isCheckOut: boolean } | null {
     if (b.check_in > key || b.check_out < key) return null;
     if (key === b.check_out && key === b.check_in) return null;
-    const from = b.check_in === key ? CHECK_IN_H : DAY_START;
-    const to = b.check_out === key ? CHECK_OUT_H : DAY_END;
+    const isCheckIn = b.check_in === key;
+    const isCheckOut = b.check_out === key;
+    const from = isCheckIn ? CHECK_IN_H : DAY_START;
+    const to = isCheckOut ? CHECK_OUT_H : DAY_END;
     if (to <= from) return null;
-    return { top: yOf(from), height: (to - from) * hourPx, from, to };
+    return { top: yOf(from), height: (to - from) * hourPx, from, to, isCheckIn, isCheckOut };
   }
 
   const colMin = 210;
@@ -201,7 +205,7 @@ export function DayView({
                   return (
                     <div
                       key={b.id}
-                      title={`${b.code} · ${b.customer} · ${b.room} · ${statusLabel(b.status)}`}
+                      title={`${b.code} · ${b.customer} · ${b.room} · ${statusLabel(b.status)} · เช็คอิน ${CHECK_IN_H}:00 / เช็คเอาท์ ${CHECK_OUT_H}:00`}
                       className="absolute left-1 right-1 cursor-default overflow-hidden rounded-lg px-2.5 py-1.5 ring-1 ring-inset ring-black/[0.04] transition-shadow hover:shadow-md"
                       style={{
                         top: geo.top + 2,
@@ -216,7 +220,11 @@ export function DayView({
                       </p>
                       {geo.height > 34 && (
                         <p className="truncate text-[11px] text-[color:var(--color-ink)]/55">
-                          {String(geo.from).padStart(2, "0")}:00 – {String(geo.to).padStart(2, "0")}:00
+                          {geo.isCheckIn
+                            ? `เช็คอิน ${String(CHECK_IN_H).padStart(2, "0")}:00`
+                            : geo.isCheckOut
+                              ? `เช็คเอาท์ ${String(CHECK_OUT_H).padStart(2, "0")}:00`
+                              : "ค้างคืน"}
                         </p>
                       )}
                       {geo.height > 52 && (
