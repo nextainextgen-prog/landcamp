@@ -1,0 +1,24 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { requireSection } from "@/lib/admin/guard";
+import { PageHeader } from "@/components/admin/ui";
+import { CalendarSettingsForm } from "./CalendarSettingsForm";
+
+export const dynamic = "force-dynamic";
+
+export default async function CalendarSettingsPage() {
+  if (!(await requireSection("settings")).ok) redirect("/admin");
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <Link href="/admin/settings" className="text-xs text-[color:var(--color-forest-deep)]/60 hover:text-[color:var(--color-warm-clay)]">
+          ‹ ตั้งค่าระบบ
+        </Link>
+        <PageHeader title="ซิงก์ปฏิทิน" description="เชื่อมปฏิทินกับ Airbnb / Booking.com / Agoda เพื่อกันจองชนข้ามช่องทาง" />
+      </div>
+      <CalendarSettingsForm />
+    </div>
+  );
+}
