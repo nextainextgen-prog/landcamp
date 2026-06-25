@@ -106,6 +106,21 @@ function toDraft(r?: AdminRoom): Draft {
   };
 }
 
+function Toggle({ checked, disabled, onChange }: { checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${checked ? "bg-emerald-500" : "bg-neutral-300"}`}
+    >
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${checked ? "translate-x-4" : "translate-x-0.5"}`} />
+    </button>
+  );
+}
+
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/70">{children}</span>;
 }
@@ -367,10 +382,11 @@ export function RoomsManager({ initialRooms }: { initialRooms: AdminRoom[] }) {
                 <div className="mt-auto flex items-center gap-2 pt-2">
                   <button type="button" onClick={() => openEdit(r)} className="rounded-lg bg-[color:var(--color-forest-deep)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">แก้ไข</button>
                   <button type="button" onClick={() => duplicate(r)} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-3 py-1.5 text-sm text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">ทำซ้ำ</button>
-                  <button type="button" onClick={() => remove(r)} className="ml-auto rounded-lg px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">ลบ</button>
-                  <label className="flex items-center gap-1.5">
-                    <input type="checkbox" checked={r.is_available} disabled={busyId === r.id} onChange={(e) => toggleAvailable(r, e.target.checked)} className="h-4 w-4 accent-[color:var(--color-warm-clay)]" />
-                  </label>
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <span className="text-[11px] text-[color:var(--color-ink)]/55">เปิดจอง</span>
+                    <Toggle checked={r.is_available} disabled={busyId === r.id} onChange={(next) => toggleAvailable(r, next)} />
+                  </div>
+                  <button type="button" onClick={() => remove(r)} className="rounded-lg px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">ลบ</button>
                 </div>
               </div>
             </article>
@@ -430,7 +446,7 @@ export function RoomsManager({ initialRooms }: { initialRooms: AdminRoom[] }) {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5"><FieldLabel>ลำดับแสดง</FieldLabel><input type="number" className={inputCls} value={draft.display_order} onChange={(e) => upd({ display_order: e.target.value })} /></label>
-                <label className="flex items-center gap-2.5 pt-6"><input type="checkbox" checked={draft.is_available} onChange={(e) => upd({ is_available: e.target.checked })} className="h-4 w-4 accent-[color:var(--color-warm-clay)]" /><span className="text-sm">เปิดให้จอง</span></label>
+                <div className="flex items-center gap-2.5 pt-6"><Toggle checked={draft.is_available} onChange={(v) => upd({ is_available: v })} /><span className="text-sm">เปิดให้จอง</span></div>
               </div>
 
               {err && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>}
