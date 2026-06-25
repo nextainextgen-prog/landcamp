@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Panel } from "@/components/admin/ui";
 import { GalleryManager } from "./GalleryManager";
@@ -37,6 +37,15 @@ const TABS = [
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
+
+// Which part of the live preview to scroll to / highlight when a tab is opened.
+const TAB_ANCHOR: Partial<Record<TabKey, string>> = {
+  about: "#about",
+  contactSection: "#contact",
+  contact: "#contact",
+  footer: "footer",
+  gallery: "#atmosphere",
+};
 
 /* ── reusable fields ── */
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -138,6 +147,21 @@ export function ContentEditor({
   const [unpublished, setUnpublished] = useState(initiallyUnpublished);
   const [busy, setBusy] = useState<null | "save" | "publish">(null);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [previewKey, setPreviewKey] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const reloadPreview = useCallback(() => setPreviewKey((k) => k + 1), []);
+
+  const selectTab = useCallback((key: TabKey) => {
+    setTab(key);
+    const selector = TAB_ANCHOR[key];
+    if (selector) {
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: "lc-scroll", selector },
+        window.location.origin,
+      );
+    }
+  }, []);
 
   const update = useCallback((path: (string | number)[], value: unknown) => {
     setDoc((d) => setPath(d, path, value));
@@ -166,7 +190,8 @@ export function ContentEditor({
     if (ok) {
       setDirty(false);
       setUnpublished(true);
-      setMsg({ kind: "ok", text: "บันทึกร่างแล้ว — กดเผยแพร่เมื่อพร้อมให้ลูกค้าเห็น" });
+      reloadPreview();
+      setMsg({ kind: "ok", text: "บันทึกร่างแล้ว — ตัวอย่างทางซ้ายอัปเดตแล้ว กดเผยแพร่เมื่อพร้อม" });
     }
     setBusy(null);
   }
@@ -188,12 +213,50 @@ export function ContentEditor({
       return;
     }
     setUnpublished(false);
+    reloadPreview();
     setMsg({ kind: "ok", text: "เผยแพร่แล้ว — เว็บจริงอัปเดตทันที (รีเฟรชหน้าเว็บเพื่อดู)" });
     setBusy(null);
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(400px,500px)]">
+      {/* ── Live preview of the landing page (draft) ── */}
+      <div className="order-2 xl:order-1">
+        <div className="sticky top-4 overflow-hidden rounded-2xl border border-[color:var(--color-forest-deep)]/12 bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-2 border-b border-[color:var(--color-forest-deep)]/8 bg-[color:var(--color-bone-soft)]/40 px-3 py-2">
+            <span className="text-xs font-semibold text-[color:var(--color-forest-deep)]">
+              ตัวอย่างสด (ร่าง) — คลิกหัวข้อทางขวาเพื่อเลื่อนไปจุดนั้น
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={reloadPreview}
+                className="rounded px-2 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"
+              >
+                รีเฟรช
+              </button>
+              <a
+                href="/content-preview"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded px-2 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"
+              >
+                เต็มจอ ↗
+              </a>
+            </div>
+          </div>
+          <iframe
+            ref={iframeRef}
+            key={previewKey}
+            src={`/content-preview?v=${previewKey}`}
+            title="ตัวอย่างหน้าเว็บ"
+            className="h-[78vh] w-full bg-white"
+          />
+        </div>
+      </div>
+
+      {/* ── Editing controls ── */}
+      <div className="order-1 flex flex-col gap-5 xl:order-2">
       {tableMissing && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
           ยังไม่ได้รัน migration <strong>011_site_content</strong> ใน Supabase — แก้ไขในหน้านี้ได้
@@ -263,7 +326,7 @@ export function ContentEditor({
           <button
             key={t.key}
             type="button"
-            onClick={() => setTab(t.key)}
+            onClick={() => selectTab(t.key)}
             className={
               tab === t.key
                 ? "rounded-full bg-[color:var(--color-forest-deep)] px-4 py-1.5 text-sm font-medium text-white"
@@ -366,6 +429,7 @@ export function ContentEditor({
       <p className="text-xs text-[color:var(--color-ink)]/45">
         ส่วน Hero และข้อมูลแบรนด์อื่น ๆ จะเปิดให้แก้ในหน้านี้หลังจากหน้าแรกถูกปรับปรุงเสร็จ
       </p>
+      </div>
     </div>
   );
 }

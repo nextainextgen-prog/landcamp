@@ -1,53 +1,17 @@
 import { getSiteContent } from "@/lib/content/server";
 import { ContentProvider } from "@/lib/content/provider";
-import { Navbar } from "@/components/navigation/Navbar";
-import { HeroSection } from "@/components/sections/HeroSection";
-import { AboutSection } from "@/components/sections/AboutSection";
-import { RoomsSection } from "@/components/sections/RoomsSection";
-import { WeddingSection } from "@/components/sections/WeddingSection";
-import { GallerySection } from "@/components/sections/GallerySection";
-import { VideoSection } from "@/components/sections/VideoSection";
-import { MenuSection } from "@/components/sections/MenuSection";
-import { MapSection } from "@/components/sections/MapSection";
-import { ReviewsSection } from "@/components/sections/ReviewsSection";
-import { ContactSection } from "@/components/sections/ContactSection";
-import { Footer } from "@/components/sections/Footer";
+import { LandingSections } from "@/components/sections/LandingSections";
 
 /**
- * LandCamp Villa Khao Yai — single-page landing
- *
- * Section order (per design plan):
- *   01 Navigation
- *   02 Hero
- *   03 About / Brand Story
- *   04 Rooms (horizontal carousel + modal)
- *   05 Atmosphere Gallery (bento + lightbox)
- *   06 Video Review
- *   07 Food & Drinks
- *   08 Map & Location
- *   09 Guest Reviews
- *   10 Contact + FAQ
- *   11 Footer
+ * LandCamp Villa Khao Yai — single-page landing.
+ * Content (text/images) comes from the CMS override merged over code defaults.
  */
 export default async function Home() {
   const content = await getSiteContent();
 
   return (
     <ContentProvider content={content}>
-      <main className="relative">
-        <Navbar />
-        <HeroSection />
-        <AboutSection />
-        <GallerySection />
-        <RoomsSection />
-        <WeddingSection />
-        <VideoSection />
-        <MenuSection />
-        <MapSection />
-        <ReviewsSection />
-        <ContactSection />
-        <Footer />
-      </main>
+      <LandingSections />
     </ContentProvider>
   );
 }
