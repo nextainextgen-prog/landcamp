@@ -280,16 +280,6 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
               </button>
             ))}
           </div>
-          <div className="relative">
-            <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[color:var(--color-ink)]/35">🔍</span>
-            <input
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="ค้นหา ชื่อ / เบอร์ / รหัสจอง"
-              className="w-full rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-[color:var(--color-bone-soft)]/40 py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-[color:var(--color-warm-clay)] focus:bg-white"
-            />
-          </div>
         </div>
 
         <StatsBox rows={rows} />
@@ -313,7 +303,18 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
       </aside>
 
       {/* ── Middle: list ── */}
-      <div className="flex min-w-0 flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-3 shadow-sm">
+        {/* search */}
+        <div className="relative">
+          <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[color:var(--color-ink)]/35">🔍</span>
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="ค้นหา ชื่อ / เบอร์ / รหัสจอง"
+            className="w-full rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-[color:var(--color-bone-soft)]/40 py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-[color:var(--color-warm-clay)] focus:bg-white"
+          />
+        </div>
         {/* list toolbar: count · sort */}
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-[color:var(--color-ink)]/50">{sorted.length} รายการ</span>
@@ -347,7 +348,7 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
           {groups
             ? groups.map((g) => (
                 <li key={g.key} className="flex flex-col gap-2">
-                  <div className="sticky top-0 z-[1] flex items-center gap-2 bg-[color:var(--color-bone)]/80 py-1 backdrop-blur-sm">
+                  <div className="sticky top-0 z-[1] flex items-center gap-2 bg-white/90 py-1 backdrop-blur-sm">
                     <span className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/60">{g.label}</span>
                     <span className="rounded-full bg-[color:var(--color-bone-soft)] px-1.5 text-[10px] font-medium text-[color:var(--color-ink)]/55">{g.rows.length}</span>
                   </div>
@@ -421,8 +422,8 @@ function BookingCard({
         active
           ? "border-[color:var(--color-warm-clay)]/45 bg-[color:var(--color-warm-clay)]/[0.06] shadow-sm"
           : needsAction
-            ? "border-blue-300/70 bg-white ring-1 ring-blue-200 hover:shadow-sm"
-            : "border-[color:var(--color-forest-deep)]/10 bg-white hover:border-[color:var(--color-forest-deep)]/20 hover:shadow-sm"
+            ? "border-blue-300/70 bg-blue-50/40 ring-1 ring-blue-200 hover:shadow-sm"
+            : "border-[color:var(--color-forest-deep)]/10 bg-[color:var(--color-bone-soft)]/30 hover:bg-[color:var(--color-bone-soft)]/50 hover:shadow-sm"
       }`}
     >
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: STATUS_ACCENT[r.status] }} aria-hidden />
