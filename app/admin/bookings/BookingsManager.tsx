@@ -577,6 +577,7 @@ function BookingDetail({
   onZoom: (src: string) => void;
 }) {
   const c = r.customer;
+  const [phoneOpen, setPhoneOpen] = useState(false);
   const nights = nightsBetween(r.check_in, r.check_out);
   const note = parseNote(r.payment?.verify_note ?? null);
   const verify = r.payment?.verify_status ? VERIFY[r.payment.verify_status] ?? VERIFY.pending : null;
@@ -599,7 +600,7 @@ function BookingDetail({
             {c.lineUserId && <span>🟢 LINE ผูกแล้ว</span>}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            {c.phone && <a href={`tel:${c.phone}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">โทร</a>}
+            <button type="button" onClick={() => setPhoneOpen(true)} className="inline-flex items-center gap-1 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">📞 โทร</button>
             {c.email && <a href={`mailto:${c.email}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">อีเมล</a>}
             <a href={`/admin/customers/${r.customer_id}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">ดูประวัติลูกค้า</a>
             {c.lineUserId && <button type="button" disabled={busy} onClick={() => onResend(r.id)} className="rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50">ส่งการ์ด LINE</button>}
@@ -674,13 +675,48 @@ function BookingDetail({
         )}
         {r.status === "confirmed" && (
           <>
-            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "completed" }, "completed")} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">มาร์คเสร็จสิ้น</button>
+            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "completed" }, "completed")} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">เช็คเอาท์แล้ว</button>
             <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "no_show" }, "no_show")} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50">ไม่มาตามนัด</button>
           </>
         )}
         {(r.status === "pending_payment" || r.status === "payment_review" || r.status === "confirmed") && (
           <button type="button" disabled={busy} onClick={() => onPatch(r.id, { status: "cancelled" }, "cancelled")} className="ml-auto rounded-lg px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50">ยกเลิกการจอง</button>
         )}
+      </div>
+
+      {phoneOpen && <PhonePopup name={c.name} phone={c.phone} onClose={() => setPhoneOpen(false)} />}
+    </div>
+  );
+}
+
+function PhonePopup({ name, phone, onClose }: { name: string; phone: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const has = Boolean(phone && phone.trim());
+  function copy() {
+    if (!has) return;
+    void navigator.clipboard?.writeText(phone);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-xs rounded-2xl bg-white p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--color-forest-deep)]/10 text-xl">📞</div>
+        <div className="text-sm text-[color:var(--color-ink)]/55">โทรหา {name}</div>
+        {has ? (
+          <>
+            <div className="mt-1 select-all font-display text-2xl font-bold tracking-wide text-[color:var(--color-forest-deep)]">{phone}</div>
+            <div className="mt-5 flex gap-2">
+              <button type="button" onClick={copy} className="flex-1 rounded-lg border border-[color:var(--color-forest-deep)]/20 py-2 text-sm font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">
+                {copied ? "คัดลอกแล้ว ✓" : "คัดลอกเบอร์"}
+              </button>
+              <a href={`tel:${phone}`} className="flex-1 rounded-lg bg-[color:var(--color-forest-deep)] py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-warm-clay)]">โทรออก</a>
+            </div>
+          </>
+        ) : (
+          <div className="mt-2 text-sm text-[color:var(--color-ink)]/45">ลูกค้ายังไม่มีเบอร์โทรในระบบ</div>
+        )}
+        <button type="button" onClick={onClose} className="mt-4 text-xs text-[color:var(--color-ink)]/45 hover:text-[color:var(--color-ink)]/70">ปิด</button>
       </div>
     </div>
   );
