@@ -5,9 +5,9 @@ import { requireSection } from "@/lib/admin/guard";
 import { readContentRow } from "@/lib/content/store";
 import { CONTENT_DEFAULTS } from "@/lib/content/defaults";
 import { mergeContent } from "@/lib/content/merge";
-import { ContentProvider } from "@/lib/content/provider";
 import { LandingSections } from "@/components/sections/LandingSections";
 import { PreviewBridge } from "./PreviewBridge";
+import { PreviewClient } from "./PreviewClient";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +28,9 @@ export default async function ContentPreviewPage() {
   const content = mergeContent(CONTENT_DEFAULTS, row?.draft);
 
   return (
-    <ContentProvider content={content}>
+    <PreviewClient initialContent={content}>
       <PreviewBridge />
       <LandingSections />
-    </ContentProvider>
+    </PreviewClient>
   );
 }

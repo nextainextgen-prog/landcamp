@@ -215,8 +215,34 @@ export function ContentEditor({
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const docRef = useRef(doc);
 
   const reloadPreview = useCallback(() => setPreviewKey((k) => k + 1), []);
+
+  const postContent = useCallback((d: SiteContent) => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "lc-content", content: d },
+      window.location.origin,
+    );
+  }, []);
+
+  // Push the in-progress draft to the preview on every edit (real-time sync).
+  useEffect(() => {
+    docRef.current = doc;
+    const id = window.setTimeout(() => postContent(doc), 60);
+    return () => window.clearTimeout(id);
+  }, [doc, postContent]);
+
+  // When the preview (re)mounts it announces itself — send it the current draft.
+  useEffect(() => {
+    function onReady(e: MessageEvent) {
+      if ((e.data as { type?: string } | null)?.type === "lc-preview-ready") {
+        postContent(docRef.current);
+      }
+    }
+    window.addEventListener("message", onReady);
+    return () => window.removeEventListener("message", onReady);
+  }, [postContent]);
 
   const selectTab = useCallback((key: TabKey) => {
     setTab(key);
@@ -256,8 +282,7 @@ export function ContentEditor({
     if (ok) {
       setDirty(false);
       setUnpublished(true);
-      reloadPreview();
-      setMsg({ kind: "ok", text: "บันทึกร่างแล้ว — ตัวอย่างทางซ้ายอัปเดตแล้ว กดเผยแพร่เมื่อพร้อม" });
+      setMsg({ kind: "ok", text: "บันทึกร่างแล้ว — กดเผยแพร่เมื่อพร้อมให้ลูกค้าเห็น" });
     }
     setBusy(null);
   }
@@ -279,7 +304,6 @@ export function ContentEditor({
       return;
     }
     setUnpublished(false);
-    reloadPreview();
     setMsg({ kind: "ok", text: "เผยแพร่แล้ว — เว็บจริงอัปเดตทันที (รีเฟรชหน้าเว็บเพื่อดู)" });
     setBusy(null);
   }
