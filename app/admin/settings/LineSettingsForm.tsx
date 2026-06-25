@@ -7,9 +7,11 @@ import { Panel } from "@/components/admin/ui";
 type Loaded = {
   loginChannelId: string;
   oaBasicId: string;
+  teamGroupId: string;
   addFriend: boolean;
   loginChannelSecretSet: boolean;
   messagingAccessTokenSet: boolean;
+  messagingChannelSecretSet: boolean;
 };
 
 const inputCls =
@@ -29,13 +31,15 @@ export function LineSettingsForm() {
   const [channelId, setChannelId] = useState("");
   const [oaBasicId, setOaBasicId] = useState("");
   const [addFriend, setAddFriend] = useState(true);
+  const [teamGroupId, setTeamGroupId] = useState("");
   const [secret, setSecret] = useState("");
   const [token, setToken] = useState("");
+  const [msgSecret, setMsgSecret] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
-  const [callbackUrl] = useState(() =>
-    typeof window !== "undefined" ? `${window.location.origin}/auth/line/callback` : "",
-  );
+  const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
+  const callbackUrl = origin ? `${origin}/auth/line/callback` : "";
+  const webhookUrl = origin ? `${origin}/api/line/webhook` : "";
 
   useEffect(() => {
     fetch("/api/admin/settings/line")
@@ -49,6 +53,7 @@ export function LineSettingsForm() {
         setLoaded(d);
         setChannelId(d.loginChannelId);
         setOaBasicId(d.oaBasicId);
+        setTeamGroupId(d.teamGroupId ?? "");
         setAddFriend(d.addFriend);
       })
       .catch(() => setUnavailable(true));
@@ -63,9 +68,11 @@ export function LineSettingsForm() {
       body: JSON.stringify({
         loginChannelId: channelId,
         oaBasicId,
+        teamGroupId,
         addFriend,
         loginChannelSecret: secret,
         messagingAccessToken: token,
+        messagingChannelSecret: msgSecret,
       }),
     });
     if (!res.ok) {
@@ -76,15 +83,18 @@ export function LineSettingsForm() {
     }
     setSecret("");
     setToken("");
+    setMsgSecret("");
     setLoaded((p) =>
       p
         ? {
             ...p,
             loginChannelId: channelId,
             oaBasicId,
+            teamGroupId,
             addFriend,
             loginChannelSecretSet: p.loginChannelSecretSet || secret.trim().length > 0,
             messagingAccessTokenSet: p.messagingAccessTokenSet || token.trim().length > 0,
+            messagingChannelSecretSet: p.messagingChannelSecretSet || msgSecret.trim().length > 0,
           }
         : p,
     );
@@ -134,8 +144,32 @@ export function LineSettingsForm() {
             className={inputCls}
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            placeholder={loaded?.messagingAccessTokenSet ? "•••••••• (ตั้งค่าไว้แล้ว — กรอกเพื่อเปลี่ยน)" : "ใช้สำหรับส่งการ์ดแจ้งเตือนภายหลัง"}
+            placeholder={loaded?.messagingAccessTokenSet ? "•••••••• (ตั้งค่าไว้แล้ว — กรอกเพื่อเปลี่ยน)" : "ใช้ส่งการ์ดหาลูกค้า/แจ้งทีม"}
           />
+        </label>
+
+        <label className="grid gap-1.5">
+          <Label>Messaging API (OA) — Channel Secret</Label>
+          <input
+            type="password"
+            className={inputCls}
+            value={msgSecret}
+            onChange={(e) => setMsgSecret(e.target.value)}
+            placeholder={loaded?.messagingChannelSecretSet ? "•••••••• (ตั้งค่าไว้แล้ว — กรอกเพื่อเปลี่ยน)" : "ใช้ตรวจสอบ webhook"}
+          />
+        </label>
+
+        <div className="rounded-lg bg-[color:var(--color-bone-soft)]/50 p-4 text-xs leading-relaxed text-[color:var(--color-ink)]/70">
+          ตั้ง <strong>Webhook URL</strong> ในช่อง Messaging API เป็น (เพื่อรับ Group ID + เช็คอิน):
+          <code className="mt-1 block break-all rounded bg-white px-2 py-1 font-mono text-[11px] text-[color:var(--color-forest-deep)]">
+            {webhookUrl || "…"}
+          </code>
+          แล้วเชิญ OA เข้ากลุ่มทีม + พิมพ์ข้อความในกลุ่ม → ดู Group ID ได้ที่หน้า <strong>บันทึกการใช้งาน (Audit Log)</strong>
+        </div>
+
+        <label className="grid gap-1.5">
+          <Label>Group ID กลุ่มทีมงาน</Label>
+          <input className={inputCls} value={teamGroupId} onChange={(e) => setTeamGroupId(e.target.value)} placeholder="C............................. (จาก Audit Log)" />
         </label>
 
         <label className="grid gap-1.5">

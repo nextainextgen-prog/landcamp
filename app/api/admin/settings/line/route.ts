@@ -26,12 +26,14 @@ export async function GET() {
 
   const { data, error } = await admin
     .from("line_settings")
-    .select("login_channel_id, login_channel_secret, messaging_access_token, oa_basic_id, add_friend")
+    .select(
+      "login_channel_id, login_channel_secret, messaging_access_token, messaging_channel_secret, oa_basic_id, team_group_id, add_friend",
+    )
     .eq("id", ID)
     .maybeSingle();
   if (error) {
     return NextResponse.json(
-      { error: "settings unavailable — run migration 013" },
+      { error: "settings unavailable — run migration 013 / 017" },
       { status: 503 },
     );
   }
@@ -39,9 +41,11 @@ export async function GET() {
   return NextResponse.json({
     loginChannelId: (data?.login_channel_id as string) ?? "",
     oaBasicId: (data?.oa_basic_id as string) ?? "",
+    teamGroupId: (data?.team_group_id as string) ?? "",
     addFriend: typeof data?.add_friend === "boolean" ? data.add_friend : true,
     loginChannelSecretSet: Boolean(data?.login_channel_secret),
     messagingAccessTokenSet: Boolean(data?.messaging_access_token),
+    messagingChannelSecretSet: Boolean(data?.messaging_channel_secret),
   });
 }
 
@@ -63,6 +67,7 @@ export async function PUT(req: NextRequest) {
   // Non-secret fields: always set (can be cleared).
   if (typeof body.loginChannelId === "string") update.login_channel_id = body.loginChannelId.trim();
   if (typeof body.oaBasicId === "string") update.oa_basic_id = body.oaBasicId.trim();
+  if (typeof body.teamGroupId === "string") update.team_group_id = body.teamGroupId.trim();
   if (typeof body.addFriend === "boolean") update.add_friend = body.addFriend;
   // Secrets: only overwrite when a non-empty value is supplied.
   if (typeof body.loginChannelSecret === "string" && body.loginChannelSecret.trim()) {
@@ -70,6 +75,9 @@ export async function PUT(req: NextRequest) {
   }
   if (typeof body.messagingAccessToken === "string" && body.messagingAccessToken.trim()) {
     update.messaging_access_token = body.messagingAccessToken.trim();
+  }
+  if (typeof body.messagingChannelSecret === "string" && body.messagingChannelSecret.trim()) {
+    update.messaging_channel_secret = body.messagingChannelSecret.trim();
   }
 
   if (Object.keys(update).length === 0) {

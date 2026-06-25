@@ -16,6 +16,7 @@ const ACTION_LABEL: Record<string, string> = {
   "backup.export": "ดาวน์โหลดข้อมูล",
   "cron.clear_expired": "รันเคลียร์จองหมดเวลา",
   "booking.status": "เปลี่ยนสถานะการจอง",
+  "line.webhook": "เหตุการณ์ LINE (ดู Group ID ในรายละเอียด)",
 };
 
 export default async function AuditLogPage() {
