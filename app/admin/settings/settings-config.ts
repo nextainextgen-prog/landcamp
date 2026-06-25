@@ -30,6 +30,7 @@ export const SETTINGS_GROUPS: SettingGroup[] = [
     label: "การแจ้งเตือน",
     cards: [
       { title: "LINE OA", desc: "Channel · OA token · auto add-friend", href: "/admin/settings/line" },
+      { title: "การ์ด LINE", desc: "ตกแต่งการ์ดยืนยัน/เตือน — รูป ข้อความ ปุ่ม", href: "/admin/settings/cards" },
       { title: "Email (Resend)", desc: "โดเมน · ผู้ส่ง · API key", href: "/admin/settings/email" },
       { title: "กำหนดการแจ้งเตือน (Routing)", desc: "จองใหม่→ทีม · ยืนยัน→ลูกค้า", href: "/admin/settings/routing" },
       { title: "คลังเทมเพลตข้อความ", desc: "แก้ข้อความอีเมล / การ์ด LINE", href: "/admin/settings/templates" },

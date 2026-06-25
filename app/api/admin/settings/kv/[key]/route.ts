@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Generic key→jsonb settings store for simple config pages.
-const ALLOWED_KEYS = new Set(["tax", "goals", "routing", "templates", "pdpa"]);
+const ALLOWED_KEYS = new Set(["tax", "goals", "routing", "templates", "pdpa", "card_confirm", "card_reminder"]);
 const MAX_BYTES = 256_000;
 
 function isObj(v: unknown): v is Record<string, unknown> {

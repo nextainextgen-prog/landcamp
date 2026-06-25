@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendBookingConfirmation } from "@/lib/notify/booking";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,6 +94,11 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
         ...(body.action === "confirm" ? { paid_at: new Date().toISOString() } : {}),
       })
       .eq("id", payment.id);
+  }
+
+  // On confirm: push the LINE confirmation card to the customer (non-fatal).
+  if (body.action === "confirm") {
+    await sendBookingConfirmation(id);
   }
 
   return NextResponse.json({ ok: true, status: bookingStatus });
