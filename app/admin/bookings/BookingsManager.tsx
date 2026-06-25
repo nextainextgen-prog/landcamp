@@ -271,6 +271,24 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
     }
   }
 
+  async function recordPayment(id: string, payment: { amount: number; kind: string; method: string }): Promise<boolean> {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ payment }) });
+      const d = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(d.error ?? "");
+      setRows((l) => l.map((r) => (r.id === id ? { ...r, payment: { amount: payment.amount, kind: payment.kind, status: "paid", verify_status: r.payment?.verify_status ?? null, verify_note: r.payment?.verify_note ?? null, slip_image: r.payment?.slip_image ?? null } } : r)));
+      setToast("บันทึกรับเงินแล้ว");
+      setTimeout(() => setToast(null), 2000);
+      return true;
+    } catch (e) {
+      window.alert(`บันทึกไม่สำเร็จ${e instanceof Error && e.message ? `: ${e.message}` : ""}`);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveNotes(id: string, notes: string) {
     setBusy(true);
     try {
@@ -422,7 +440,7 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
             เลือกการจองทางซ้ายเพื่อดูรายละเอียด
           </div>
         ) : (
-          <BookingDetail key={selected.id} r={selected} busy={busy} overlaps={overlaps} onPatch={patch} onResend={resendCard} onZoom={setZoom} onSaveNotes={saveNotes} onSaveEdit={saveEdit} />
+          <BookingDetail key={selected.id} r={selected} busy={busy} overlaps={overlaps} onPatch={patch} onResend={resendCard} onZoom={setZoom} onSaveNotes={saveNotes} onSaveEdit={saveEdit} onRecordPayment={recordPayment} />
         )}
         {toast && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{toast}</div>}
       </div>
@@ -622,6 +640,7 @@ function BookingDetail({
   onZoom,
   onSaveNotes,
   onSaveEdit,
+  onRecordPayment,
 }: {
   r: BookingRow;
   busy: boolean;
@@ -631,10 +650,12 @@ function BookingDetail({
   onZoom: (src: string) => void;
   onSaveNotes: (id: string, notes: string) => void;
   onSaveEdit: (id: string, edit: { check_in: string; check_out: string; adults: number; children: number; total_amount: number }) => Promise<boolean>;
+  onRecordPayment: (id: string, payment: { amount: number; kind: string; method: string }) => Promise<boolean>;
 }) {
   const c = r.customer;
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const [confirm, setConfirm] = useState<null | { title: string; message: string; label: string; danger?: boolean; run: () => void }>(null);
   const [noteDraft, setNoteDraft] = useState(r.notes ?? "");
   const [copied, setCopied] = useState<"" | "summary" | "map">("");
@@ -699,6 +720,7 @@ function BookingDetail({
             {ACTIVE_STATUSES.has(r.status) && (
               <button type="button" onClick={() => setEditOpen(true)} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">✏️ แก้ไขการจอง</button>
             )}
+            <button type="button" onClick={() => setPayOpen(true)} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">💵 บันทึกรับเงิน</button>
             {c.lineUserId && <button type="button" disabled={busy} onClick={() => onResend(r.id)} className="rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50">ส่งการ์ด LINE</button>}
           </div>
         </div>
@@ -814,6 +836,17 @@ function BookingDetail({
           }}
         />
       )}
+      {payOpen && (
+        <PaymentDialog
+          r={r}
+          busy={busy}
+          onClose={() => setPayOpen(false)}
+          onSave={async (payment) => {
+            const ok = await onRecordPayment(r.id, payment);
+            if (ok) setPayOpen(false);
+          }}
+        />
+      )}
       {confirm && (
         <ConfirmDialog
           title={confirm.title}
@@ -882,6 +915,54 @@ function EditDialog({
           >
             บันทึก
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaymentDialog({
+  r,
+  busy,
+  onClose,
+  onSave,
+}: {
+  r: BookingRow;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (payment: { amount: number; kind: string; method: string }) => void;
+}) {
+  const [amount, setAmount] = useState(r.total_amount);
+  const [kind, setKind] = useState("full");
+  const [method, setMethod] = useState("cash");
+  const inputCls = "w-full rounded-lg border border-[color:var(--color-forest-deep)]/15 bg-white px-3 py-2 text-sm outline-none focus:border-[color:var(--color-warm-clay)]";
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-[color:var(--color-forest-deep)]">บันทึกรับเงิน · {r.booking_code}</h3>
+        <div className="mt-4 flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">จำนวนเงิน (บาท)
+            <input type="number" min={1} value={amount} onChange={(e) => setAmount(Math.max(0, Number(e.target.value) || 0))} className={inputCls} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">ประเภท
+            <select value={kind} onChange={(e) => setKind(e.target.value)} className={inputCls}>
+              <option value="full">ชำระเต็มจำนวน</option>
+              <option value="deposit">มัดจำ</option>
+              <option value="remainder">ส่วนที่เหลือ</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">ช่องทาง
+            <select value={method} onChange={(e) => setMethod(e.target.value)} className={inputCls}>
+              <option value="cash">เงินสด</option>
+              <option value="transfer">โอน</option>
+              <option value="promptpay">พร้อมเพย์</option>
+              <option value="card">บัตร</option>
+            </select>
+          </label>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-ink)]/70 hover:bg-[color:var(--color-bone-soft)]">ยกเลิก</button>
+          <button type="button" disabled={busy || amount <= 0} onClick={() => onSave({ amount, kind, method })} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-warm-clay)] disabled:opacity-50">บันทึก</button>
         </div>
       </div>
     </div>

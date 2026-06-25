@@ -40,7 +40,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     children?: number;
     total_amount?: number;
   };
-  let body: { action?: string; status?: string; notes?: string; edit?: EditBody };
+  type PaymentBody = { amount?: number; kind?: string; method?: string };
+  let body: { action?: string; status?: string; notes?: string; edit?: EditBody; payment?: PaymentBody };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -85,6 +86,25 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       return NextResponse.json({ error: msg }, { status: 400 });
     }
     return NextResponse.json({ ok: true, edit: patch });
+  }
+
+  // Record a payment received (e.g. cash/transfer collected on site).
+  if (!body.action && !body.status && body.payment) {
+    const p = body.payment;
+    if (typeof p.amount !== "number" || p.amount <= 0) {
+      return NextResponse.json({ error: "จำนวนเงินไม่ถูกต้อง" }, { status: 400 });
+    }
+    const kind = ["deposit", "remainder", "full"].includes(p.kind ?? "") ? p.kind : "full";
+    const { error } = await admin.from("payments").insert({
+      booking_id: id,
+      amount: Math.round(p.amount),
+      kind,
+      method: p.method ?? null,
+      status: "paid",
+      paid_at: new Date().toISOString(),
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
   }
 
   // Direct status change (no payment side-effects).
