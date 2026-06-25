@@ -347,8 +347,8 @@ export function AdminTopbar({
               {username.slice(0, 1).toUpperCase()}
             </span>
             <span className="hidden text-left leading-tight sm:block">
-              <span className="block max-w-[140px] truncate text-sm font-semibold text-[color:var(--color-forest-deep)]">{username}</span>
-              <span className="block text-[11px] font-medium text-[color:var(--color-warm-clay)]">{roleLabel}</span>
+              <span className="block max-w-[140px] truncate text-sm font-bold text-[color:var(--color-forest-deep)]">{username}</span>
+              <span className="block text-[11px] font-semibold text-[color:var(--color-warm-clay)]">{roleLabel}</span>
             </span>
             <span className="text-[color:var(--color-ink)]/40">
               <I name="chevron" className={clsx("h-4 w-4 transition-transform", panel === "user" && "rotate-180")} />
