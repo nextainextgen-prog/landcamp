@@ -4,63 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { AdminRole } from "@/lib/admin/sections";
-
-type Card = {
-  title: string;
-  desc: string;
-  href?: string;
-  superAdminOnly?: boolean;
-};
-type Group = { label: string; cards: Card[] };
-
-const GROUPS: Group[] = [
-  {
-    label: "การเงิน",
-    cards: [
-      { title: "ตั้งค่าการเงิน", desc: "บัญชีรับเงิน · พร้อมเพย์ · QR · มัดจำ", href: "/admin/payment-settings" },
-      { title: "ภาษี & ใบเสร็จ", desc: "VAT · เลขผู้เสียภาษี · หัวบิล" },
-      { title: "เป้าหมาย / KPI", desc: "เป้ารายเดือน · อัตราเข้าพักเป้าหมาย" },
-    ],
-  },
-  {
-    label: "ผู้ใช้ & สิทธิ์",
-    cards: [
-      { title: "แอดมิน & สิทธิ์ (Roles)", desc: "เพิ่ม/ลบแอดมิน · ติ๊กสิทธิ์รายเมนู", href: "/admin/users" },
-      { title: "จัดการลูกค้า", desc: "ดู/แก้/ลบ · รวมบัญชีซ้ำ · แบน", href: "/admin/customers", superAdminOnly: true },
-      { title: "ความปลอดภัย", desc: "เปลี่ยนรหัส · 2FA · จำกัด IP" },
-    ],
-  },
-  {
-    label: "การแจ้งเตือน",
-    cards: [
-      { title: "LINE OA", desc: "Channel · OA token · auto add-friend", href: "/admin/settings/line" },
-      { title: "Email (Resend)", desc: "โดเมน · ผู้ส่ง · API key", href: "/admin/settings/email" },
-      { title: "กำหนดการแจ้งเตือน (Routing)", desc: "จองใหม่→ทีม · ยืนยัน→ลูกค้า" },
-      { title: "คลังเทมเพลตข้อความ", desc: "แก้ข้อความอีเมล / การ์ด LINE" },
-    ],
-  },
-  {
-    label: "เนื้อหาเว็บ & แบรนด์",
-    cards: [
-      { title: "แก้เนื้อหาเว็บ (CMS)", desc: "ข้อความ · รูป · วิดีโอ + พรีวิวสด", href: "/admin/content" },
-    ],
-  },
-  {
-    label: "เชื่อมต่อภายนอก",
-    cards: [
-      { title: "ซิงก์ปฏิทิน", desc: "Airbnb · Booking.com · Agoda (iCal)", href: "/admin/settings/calendar" },
-    ],
-  },
-  {
-    label: "ระบบ & ความปลอดภัย",
-    cards: [
-      { title: "บันทึกการใช้งาน (Audit Log)", desc: "ใครทำอะไร เมื่อไหร่" },
-      { title: "ข้อมูล & PDPA", desc: "นโยบายความเป็นส่วนตัว · คำขอลบข้อมูล" },
-      { title: "สำรองข้อมูล (Backup)", desc: "จุดสำรอง / กู้คืน" },
-      { title: "งานอัตโนมัติ (Cron)", desc: "เคลียร์จองหมดเวลา · เตือนใกล้วัน" },
-    ],
-  },
-];
+import { SETTINGS_GROUPS } from "./settings-config";
 
 function CardIcon({ locked }: { locked?: boolean }) {
   return (
@@ -85,7 +29,7 @@ export function SettingsHub({ role }: { role: AdminRole }) {
   const norm = q.trim().toLowerCase();
 
   const groups = useMemo(() => {
-    return GROUPS.map((g) => ({
+    return SETTINGS_GROUPS.map((g) => ({
       ...g,
       cards: g.cards
         .filter((c) => role === "super_admin" || !c.superAdminOnly)
