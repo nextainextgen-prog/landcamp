@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { requireSection } from "@/lib/admin/guard";
 import { PageHeader } from "@/components/admin/ui";
 import { AccountsCard } from "./AccountsCard";
@@ -88,6 +89,12 @@ export default async function PaymentSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        href="/admin/settings"
+        className="text-xs text-[color:var(--color-forest-deep)]/60 transition-colors hover:text-[color:var(--color-warm-clay)]"
+      >
+        ‹ ตั้งค่าระบบ
+      </Link>
       <PageHeader
         title="ตั้งค่าการเงิน"
         description="จัดการบัญชีรับเงิน เงินมัดจำ และนโยบายการยกเลิก"

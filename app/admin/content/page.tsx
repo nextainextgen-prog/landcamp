@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
@@ -20,6 +21,12 @@ export default async function AdminContentPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        href="/admin/settings"
+        className="text-xs text-[color:var(--color-forest-deep)]/60 transition-colors hover:text-[color:var(--color-warm-clay)]"
+      >
+        ‹ ตั้งค่าระบบ
+      </Link>
       <PageHeader
         title="เนื้อหาเว็บ"
         description="แก้ข้อความบนหน้าเว็บ (2 ภาษา) — บันทึกร่างไว้ก่อน แล้วกดเผยแพร่เมื่อพร้อม การเผยแพร่จะอัปเดตเว็บจริงทันทีโดยไม่ต้อง deploy"

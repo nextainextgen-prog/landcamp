@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
@@ -27,6 +28,12 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        href="/admin/settings"
+        className="text-xs text-[color:var(--color-forest-deep)]/60 transition-colors hover:text-[color:var(--color-warm-clay)]"
+      >
+        ‹ ตั้งค่าระบบ
+      </Link>
       <PageHeader
         title="จัดการผู้ใช้"
         description="เพิ่มผู้ดูแล กำหนดสิทธิ์การเข้าถึงแต่ละเมนู และตั้งรหัสผ่าน"
