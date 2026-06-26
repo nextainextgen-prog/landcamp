@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 /**
  * Cancels `pending_payment` bookings whose 15-minute hold (measured from
  * `created_at`) has elapsed, freeing their dates for other guests. Scheduled
- * via vercel.json `crons` every 5 minutes.
+ * via vercel.json `crons` once daily (`0 0 * * *`) — the Vercel Hobby plan
+ * caps cron frequency, so expired holds may linger until the next daily run.
  *
  * Vercel cron requests carry `Authorization: Bearer ${CRON_SECRET}` when the
  * env var is set; we reject mismatches so the endpoint can't be triggered by
