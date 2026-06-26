@@ -7,6 +7,7 @@ import {
   OAUTH_STATE_COOKIE,
 } from "@/lib/line/login";
 import { getLineConfig, lineLoginReady } from "@/lib/line/config";
+import { CUSTOMER_AUTH_ENABLED } from "@/lib/features";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,13 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
+
+  // Server-side gate: while customer sign-in is soft-launched OFF, refuse to
+  // start the OAuth flow even if someone hits this URL directly (the navbar
+  // already hides the UI, but the route must reject too).
+  if (!CUSTOMER_AUTH_ENABLED) {
+    return NextResponse.redirect(new URL("/?login=disabled", origin));
+  }
 
   const cfg = await getLineConfig();
   if (!lineLoginReady(cfg)) {

@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     const { data: existing } = await admin
       .from("customers")
-      .select("id")
+      .select("id, profile_completed_at")
       .eq("line_user_id", profile.userId)
       .maybeSingle();
 
@@ -62,8 +62,12 @@ export async function GET(request: NextRequest) {
     if (token.friendAdded) patch.line_friend = true;
 
     let customerId: string;
+    // New customers always need to register; returning ones only if they never
+    // finished. profile_completed_at is the single source of truth.
+    let profileComplete = false;
     if (existing) {
       customerId = existing.id as string;
+      profileComplete = existing.profile_completed_at != null;
       await admin.from("customers").update(patch).eq("id", customerId);
     } else {
       const { data: created, error } = await admin
@@ -75,7 +79,13 @@ export async function GET(request: NextRequest) {
       customerId = created.id as string;
     }
 
-    const res = NextResponse.redirect(new URL(safeNext, origin));
+    // Force registration: until name + phone are saved, send them to the
+    // profile-completion page first, then back to where they were headed.
+    const destination = profileComplete
+      ? safeNext
+      : `/profile/complete?next=${encodeURIComponent(safeNext)}`;
+
+    const res = NextResponse.redirect(new URL(destination, origin));
     res.cookies.set(CUSTOMER_COOKIE, signCustomerSession(customerId, Date.now()), sessionCookieOptions());
     res.cookies.delete(OAUTH_STATE_COOKIE);
     res.cookies.delete(OAUTH_NEXT_COOKIE);
