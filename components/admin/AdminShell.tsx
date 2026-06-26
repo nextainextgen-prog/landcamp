@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { SECTIONS, type AdminRole, type SectionKey } from "@/lib/admin/sections";
 import { AdminTopbar } from "./AdminTopbar";
+import { NavSpinner } from "./NavSpinner";
 
 const SECTION_HREF: Record<SectionKey, string> = {
   bookings: "/admin/bookings",
@@ -177,6 +178,7 @@ export function AdminShell({
                   {pendingReview}
                 </span>
               )}
+              <NavSpinner />
             </Link>
           );
         })}

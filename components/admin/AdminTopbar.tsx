@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clsx } from "clsx";
@@ -35,6 +35,7 @@ function I({ name, className = "h-[18px] w-[18px]" }: { name: string; className?
     bell: <><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></>,
     gear: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3.6 15a1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" /></>,
     chevron: <path d="m6 9 6 6 6-6" />,
+    refresh: <><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 4v5h-5" /></>,
     user: <><circle cx="12" cy="8" r="4" /><path d="M5.5 21a6.5 6.5 0 0 1 13 0" /></>,
     logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></>,
     payment: <><rect x="2.5" y="5" width="19" height="14" rx="2" /><path d="M2.5 10h19" /></>,
@@ -89,6 +90,10 @@ export function AdminTopbar({
   const router = useRouter();
   const meta = topbarMeta(pathname);
   const roleLabel = role === "super_admin" ? "Super Admin" : "Admin";
+
+  /* ── manual data refresh (re-pulls the current server component) ── */
+  const [refreshing, startRefresh] = useTransition();
+  const refresh = () => startRefresh(() => router.refresh());
 
   /* ── which dropdown is open ── */
   const [panel, setPanel] = useState<null | "bell" | "user" | "search">(null);
@@ -273,6 +278,18 @@ export function AdminTopbar({
             </div>
           )}
         </div>
+
+        {/* refresh */}
+        <button
+          type="button"
+          aria-label="รีโหลดข้อมูล"
+          title="รีโหลดข้อมูล"
+          onClick={refresh}
+          disabled={refreshing}
+          className={clsx(iconBtn, "ml-auto md:ml-0", refreshing && "cursor-wait")}
+        >
+          <I name="refresh" className={clsx("h-[18px] w-[18px]", refreshing && "animate-spin")} />
+        </button>
 
         {/* bell */}
         <div className="relative md:ml-1">
