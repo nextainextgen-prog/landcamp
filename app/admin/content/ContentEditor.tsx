@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Panel } from "@/components/admin/ui";
+import { ActionButton } from "@/components/admin/ActionButton";
+import { useConfirmAction } from "@/components/admin/useConfirmAction";
 import { GalleryManager } from "./GalleryManager";
 import { StoryManager } from "./StoryManager";
 import { VideoManager } from "./VideoManager";
@@ -261,7 +263,9 @@ export function ContentEditor({
     setMsg(null);
   }, []);
 
-  async function saveDraft(): Promise<boolean> {
+  // Throws on failure (also surfaces the detailed reason via setMsg) so callers
+  // — including the ActionButtons — only treat a clean resolve as success.
+  async function saveDraft(): Promise<void> {
     const res = await fetch("/api/admin/content", {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -269,43 +273,44 @@ export function ContentEditor({
     });
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      setMsg({ kind: "err", text: data.error ?? "บันทึกไม่สำเร็จ" });
-      return false;
+      const text = data.error ?? "บันทึกไม่สำเร็จ";
+      setMsg({ kind: "err", text });
+      throw new Error(text);
     }
-    return true;
   }
 
   async function handleSave() {
     setBusy("save");
     setMsg(null);
-    const ok = await saveDraft();
-    if (ok) {
+    try {
+      await saveDraft();
       setDirty(false);
       setUnpublished(true);
       setMsg({ kind: "ok", text: "บันทึกร่างแล้ว — กดเผยแพร่เมื่อพร้อมให้ลูกค้าเห็น" });
+    } finally {
+      setBusy(null);
     }
-    setBusy(null);
   }
 
   async function handlePublish() {
     setBusy("publish");
     setMsg(null);
-    // Always save the latest edits first so we publish exactly what's on screen.
-    if (!(await saveDraft())) {
+    try {
+      // Always save the latest edits first so we publish exactly what's on screen.
+      await saveDraft();
+      setDirty(false);
+      const res = await fetch("/api/admin/content/publish", { method: "POST" });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        const text = data.error ?? "เผยแพร่ไม่สำเร็จ";
+        setMsg({ kind: "err", text });
+        throw new Error(text);
+      }
+      setUnpublished(false);
+      setMsg({ kind: "ok", text: "เผยแพร่แล้ว — เว็บจริงอัปเดตทันที (รีเฟรชหน้าเว็บเพื่อดู)" });
+    } finally {
       setBusy(null);
-      return;
     }
-    setDirty(false);
-    const res = await fetch("/api/admin/content/publish", { method: "POST" });
-    if (!res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      setMsg({ kind: "err", text: data.error ?? "เผยแพร่ไม่สำเร็จ" });
-      setBusy(null);
-      return;
-    }
-    setUnpublished(false);
-    setMsg({ kind: "ok", text: "เผยแพร่แล้ว — เว็บจริงอัปเดตทันที (รีเฟรชหน้าเว็บเพื่อดู)" });
-    setBusy(null);
   }
 
   return (
@@ -379,22 +384,24 @@ export function ContentEditor({
           >
             เปิดดูเว็บจริง ↗
           </a>
-          <button
-            type="button"
+          <ActionButton
             onClick={handleSave}
+            variant="secondary"
             disabled={busy !== null}
-            className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm font-medium text-[color:var(--color-forest-deep)] transition-colors hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50"
+            pendingLabel="กำลังบันทึก…"
+            doneLabel="บันทึกแล้ว"
           >
-            {busy === "save" ? "กำลังบันทึก…" : "บันทึกร่าง"}
-          </button>
-          <button
-            type="button"
+            บันทึกร่าง
+          </ActionButton>
+          <ActionButton
             onClick={handlePublish}
+            variant="primary"
             disabled={busy !== null}
-            className="rounded-lg bg-[color:var(--color-warm-clay)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50"
+            pendingLabel="กำลังเผยแพร่…"
+            doneLabel="เผยแพร่แล้ว"
           >
-            {busy === "publish" ? "กำลังเผยแพร่…" : "เผยแพร่"}
-          </button>
+            เผยแพร่
+          </ActionButton>
         </div>
       </div>
 
@@ -667,8 +674,7 @@ export function ContentEditor({
 
 function VersionsPanel() {
   const [versions, setVersions] = useState<Version[] | null>(null);
-  const [restoring, setRestoring] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirmAction();
 
   useEffect(() => {
     let active = true;
@@ -685,19 +691,21 @@ function VersionsPanel() {
     };
   }, []);
 
-  async function restore(id: string) {
-    if (!window.confirm("ย้อนกลับไปใช้เนื้อหาเวอร์ชันนี้? เนื้อหาปัจจุบันจะถูกแทนที่ทันที")) return;
-    setRestoring(id);
-    setErr(null);
-    const res = await fetch(`/api/admin/content/versions/${id}/restore`, { method: "POST" });
-    if (!res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      setErr(data.error ?? "ย้อนเวอร์ชันไม่สำเร็จ");
-      setRestoring(null);
-      return;
-    }
-    // Reload so the editor re-reads the restored draft from the server.
-    window.location.reload();
+  function restore(id: string) {
+    confirm({
+      title: "ย้อนกลับเวอร์ชัน",
+      message: "ย้อนกลับไปใช้เนื้อหาเวอร์ชันนี้? เนื้อหาปัจจุบันจะถูกแทนที่ทันที",
+      confirmLabel: "ย้อนกลับ",
+      run: async () => {
+        const res = await fetch(`/api/admin/content/versions/${id}/restore`, { method: "POST" });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error ?? "ย้อนเวอร์ชันไม่สำเร็จ");
+        }
+      },
+      // Reload so the editor re-reads the restored draft from the server.
+      onSuccess: () => window.location.reload(),
+    });
   }
 
   return (
@@ -705,9 +713,6 @@ function VersionsPanel() {
       <p className="text-xs text-[color:var(--color-ink)]/50">
         ทุกครั้งที่กดเผยแพร่จะถูกบันทึกไว้ที่นี่ — กดย้อนกลับเพื่อใช้เนื้อหาเวอร์ชันก่อนหน้า
       </p>
-      {err && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>
-      )}
       {versions === null ? (
         <p className="text-sm text-[color:var(--color-ink)]/45">กำลังโหลด…</p>
       ) : versions.length === 0 ? (
@@ -730,15 +735,15 @@ function VersionsPanel() {
               <button
                 type="button"
                 onClick={() => restore(v.id)}
-                disabled={restoring !== null}
                 className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-3 py-1.5 text-sm font-medium text-[color:var(--color-forest-deep)] transition-colors hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50"
               >
-                {restoring === v.id ? "กำลังย้อน…" : "ย้อนกลับ"}
+                ย้อนกลับ
               </button>
             </li>
           ))}
         </ul>
       )}
+      {dialog}
     </Panel>
   );
 }

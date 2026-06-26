@@ -2,6 +2,9 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 
+import { ActionButton } from "@/components/admin/ActionButton";
+import { useConfirmAction } from "@/components/admin/useConfirmAction";
+
 export type TaskStatus = "pending" | "in_progress" | "done";
 export type Task = {
   id: string;
@@ -36,6 +39,13 @@ export function HousekeepingBoard({ initial, rooms }: { initial: Task[]; rooms: 
   const [tasks, setTasks] = useState<Task[]>(initial);
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirmAction();
+
+  function flash(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  }
 
   const grouped = useMemo(() => {
     const g: Record<TaskStatus, Task[]> = { pending: [], in_progress: [], done: [] };
@@ -50,21 +60,30 @@ export function HousekeepingBoard({ initial, rooms }: { initial: Task[]; rooms: 
       if (!res.ok) throw new Error();
       setTasks((l) => l.map((t) => (t.id === id ? { ...t, ...body } as Task : t)));
     } catch {
-      window.alert("อัปเดตไม่สำเร็จ");
+      flash("อัปเดตไม่สำเร็จ");
     } finally {
       setBusy(false);
     }
   }
-  async function remove(id: string) {
-    setTasks((l) => l.filter((t) => t.id !== id));
-    await fetch(`/api/admin/housekeeping/${id}`, { method: "DELETE" });
+  function askRemove(t: Task) {
+    confirm({
+      title: "ลบงาน",
+      message: `ลบงานทำความสะอาดของ "${t.roomName}"?`,
+      danger: true,
+      confirmLabel: "ลบ",
+      run: async () => {
+        const res = await fetch(`/api/admin/housekeeping/${t.id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("ลบไม่สำเร็จ");
+      },
+      onSuccess: () => setTasks((l) => l.filter((x) => x.id !== t.id)),
+    });
   }
   async function create(form: { room_id: string; note: string; assignee: string; due_date: string }) {
     setBusy(true);
     try {
       const res = await fetch("/api/admin/housekeeping", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form) });
       const d = (await res.json()) as { task?: { id: string; created_at: string } };
-      if (!res.ok || !d.task) throw new Error();
+      if (!res.ok || !d.task) throw new Error("เพิ่มงานไม่สำเร็จ");
       setTasks((l) => [
         {
           id: d.task!.id,
@@ -79,8 +98,6 @@ export function HousekeepingBoard({ initial, rooms }: { initial: Task[]; rooms: 
         ...l,
       ]);
       setAdding(false);
-    } catch {
-      window.alert("เพิ่มงานไม่สำเร็จ");
     } finally {
       setBusy(false);
     }
@@ -115,7 +132,7 @@ export function HousekeepingBoard({ initial, rooms }: { initial: Task[]; rooms: 
                   <article key={t.id} className="rounded-xl border border-[color:var(--color-forest-deep)]/10 bg-[color:var(--color-bone-soft)]/25 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-sm font-semibold text-[color:var(--color-forest-deep)]"><Icon name="broom" className="h-3.5 w-3.5 text-[color:var(--color-warm-clay)]" /> {t.roomName}</span>
-                      <button type="button" onClick={() => remove(t.id)} className="text-[color:var(--color-ink)]/30 hover:text-red-500"><Icon name="trash" className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => askRemove(t)} className="text-[color:var(--color-ink)]/30 hover:text-red-500"><Icon name="trash" className="h-3.5 w-3.5" /></button>
                     </div>
                     {t.bookingCode && <div className="mt-0.5 font-mono text-[10px] text-[color:var(--color-ink)]/40">{t.bookingCode}</div>}
                     {t.note && <p className="mt-1 text-xs text-[color:var(--color-ink)]/70">{t.note}</p>}
@@ -139,6 +156,12 @@ export function HousekeepingBoard({ initial, rooms }: { initial: Task[]; rooms: 
       </div>
 
       {adding && <AddDialog rooms={rooms} busy={busy} onClose={() => setAdding(false)} onSave={create} />}
+      {dialog}
+      {toast && (
+        <div className="fixed bottom-5 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-medium text-white shadow-lg">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
@@ -150,7 +173,7 @@ function prevStatus(s: TaskStatus): TaskStatus {
   return s === "done" ? "in_progress" : "pending";
 }
 
-function AddDialog({ rooms, busy, onClose, onSave }: { rooms: RoomOption[]; busy: boolean; onClose: () => void; onSave: (f: { room_id: string; note: string; assignee: string; due_date: string }) => void }) {
+function AddDialog({ rooms, busy, onClose, onSave }: { rooms: RoomOption[]; busy: boolean; onClose: () => void; onSave: (f: { room_id: string; note: string; assignee: string; due_date: string }) => Promise<void> }) {
   const [roomId, setRoomId] = useState(rooms[0]?.id ?? "");
   const [note, setNote] = useState("");
   const [assignee, setAssignee] = useState("");
@@ -178,7 +201,7 @@ function AddDialog({ rooms, busy, onClose, onSave }: { rooms: RoomOption[]; busy
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-ink)]/70 hover:bg-[color:var(--color-bone-soft)]">ยกเลิก</button>
-          <button type="button" disabled={busy || !roomId} onClick={() => onSave({ room_id: roomId, note, assignee, due_date: due })} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-warm-clay)] disabled:opacity-50">เพิ่มงาน</button>
+          <ActionButton variant="primary" disabled={busy || !roomId} onClick={() => onSave({ room_id: roomId, note, assignee, due_date: due })} pendingLabel="กำลังเพิ่ม…" doneLabel="เพิ่มแล้ว">เพิ่มงาน</ActionButton>
         </div>
       </div>
     </div>

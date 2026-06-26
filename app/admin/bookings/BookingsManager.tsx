@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { BookingStatus } from "@/types";
 import { siteConfig } from "@/data/siteConfig";
+import { ActionButton } from "@/components/admin/ActionButton";
+import { useConfirmAction } from "@/components/admin/useConfirmAction";
 
 const ACTIVE_STATUSES = new Set<BookingStatus>(["pending_payment", "payment_review", "confirmed"]);
 
@@ -288,14 +290,15 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
       setTimeout(() => setToast(null), 2000);
       return true;
     } catch (e) {
-      window.alert(`แก้ไขไม่สำเร็จ${e instanceof Error && e.message ? `: ${e.message}` : ""}`);
+      setToast(`แก้ไขไม่สำเร็จ${e instanceof Error && e.message ? `: ${e.message}` : ""}`);
+      setTimeout(() => setToast(null), 3000);
       return false;
     } finally {
       setBusy(false);
     }
   }
 
-  async function checkIn(id: string) {
+  async function checkIn(id: string): Promise<boolean> {
     setBusy(true);
     try {
       const res = await fetch(`/api/admin/bookings/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "check_in" }) });
@@ -303,8 +306,11 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
       setRows((l) => l.map((r) => (r.id === id ? { ...r, checked_in_at: new Date().toISOString() } : r)));
       setToast("เช็คอินแล้ว · ลูกค้าเข้าพัก");
       setTimeout(() => setToast(null), 2000);
+      return true;
     } catch {
-      window.alert("เช็คอินไม่สำเร็จ ลองใหม่");
+      setToast("เช็คอินไม่สำเร็จ ลองใหม่");
+      setTimeout(() => setToast(null), 2500);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -321,7 +327,8 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
       setTimeout(() => setToast(null), 2000);
       return true;
     } catch (e) {
-      window.alert(`บันทึกไม่สำเร็จ${e instanceof Error && e.message ? `: ${e.message}` : ""}`);
+      setToast(`บันทึกไม่สำเร็จ${e instanceof Error && e.message ? `: ${e.message}` : ""}`);
+      setTimeout(() => setToast(null), 3000);
       return false;
     } finally {
       setBusy(false);
@@ -337,20 +344,24 @@ export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) 
       setToast("บันทึกโน้ตแล้ว");
       setTimeout(() => setToast(null), 2000);
     } catch {
-      window.alert("บันทึกโน้ตไม่สำเร็จ");
+      setToast("บันทึกโน้ตไม่สำเร็จ");
+      setTimeout(() => setToast(null), 2500);
     } finally {
       setBusy(false);
     }
   }
 
-  async function patch(id: string, body: Record<string, string>, optimistic: BookingStatus) {
+  async function patch(id: string, body: Record<string, string>, optimistic: BookingStatus): Promise<boolean> {
     setBusy(true);
     try {
       const res = await fetch(`/api/admin/bookings/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       if (!res.ok) throw new Error();
       setRows((l) => l.map((r) => (r.id === id ? { ...r, status: optimistic } : r)));
+      return true;
     } catch {
-      window.alert("ทำรายการไม่สำเร็จ ลองใหม่");
+      setToast("ทำรายการไม่สำเร็จ ลองใหม่");
+      setTimeout(() => setToast(null), 2500);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -687,33 +698,29 @@ function BookingDetail({
   r: BookingRow;
   busy: boolean;
   overlaps: BookingRow[];
-  onPatch: (id: string, body: Record<string, string>, optimistic: BookingStatus) => void;
+  onPatch: (id: string, body: Record<string, string>, optimistic: BookingStatus) => Promise<boolean>;
   onResend: (id: string) => void;
   onZoom: (src: string) => void;
   onSaveNotes: (id: string, notes: string) => void;
   onSaveEdit: (id: string, edit: { check_in: string; check_out: string; adults: number; children: number; total_amount: number }) => Promise<boolean>;
   onRecordPayment: (id: string, payment: { amount: number; kind: string; method: string }) => Promise<boolean>;
-  onCheckIn: (id: string) => void;
+  onCheckIn: (id: string) => Promise<boolean>;
 }) {
   const c = r.customer;
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
-  const [confirm, setConfirm] = useState<null | { title: string; message: string; label: string; danger?: boolean; run: () => void }>(null);
+  const { confirm, dialog } = useConfirmAction();
   const [noteDraft, setNoteDraft] = useState(r.notes ?? "");
   const [copied, setCopied] = useState<"" | "summary" | "map">("");
   const [hkSent, setHkSent] = useState(false);
   const [audit, setAudit] = useState<{ id: string; actor: string | null; action: string; to_status: string | null; created_at: string }[]>([]);
 
   async function sendHousekeeping() {
-    try {
-      const res = await fetch("/api/admin/housekeeping", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room_id: r.room_id, booking_id: r.id, note: "ทำความสะอาดหลังเช็คเอาท์" }) });
-      if (!res.ok) throw new Error();
-      setHkSent(true);
-      setTimeout(() => setHkSent(false), 2500);
-    } catch {
-      window.alert("ส่งงานแม่บ้านไม่สำเร็จ");
-    }
+    const res = await fetch("/api/admin/housekeeping", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room_id: r.room_id, booking_id: r.id, note: "ทำความสะอาดหลังเช็คเอาท์" }) });
+    if (!res.ok) throw new Error("ส่งงานแม่บ้านไม่สำเร็จ");
+    setHkSent(true);
+    setTimeout(() => setHkSent(false), 2500);
   }
   const nights = nightsBetween(r.check_in, r.check_out);
   const inHouse = r.status === "confirmed" && Boolean(r.checked_in_at);
@@ -794,7 +801,7 @@ function BookingDetail({
               <button type="button" onClick={() => setEditOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="pencil" /> แก้ไขการจอง</button>
             )}
             <button type="button" onClick={() => setPayOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="cash" /> บันทึกรับเงิน</button>
-            <button type="button" onClick={sendHousekeeping} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="broom" /> {hkSent ? "ส่งงานแล้ว" : "ส่งงานแม่บ้าน"}</button>
+            <ActionButton variant="secondary" size="sm" onClick={sendHousekeeping} pendingLabel="กำลังส่ง…" doneLabel="ส่งงานแล้ว" className="!rounded-lg !px-2.5 !py-1 !text-xs !font-medium" icon={<BIcon name="broom" />}>{hkSent ? "ส่งงานแล้ว" : "ส่งงานแม่บ้าน"}</ActionButton>
             {c.lineUserId && <button type="button" disabled={busy} onClick={() => onResend(r.id)} className="rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50">ส่งการ์ด LINE</button>}
           </div>
         </div>
@@ -902,14 +909,14 @@ function BookingDetail({
       <div className="flex flex-wrap gap-2 border-t border-[color:var(--color-forest-deep)]/8 pt-4">
         {r.status === "payment_review" && (
           <>
-            <button type="button" disabled={busy} onClick={() => onPatch(r.id, { action: "confirm" }, "confirmed")} className="rounded-lg bg-[color:var(--color-warm-clay)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50">ยืนยันการจอง</button>
-            <button type="button" disabled={busy} onClick={() => setConfirm({ title: "ปฏิเสธการจอง", message: `ปฏิเสธสลิปและยกเลิก ${r.booking_code}? การจองจะถูกยกเลิก`, label: "ปฏิเสธ", danger: true, run: () => onPatch(r.id, { action: "reject" }, "cancelled") })} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">ปฏิเสธ</button>
+            <button type="button" disabled={busy} onClick={() => confirm({ title: "ยืนยันการจอง", message: `ยืนยันการจอง ${r.booking_code} ของ ${c.name}? ระบบจะส่งการ์ดยืนยันให้ลูกค้า`, confirmLabel: "ยืนยัน", successText: "ยืนยันแล้ว", run: async () => { if (!(await onPatch(r.id, { action: "confirm" }, "confirmed"))) throw new Error("ทำรายการไม่สำเร็จ ลองใหม่"); } })} className="rounded-lg bg-[color:var(--color-warm-clay)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50">ยืนยันการจอง</button>
+            <button type="button" disabled={busy} onClick={() => confirm({ title: "ปฏิเสธการจอง", message: `ปฏิเสธสลิปและยกเลิก ${r.booking_code}? การจองจะถูกยกเลิก`, confirmLabel: "ปฏิเสธ", danger: true, successText: "ปฏิเสธแล้ว", run: async () => { if (!(await onPatch(r.id, { action: "reject" }, "cancelled"))) throw new Error("ทำรายการไม่สำเร็จ ลองใหม่"); } })} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">ปฏิเสธ</button>
           </>
         )}
         {r.status === "confirmed" && !inHouse && (
           <>
-            <button type="button" disabled={busy} onClick={() => onCheckIn(r.id)} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-warm-clay)] disabled:opacity-50">เช็คอิน (ลูกค้ามาถึง)</button>
-            <button type="button" disabled={busy} onClick={() => setConfirm({ title: "ไม่มาตามนัด", message: `ยืนยันว่า ${c.name} ไม่มาเข้าพักตามนัด (${r.booking_code})?`, label: "ไม่มาตามนัด", danger: true, run: () => onPatch(r.id, { status: "no_show" }, "no_show") })} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50">ไม่มาตามนัด</button>
+            <ActionButton variant="primary" onClick={async () => { if (!(await onCheckIn(r.id))) throw new Error("เช็คอินไม่สำเร็จ"); }} pendingLabel="กำลังเช็คอิน…" doneLabel="เช็คอินแล้ว" className="!text-sm">เช็คอิน (ลูกค้ามาถึง)</ActionButton>
+            <button type="button" disabled={busy} onClick={() => confirm({ title: "ไม่มาตามนัด", message: `ยืนยันว่า ${c.name} ไม่มาเข้าพักตามนัด (${r.booking_code})?`, confirmLabel: "ไม่มาตามนัด", danger: true, successText: "บันทึกแล้ว", run: async () => { if (!(await onPatch(r.id, { status: "no_show" }, "no_show"))) throw new Error("ทำรายการไม่สำเร็จ ลองใหม่"); } })} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] disabled:opacity-50">ไม่มาตามนัด</button>
           </>
         )}
         {r.status === "confirmed" && inHouse && (
@@ -919,7 +926,7 @@ function BookingDetail({
           </>
         )}
         {(r.status === "pending_payment" || r.status === "payment_review" || r.status === "confirmed") && (
-          <button type="button" disabled={busy} onClick={() => setConfirm({ title: "ยกเลิกการจอง", message: `ยกเลิก ${r.booking_code} ของ ${c.name}? การดำเนินการนี้ย้อนกลับไม่ได้`, label: "ยกเลิกการจอง", danger: true, run: () => onPatch(r.id, { status: "cancelled" }, "cancelled") })} className="ml-auto rounded-lg px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50">ยกเลิกการจอง</button>
+          <button type="button" disabled={busy} onClick={() => confirm({ title: "ยกเลิกการจอง", message: `ยกเลิก ${r.booking_code} ของ ${c.name}? การดำเนินการนี้ย้อนกลับไม่ได้`, confirmLabel: "ยกเลิกการจอง", danger: true, successText: "ยกเลิกแล้ว", run: async () => { if (!(await onPatch(r.id, { status: "cancelled" }, "cancelled"))) throw new Error("ทำรายการไม่สำเร็จ ลองใหม่"); } })} className="ml-auto rounded-lg px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50">ยกเลิกการจอง</button>
         )}
       </div>
 
@@ -946,17 +953,7 @@ function BookingDetail({
           }}
         />
       )}
-      {confirm && (
-        <ConfirmDialog
-          title={confirm.title}
-          message={confirm.message}
-          label={confirm.label}
-          danger={confirm.danger}
-          busy={busy}
-          onConfirm={() => { confirm.run(); setConfirm(null); }}
-          onCancel={() => setConfirm(null)}
-        />
-      )}
+      {dialog}
     </div>
   );
 }
@@ -1062,44 +1059,6 @@ function PaymentDialog({
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-ink)]/70 hover:bg-[color:var(--color-bone-soft)]">ยกเลิก</button>
           <button type="button" disabled={busy || amount <= 0} onClick={() => onSave({ amount, kind, method })} className="rounded-lg bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--color-warm-clay)] disabled:opacity-50">บันทึก</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ConfirmDialog({
-  title,
-  message,
-  label,
-  danger,
-  busy,
-  onConfirm,
-  onCancel,
-}: {
-  title: string;
-  message: string;
-  label: string;
-  danger?: boolean;
-  busy: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onCancel}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-[color:var(--color-forest-deep)]">{title}</h3>
-        <p className="mt-2 text-sm text-[color:var(--color-ink)]/70">{message}</p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onCancel} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-4 py-2 text-sm text-[color:var(--color-ink)]/70 hover:bg-[color:var(--color-bone-soft)]">ยกเลิก</button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onConfirm}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${danger ? "bg-red-600 hover:bg-red-700" : "bg-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-warm-clay)]"}`}
-          >
-            {label}
-          </button>
         </div>
       </div>
     </div>

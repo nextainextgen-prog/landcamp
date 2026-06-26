@@ -2,6 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 
+import { ActionButton } from "@/components/admin/ActionButton";
+import { useConfirmAction } from "@/components/admin/useConfirmAction";
 import { EmptyState } from "@/components/admin/ui";
 
 type Bi = { th: string; en: string };
@@ -316,6 +318,7 @@ export function RoomsManager({ initialRooms }: { initialRooms: AdminRoom[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirmAction();
 
   // toolbar state
   const [q, setQ] = useState("");
@@ -439,33 +442,33 @@ export function RoomsManager({ initialRooms }: { initialRooms: AdminRoom[] }) {
     if (!draft) return;
     setErr(null);
     if (!draft.name.th || !draft.name.en || !draft.price_weekday || !draft.price_weekend || !draft.max_guests) {
-      setErr("กรอกชื่อ (ไทย/อังกฤษ) ราคา และจำนวนผู้เข้าพักให้ครบ");
       setTab("basic");
-      return;
+      throw new Error("กรอกชื่อ (ไทย/อังกฤษ) ราคา และจำนวนผู้เข้าพักให้ครบ");
     }
     if (!editing && !draft.slug.trim()) {
-      setErr("กรอก slug (ตัวระบุห้อง เช่น villa-1)");
       setTab("basic");
-      return;
+      throw new Error("กรอก slug (ตัวระบุห้อง เช่น villa-1)");
     }
     setSaving(true);
+    let failMsg: string | null = null;
     try {
       const res = editing
         ? await fetch(`/api/admin/rooms/${editing.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(payloadFrom(draft, false)) })
         : await fetch(`/api/admin/rooms`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payloadFrom(draft, true)) });
       const data = (await res.json()) as { room?: AdminRoom; error?: string; fields?: Record<string, string> };
       if (!res.ok || !data.room) {
-        setErr(data.error ? `${data.error}${data.fields ? " — " + Object.values(data.fields).join(", ") : ""}` : "บันทึกไม่สำเร็จ");
-        setSaving(false);
-        return;
+        failMsg = data.error ? `${data.error}${data.fields ? " — " + Object.values(data.fields).join(", ") : ""}` : "บันทึกไม่สำเร็จ";
+      } else {
+        const saved = data.room;
+        setRooms((l) => (editing ? l.map((r) => (r.id === editing.id ? saved : r)) : [...l, saved]));
+        close();
       }
-      const saved = data.room;
-      setRooms((l) => (editing ? l.map((r) => (r.id === editing.id ? saved : r)) : [...l, saved]));
-      close();
     } catch {
-      setErr("บันทึกไม่สำเร็จ ลองใหม่");
+      failMsg = "บันทึกไม่สำเร็จ ลองใหม่";
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
+    if (failMsg) throw new Error(failMsg);
   }
 
   async function duplicate(r: AdminRoom) {
@@ -479,10 +482,18 @@ export function RoomsManager({ initialRooms }: { initialRooms: AdminRoom[] }) {
     }
   }
 
-  async function remove(r: AdminRoom) {
-    if (!window.confirm(`ลบห้อง "${r.name_th}"? การกระทำนี้ย้อนกลับไม่ได้`)) return;
-    const res = await fetch(`/api/admin/rooms/${r.id}`, { method: "DELETE" });
-    if (res.ok) setRooms((l) => l.filter((x) => x.id !== r.id));
+  function remove(r: AdminRoom) {
+    confirm({
+      title: "ลบห้อง",
+      message: `ลบห้อง "${r.name_th}"? การกระทำนี้ย้อนกลับไม่ได้`,
+      danger: true,
+      confirmLabel: "ลบ",
+      run: async () => {
+        const res = await fetch(`/api/admin/rooms/${r.id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("ลบไม่สำเร็จ");
+      },
+      onSuccess: () => setRooms((l) => l.filter((x) => x.id !== r.id)),
+    });
   }
 
   return (
@@ -708,11 +719,22 @@ export function RoomsManager({ initialRooms }: { initialRooms: AdminRoom[] }) {
 
             <div className="sticky bottom-0 flex items-center justify-end gap-2 rounded-b-2xl border-t border-[color:var(--color-forest-deep)]/10 bg-white px-5 py-3">
               <Btn type="button" variant="ghost" onClick={close} disabled={saving}>ยกเลิก</Btn>
-              <Btn type="button" variant="primary" onClick={save} disabled={saving}>{saving ? "กำลังบันทึก…" : "บันทึก"}</Btn>
+              <ActionButton
+                type="button"
+                variant="primary"
+                onClick={save}
+                pendingLabel="กำลังบันทึก…"
+                doneLabel="สำเร็จ"
+                onError={(e) => setErr(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ")}
+              >
+                บันทึก
+              </ActionButton>
             </div>
           </div>
         </div>
       )}
+
+      {dialog}
     </div>
   );
 }

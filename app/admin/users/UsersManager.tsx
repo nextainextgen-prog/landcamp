@@ -12,6 +12,8 @@ import {
   TextField,
 } from "@heroui/react";
 import { SECTIONS, type SectionKey } from "@/lib/admin/sections";
+import { useConfirmAction } from "@/components/admin/useConfirmAction";
+import { ActionButton } from "@/components/admin/ActionButton";
 
 export type AdminAccount = {
   id: string;
@@ -46,6 +48,7 @@ export function UsersManager({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirmAction();
   const formId = useId();
 
   function openCreate() {
@@ -85,32 +88,29 @@ export function UsersManager({
     }
   }
 
-  async function remove(u: AdminAccount) {
-    if (!window.confirm(`ลบผู้ใช้ "${u.username}" ?`)) return;
-    setBusyId(u.id);
-    const snapshot = users;
-    setUsers((list) => list.filter((x) => x.id !== u.id));
-    try {
-      const res = await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-    } catch {
-      setUsers(snapshot);
-      window.alert("ลบไม่สำเร็จ");
-    } finally {
-      setBusyId(null);
-    }
+  function remove(u: AdminAccount) {
+    confirm({
+      title: "ลบผู้ใช้",
+      message: `ลบผู้ใช้ "${u.username}" ?`,
+      danger: true,
+      confirmLabel: "ลบ",
+      run: async () => {
+        const res = await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("ลบไม่สำเร็จ");
+      },
+      onSuccess: () => {
+        setUsers((list) => list.filter((x) => x.id !== u.id));
+      },
+    });
   }
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function save() {
     setError(null);
     if (!form.username.trim()) {
-      setError("กรุณากรอกชื่อผู้ใช้");
-      return;
+      throw new Error("กรุณากรอกชื่อผู้ใช้");
     }
     if (!editing && form.password.length < 6) {
-      setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
-      return;
+      throw new Error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
     }
     setSubmitting(true);
     try {
@@ -136,14 +136,21 @@ export function UsersManager({
         });
       }
       const data = (await res.json()) as { user?: AdminAccount; error?: string };
-      if (!res.ok || !data.user) throw new Error(data.error ?? "failed");
+      if (!res.ok || !data.user) throw new Error(data.error ?? "บันทึกไม่สำเร็จ");
       const saved = data.user;
       setUsers((list) => (editing ? list.map((x) => (x.id === saved.id ? saved : x)) : [...list, saved]));
       setOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    try {
+      await save();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ");
     }
   }
 
@@ -275,14 +282,26 @@ export function UsersManager({
                 <Button variant="ghost" onPress={() => setOpen(false)} isDisabled={submitting}>
                   ยกเลิก
                 </Button>
-                <Button variant="primary" type="submit" form={formId} isDisabled={submitting}>
-                  {submitting ? "กำลังบันทึก…" : "บันทึก"}
-                </Button>
+                <ActionButton
+                  variant="primary"
+                  size="md"
+                  onClick={save}
+                  disabled={submitting}
+                  pendingLabel="กำลังบันทึก…"
+                  doneLabel="สำเร็จ"
+                  onError={(err) =>
+                    setError(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ")
+                  }
+                >
+                  บันทึก
+                </ActionButton>
               </div>
             </Form>
           </div>
         </div>
       )}
+
+      {dialog}
     </Card>
   );
 }

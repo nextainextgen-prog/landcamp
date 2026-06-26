@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ActionButton } from "@/components/admin/ActionButton";
 import { Panel } from "@/components/admin/ui";
 
 const inputCls =
@@ -19,16 +20,14 @@ export function SecurityForm() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   async function save() {
     setMsg(null);
     if (next !== confirm) {
       setMsg({ kind: "err", text: "รหัสใหม่กับยืนยันไม่ตรงกัน" });
-      return;
+      throw new Error("รหัสใหม่กับยืนยันไม่ตรงกัน");
     }
-    setSaving(true);
     const res = await fetch("/api/admin/security/password", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -36,15 +35,14 @@ export function SecurityForm() {
     });
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      setMsg({ kind: "err", text: data.error ?? "เปลี่ยนรหัสไม่สำเร็จ" });
-      setSaving(false);
-      return;
+      const text = data.error ?? "เปลี่ยนรหัสไม่สำเร็จ";
+      setMsg({ kind: "err", text });
+      throw new Error(text);
     }
     setCurrent("");
     setNext("");
     setConfirm("");
     setMsg({ kind: "ok", text: "เปลี่ยนรหัสผ่านแล้ว" });
-    setSaving(false);
   }
 
   return (
@@ -62,14 +60,15 @@ export function SecurityForm() {
         <input type="password" className={inputCls} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </label>
       <div className="flex items-center gap-3">
-        <button
-          type="button"
+        <ActionButton
           onClick={save}
-          disabled={saving || !current || !next}
-          className="rounded-lg bg-[color:var(--color-warm-clay)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50"
+          variant="primary"
+          pendingLabel="กำลังบันทึก…"
+          doneLabel="เปลี่ยนแล้ว"
+          disabled={!current || !next}
         >
-          {saving ? "กำลังบันทึก…" : "เปลี่ยนรหัสผ่าน"}
-        </button>
+          เปลี่ยนรหัสผ่าน
+        </ActionButton>
         {msg && <span className={msg.kind === "ok" ? "text-sm text-emerald-600" : "text-sm text-red-600"}>{msg.text}</span>}
       </div>
       <p className="text-xs text-[color:var(--color-ink)]/45">2FA และการจำกัด IP จะเพิ่มในเวอร์ชันถัดไป</p>

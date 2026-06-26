@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import {
   Button,
   Card,
@@ -16,6 +16,8 @@ import {
   Table,
   TextField,
 } from "@heroui/react";
+import { ActionButton } from "@/components/admin/ActionButton";
+import { useConfirmAction } from "@/components/admin/useConfirmAction";
 import { THAI_BANKS, bankLabel } from "@/lib/payment/banks";
 import type {
   PaymentAccount,
@@ -119,6 +121,7 @@ export function AccountsCard({
   const [extracting, setExtracting] = useState(false);
   const formId = useId();
   const qrFileRef = useRef<HTMLInputElement>(null);
+  const { confirm, dialog } = useConfirmAction();
 
   const rows = useMemo(() => accounts, [accounts]);
 
@@ -209,36 +212,32 @@ export function AccountsCard({
     }
   }
 
-  async function deleteAccount(account: PaymentAccount) {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(`ลบบัญชี "${account.account_name}" ใช่หรือไม่?`)
-    )
-      return;
-    setBusyId(account.id);
-    const snapshot = accounts;
-    setAccounts((list) => list.filter((a) => a.id !== account.id));
-    try {
-      const res = await fetch(`/api/admin/payment-accounts/${account.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("failed");
-    } catch {
-      setAccounts(snapshot);
-    } finally {
-      setBusyId(null);
-    }
+  function deleteAccount(account: PaymentAccount) {
+    confirm({
+      title: "ลบบัญชี",
+      message: `ลบบัญชี "${account.account_name}" ใช่หรือไม่?`,
+      danger: true,
+      confirmLabel: "ลบ",
+      run: async () => {
+        const res = await fetch(`/api/admin/payment-accounts/${account.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("ลบไม่สำเร็จ");
+      },
+      onSuccess: () => {
+        setAccounts((list) => list.filter((a) => a.id !== account.id));
+      },
+    });
   }
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveAccount() {
     const issue = validate(form);
     if (issue) {
       setError(issue);
-      return;
+      throw new Error(issue);
     }
-    setSubmitting(true);
     setError(null);
+    setSubmitting(true);
 
     const qr = isQr(form.type);
     const payload: PaymentAccountInput = {
@@ -263,22 +262,22 @@ export function AccountsCard({
             headers: { "content-type": "application/json" },
             body: JSON.stringify(payload),
           });
-      if (!res.ok) throw new Error("failed");
+      if (!res.ok) throw new Error("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       const saved = ((await res.json()) as { account: PaymentAccount }).account;
       setAccounts((list) =>
         editing
           ? list.map((a) => (a.id === editing.id ? saved : a))
           : [...list, saved],
       );
-      closeModal();
-    } catch {
-      setError("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      // Let the success check show briefly before closing the modal.
+      setTimeout(() => closeModal(), 1200);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
+    <>
     <Card>
       <Card.Header className="flex flex-row items-center justify-between gap-3">
         <div>
@@ -393,7 +392,7 @@ export function AccountsCard({
                 </Modal.Heading>
               </Modal.Header>
               <Modal.Body>
-                <Form id={formId} onSubmit={onSubmit} className="flex flex-col gap-4">
+                <Form id={formId} className="flex flex-col gap-4">
                   <Select
                     selectedKey={form.type}
                     onSelectionChange={(key) => {
@@ -542,14 +541,29 @@ export function AccountsCard({
                 <Button variant="ghost" onPress={closeModal} isDisabled={submitting}>
                   ยกเลิก
                 </Button>
-                <Button variant="primary" type="submit" form={formId} isDisabled={submitting}>
-                  {submitting ? "กำลังบันทึก…" : "บันทึก"}
-                </Button>
+                <ActionButton
+                  variant="primary"
+                  size="md"
+                  onClick={saveAccount}
+                  pendingLabel="กำลังบันทึก…"
+                  doneLabel="สำเร็จ"
+                  onError={(e) =>
+                    setError(
+                      e instanceof Error
+                        ? e.message
+                        : "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+                    )
+                  }
+                >
+                  บันทึก
+                </ActionButton>
               </Modal.Footer>
             </Modal.Dialog>
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
     </Card>
+    {dialog}
+    </>
   );
 }

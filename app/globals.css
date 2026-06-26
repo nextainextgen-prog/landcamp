@@ -234,3 +234,20 @@ body {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
+
+/* Success check (admin action buttons + confirm dialog) */
+@keyframes lcCheckPop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes lcCheckDraw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+.lc-check-pop { animation: lcCheckPop 260ms ease-out both; }
+.lc-check-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: lcCheckDraw 280ms ease-out 120ms forwards;
+}
