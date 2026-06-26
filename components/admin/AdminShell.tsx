@@ -40,6 +40,7 @@ function Icon({ name, className = "h-[18px] w-[18px]" }: { name: string; classNa
     settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3.6 15a1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" /></>,
     users: <><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6" /></>,
     walkin: <><circle cx="9" cy="8" r="3.5" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M18 8v6M15 11h6" /></>,
+    slips: <><path d="M6 2h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" /><path d="M14 2v6h6M9 13l2 2 4-4" /></>,
   };
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
@@ -81,6 +82,14 @@ export function AdminShell({
     label: s.label,
     href: SECTION_HREF[s.key],
   }));
+  // "ประวัติสลิป" isn't a permission section of its own — gate it on bookings
+  // access and slot it directly after "รายได้" (revenue).
+  if (can("bookings")) {
+    const slips: NavEntry = { key: "slips", label: "ประวัติสลิป", href: "/admin/slips" };
+    const revenueIdx = sectionItems.findIndex((s) => s.key === "revenue");
+    if (revenueIdx >= 0) sectionItems.splice(revenueIdx + 1, 0, slips);
+    else sectionItems.push(slips);
+  }
 
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });

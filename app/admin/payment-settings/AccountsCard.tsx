@@ -292,6 +292,29 @@ export function AccountsCard({
         </Button>
       </Card.Header>
       <Card.Content>
+        <div className="mb-4 flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
+          </svg>
+          <div className="flex flex-col gap-1">
+            <span>
+              บัญชีในหน้านี้คือบัญชีที่ <strong>แสดงให้ลูกค้าโอนเข้า</strong>. การตรวจสลิปอัตโนมัติ (ตรวจบัญชีปลายทาง)
+              ใช้บัญชีที่ลงทะเบียนไว้บน EasySlip dashboard แยกต่างหาก — โปรดตั้งค่าบัญชีรับเงินให้ตรงกันทั้งสองที่
+            </span>
+            <a
+              href="https://developer.easyslip.com/auth/sign-in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-fit items-center gap-1 font-medium text-blue-700 underline underline-offset-2 hover:text-blue-800"
+            >
+              ตั้งค่าบัญชีตรวจสลิปบน EasySlip dashboard
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
+                <path d="M7 17L17 7M7 7h10v10" />
+              </svg>
+            </a>
+          </div>
+        </div>
         {rows.length === 0 ? (
           <div className="rounded-md border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
             ยังไม่มีบัญชี — กด &ldquo;เพิ่มบัญชี&rdquo; เพื่อเริ่มต้น

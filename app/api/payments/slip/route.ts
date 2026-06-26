@@ -104,15 +104,36 @@ export async function POST(request: NextRequest) {
   let verifyStatus = "pending";
   let verifyNote: string | null = null;
   let transRef: string | null = null;
+  let verify: Awaited<ReturnType<typeof verifyBankSlip>> | null = null;
   try {
     const v = await verifyBankSlip({
       base64: base64Only,
       matchAmount: payment.amount as number,
       matchAccount: true,
     });
+    verify = v;
     transRef = v.transRef;
+
+    // Duplicate detection runs in THREE layers — a duplicate must never slip
+    // through as "matched":
+    //   1. EasySlip's own checkDuplicate (v.isDuplicate).
+    //   2. Our DB: was this exact transRef already accepted on ANOTHER booking?
+    //      (covers cases EasySlip's per-account cache might miss.)
+    //   3. The unique index on payments.trans_ref (final guard, handled below).
+    let dbDuplicate = false;
+    if (transRef) {
+      const { data: prior } = await admin
+        .from("slip_verifications")
+        .select("id")
+        .eq("trans_ref", transRef)
+        .eq("verify_status", "matched")
+        .neq("booking_id", booking.id)
+        .limit(1);
+      dbDuplicate = Boolean(prior && prior.length);
+    }
+
     if (!v.success) verifyStatus = "unreadable";
-    else if (v.isDuplicate) verifyStatus = "duplicate";
+    else if (v.isDuplicate || dbDuplicate) verifyStatus = "duplicate";
     else if (!v.isAmountMatched) verifyStatus = "amount_mismatch";
     else verifyStatus = "matched";
     verifyNote = JSON.stringify({
@@ -144,23 +165,59 @@ export async function POST(request: NextRequest) {
     // non-fatal — verdict is still recorded; admin can re-request the slip
   }
 
-  // Persist slip path + verdict. trans_ref has a unique index; if this slip was
-  // already used, downgrade to 'duplicate' and store without the ref.
+  // Persist slip path + verdict. trans_ref has a unique index. We claim the ref
+  // for any non-duplicate verdict (matched OR amount_mismatch) so a real slip
+  // can't be reused on a different booking even when the amount was wrong — if
+  // the ref is already taken, the unique index fires and we downgrade to
+  // 'duplicate' (the final, race-proof layer of duplicate detection).
+  const verifiedAt = new Date().toISOString();
   const baseUpdate = {
     slip_url: slipPath,
     verify_status: verifyStatus,
     verify_note: verifyNote,
-    verified_at: new Date().toISOString(),
+    verified_at: verifiedAt,
   };
+  const claimsRef = Boolean(transRef) && verifyStatus !== "duplicate";
   const { error: upErr } = await admin
     .from("payments")
-    .update(transRef && verifyStatus === "matched" ? { ...baseUpdate, trans_ref: transRef } : baseUpdate)
+    .update(claimsRef ? { ...baseUpdate, trans_ref: transRef } : baseUpdate)
     .eq("id", payment.id);
   if (upErr?.code === PG_UNIQUE_VIOLATION) {
+    verifyStatus = "duplicate";
     await admin
       .from("payments")
       .update({ ...baseUpdate, verify_status: "duplicate" })
       .eq("id", payment.id);
+  }
+
+  // Record one history row per verification attempt (never overwrites — this is
+  // the audit trail powering /admin/slips). Non-fatal.
+  try {
+    await admin.from("slip_verifications").insert({
+      booking_id: booking.id,
+      payment_id: payment.id,
+      api_success: verify?.success ?? false,
+      verify_status: verifyStatus,
+      is_duplicate: verifyStatus === "duplicate",
+      trans_ref: transRef,
+      amount_in_slip: verify?.amountInSlip ?? null,
+      amount_expected: payment.amount,
+      is_amount_matched: verify?.isAmountMatched ?? false,
+      sender_name: verify?.senderName ?? null,
+      sender_bank: verify?.senderBank ?? null,
+      receiver_name: verify?.receiverNameTh ?? verify?.receiverNameEn ?? null,
+      receiver_bank: verify?.receiverBank ?? null,
+      receiver_account: verify?.receiverAccount ?? null,
+      slip_paid_at: verify?.paidAt ?? null,
+      ref1: verify?.ref1 ?? null,
+      ref2: verify?.ref2 ?? null,
+      ref3: verify?.ref3 ?? null,
+      slip_url: slipPath,
+      message: verify?.message ?? verifyNote,
+      raw: verify?.raw ?? null,
+    });
+  } catch {
+    // non-fatal — the verdict is already on the payments row.
   }
 
   // Move the booking into admin review (also keeps the dates held).

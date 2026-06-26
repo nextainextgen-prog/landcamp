@@ -30,9 +30,27 @@ export type VerifyResult = {
   transRef: string | null;
   receiverAccount: string | null;
   senderName: string | null;
+  /** Sender's bank, human-readable (Thai name, falling back to short code). */
+  senderBank: string | null;
   receiverNameTh: string | null;
   receiverNameEn: string | null;
+  /** Receiver's bank, human-readable (Thai name, falling back to short code). */
+  receiverBank: string | null;
   paidAt: string | null;
+  ref1: string | null;
+  ref2: string | null;
+  ref3: string | null;
+  /** The full rawSlip object from EasySlip, for audit/history (stored as jsonb). */
+  raw: unknown;
+};
+
+type RawBank = { id?: string; name?: string; short?: string };
+type RawParty = {
+  bank?: RawBank;
+  account?: {
+    name?: { th?: string; en?: string };
+    bank?: { type?: string; account?: string };
+  };
 };
 
 type RawVerify = {
@@ -46,16 +64,21 @@ type RawVerify = {
       transRef?: string;
       date?: string;
       amount?: { amount?: number };
-      sender?: { account?: { name?: { th?: string; en?: string } } };
-      receiver?: {
-        account?: {
-          name?: { th?: string; en?: string };
-          bank?: { account?: string };
-        };
+      ref1?: string;
+      ref2?: string;
+      ref3?: string;
+      sender?: RawParty;
+      receiver?: RawParty & {
+        account?: { bank?: { account?: string } };
       };
     };
   };
 };
+
+/** A bank's display name: Thai name first, then short code (e.g. "KBANK"). */
+function bankLabel(bank: RawBank | undefined): string | null {
+  return bank?.name ?? bank?.short ?? null;
+}
 
 /**
  * Verifies a bank-transfer slip. Provide exactly one of `payload` (QR string)
@@ -94,8 +117,14 @@ export async function verifyBankSlip(opts: {
     transRef: raw?.transRef ?? null,
     receiverAccount: raw?.receiver?.account?.bank?.account ?? null,
     senderName: raw?.sender?.account?.name?.th ?? raw?.sender?.account?.name?.en ?? null,
+    senderBank: bankLabel(raw?.sender?.bank),
     receiverNameTh: raw?.receiver?.account?.name?.th ?? null,
     receiverNameEn: raw?.receiver?.account?.name?.en ?? null,
+    receiverBank: bankLabel(raw?.receiver?.bank),
     paidAt: raw?.date ?? null,
+    ref1: raw?.ref1 ?? null,
+    ref2: raw?.ref2 ?? null,
+    ref3: raw?.ref3 ?? null,
+    raw: raw ?? null,
   };
 }
