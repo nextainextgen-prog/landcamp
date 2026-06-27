@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import {
   randomBytes,
@@ -84,8 +85,11 @@ export function sessionCookieOptions() {
 /**
  * Resolves the current admin from the signed session cookie, loading the live
  * account row (so deactivation / permission changes take effect immediately).
+ *
+ * Wrapped in React `cache` so the layout, `requireSection`, and the page can
+ * each call it within one render without re-querying `admin_accounts` 2-3×.
  */
-export async function getAdminSession(): Promise<AdminSession | null> {
+export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
   const store = await cookies();
   const token = store.get(ADMIN_COOKIE)?.value;
   if (!token) return null;
@@ -120,7 +124,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
     role: data.role as AdminRole,
     permissions,
   };
-}
+});
 
 /** Whether a session may access a section (super_admin = all). */
 export function canAccess(session: AdminSession, section: SectionKey): boolean {

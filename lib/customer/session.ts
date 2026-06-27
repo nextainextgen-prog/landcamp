@@ -7,6 +7,7 @@
  * This replaces Supabase Auth for customers.
  */
 
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
@@ -91,8 +92,12 @@ function rowToSession(
  *   1. the LINE `lc_customer` cookie, or
  *   2. the Supabase (Google) session.
  * Returns null if neither is present/valid.
+ *
+ * Wrapped in React `cache` so a page + its layout (and any API handler) resolve
+ * the session once per request instead of re-hitting the DB / auth server each
+ * call.
  */
-export async function getCustomerSession(): Promise<CustomerSession | null> {
+export const getCustomerSession = cache(async (): Promise<CustomerSession | null> => {
   let admin;
   try {
     admin = createSupabaseAdminClient();
@@ -134,4 +139,4 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
   }
 
   return null;
-}
+});

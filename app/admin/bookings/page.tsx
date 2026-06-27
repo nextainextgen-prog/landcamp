@@ -39,7 +39,7 @@ export default async function AdminBookingsPage() {
       ids.length
         ? admin
             .from("payments")
-            .select("booking_id, amount, kind, status, verify_status, verify_note, slip_image, slip_url, created_at")
+            .select("booking_id, amount, kind, status, verify_status, verify_note, slip_url, created_at")
             .in("booking_id", ids)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [] as Record<string, unknown>[] }),
@@ -118,10 +118,11 @@ export default async function AdminBookingsPage() {
               status: p.status as string,
               verify_status: (p.verify_status as string) ?? null,
               verify_note: (p.verify_note as string) ?? null,
+              // Signed URL from the `slips` bucket. The legacy base64 `slip_image`
+              // column is no longer selected in this list query (it bloated the
+              // payload across up to 80 bookings); open the slip detail to view it.
               slip_image:
-                (p.slip_url ? signed.get(p.slip_url as string) : null) ??
-                (p.slip_image as string) ??
-                null,
+                (p.slip_url ? signed.get(p.slip_url as string) : null) ?? null,
             }
           : null,
       };

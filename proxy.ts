@@ -11,8 +11,16 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Run on every request except Next internals and static asset files.
+  // Only run where a Supabase (Google) auth session actually needs refreshing:
+  // the customer account/profile/receipt pages and the OAuth callback. Customers
+  // are LINE-first (the `lc_customer` cookie needs no Supabase refresh) and the
+  // admin area uses its own `lc_admin` cookie — so running the Supabase
+  // `getUser()` round-trip on `/admin`, the public marketing pages, or the API
+  // was pure latency on every request. Scoping it here removes that tax.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
+    "/account/:path*",
+    "/profile/:path*",
+    "/booking/:path*",
+    "/auth/:path*",
   ],
 };

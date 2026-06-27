@@ -10,7 +10,9 @@ import { createServerClient } from "@supabase/ssr";
  * renamed Middleware) to persist refreshed sessions. Without it, an expired
  * access token is never refreshed for server-side reads.
  *
- * Calling `getUser()` is what triggers the refresh — do not remove it.
+ * Calling `getUser()` is what triggers the refresh — do not remove it. Note the
+ * proxy matcher (proxy.ts) is scoped to the customer auth routes only, so this
+ * round-trip no longer runs on `/admin` or the public marketing pages.
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });

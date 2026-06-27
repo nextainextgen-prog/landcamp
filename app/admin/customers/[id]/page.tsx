@@ -74,7 +74,7 @@ export default async function CustomerDetailPage({ params }: Ctx) {
   if (bookingsRaw.length > 0) {
     const { data } = await admin
       .from("payments")
-      .select("id, booking_id, amount, kind, method, status, trans_ref, paid_at, slip_url, slip_image, created_at")
+      .select("id, booking_id, amount, kind, method, status, trans_ref, paid_at, slip_url, created_at")
       .in("booking_id", bookingsRaw.map((b) => b.id as string))
       .order("created_at", { ascending: false });
     paymentsData = data ?? [];
@@ -103,7 +103,7 @@ export default async function CustomerDetailPage({ params }: Ctx) {
       ref: (p.trans_ref as string) ?? null,
       status: (p.status as ProfilePayment["status"]) ?? "pending",
       paidAt: (p.paid_at as string) ?? null,
-      slipUrl: (slipPath ? signedSlips.get(slipPath) : null) ?? (p.slip_image as string) ?? null,
+      slipUrl: (slipPath ? signedSlips.get(slipPath) : null) ?? null,
       createdAt: p.created_at as string,
     };
   });

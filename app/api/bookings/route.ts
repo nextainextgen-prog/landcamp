@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { checkAvailability } from "@/lib/booking/availability";
 import { generateBookingCode } from "@/lib/booking/code";
-import { holdExpiresAtIso } from "@/lib/booking/hold";
+import { holdExpiresAtIso, holdExpiryCutoffIso } from "@/lib/booking/hold";
 import { calculateBookingTotal } from "@/lib/booking/pricing";
 import { CreateBookingSchema } from "@/lib/schemas/booking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -124,6 +124,16 @@ export async function POST(request: NextRequest) {
       { status: 422 },
     );
   }
+
+  // Lazily free this room's expired 15-minute holds so a stale `pending_payment`
+  // row neither shows as unavailable nor blocks the insert (EXCLUDE constraint) —
+  // independent of the once-daily cleanup cron.
+  await admin
+    .from("bookings")
+    .update({ status: "cancelled" })
+    .eq("room_id", roomId)
+    .eq("status", "pending_payment")
+    .lt("created_at", holdExpiryCutoffIso(now));
 
   // App-level pre-check; the DB EXCLUDE constraint is the real guarantee.
   const availability = await checkAvailability(admin, roomId, checkIn, checkOut);
