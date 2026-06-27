@@ -292,6 +292,13 @@ export function CustomerProfile({
                 <InfoRow label="เบอร์โทร" value={customer.phone || "—"} />
                 <InfoRow label="ช่องทาง" value={channelLabel(customer.source, customer.authProvider)} />
                 <InfoRow label="เป็นสมาชิกตั้งแต่" value={thaiDate(customer.createdAt)} />
+                <div className="flex items-center justify-between gap-3 border-t border-[color:var(--color-forest-deep)]/8 pt-3">
+                  <dt className="shrink-0 text-[color:var(--color-ink)]/50">UUID ลูกค้า</dt>
+                  <dd className="flex min-w-0 items-center gap-1">
+                    <span className="truncate font-mono text-[12px] text-[color:var(--color-forest-deep)]">{customer.id}</span>
+                    <CopyButton value={customer.id} label="คัดลอก UUID ลูกค้า" />
+                  </dd>
+                </div>
               </dl>
             </SectionCard>
             <VipTagsPanel customerId={customer.id} initialIsVip={customer.isVip} initialTags={customer.tags} />
@@ -487,7 +494,10 @@ function BookingTable({ rows }: { rows: ProfileBooking[] }) {
           {rows.map((b) => (
             <tr key={b.id} className="hover:bg-[color:var(--color-bone-soft)]/30">
               <td className="whitespace-nowrap px-5 py-4">
-                <Link href={`/booking/${b.code}`} className="font-mono text-[13px] text-[color:var(--color-forest-deep)] hover:text-[color:var(--color-warm-clay)]">{b.code}</Link>
+                <div className="flex items-center gap-1">
+                  <Link href={`/booking/${b.code}`} className="font-mono text-[13px] text-[color:var(--color-forest-deep)] hover:text-[color:var(--color-warm-clay)]">{b.code}</Link>
+                  <CopyButton value={b.id} label="คัดลอก UUID การจอง" />
+                </div>
               </td>
               <td className="whitespace-nowrap px-5 py-4 text-[color:var(--color-ink)]/75">{b.roomName}</td>
               <td className="whitespace-nowrap px-5 py-4 text-[color:var(--color-ink)]/75">{thaiDate(b.checkIn)} – {thaiDate(b.checkOut)}</td>
@@ -507,6 +517,37 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <dt className="text-[color:var(--color-ink)]/50">{label}</dt>
       <dd className="truncate text-right font-medium text-[color:var(--color-forest-deep)]">{value}</dd>
     </div>
+  );
+}
+
+/** Small copy-to-clipboard button with a brief check confirmation. */
+function CopyButton({ value, label = "คัดลอก", className = "" }: { value: string; label?: string; className?: string }) {
+  const [done, setDone] = useState(false);
+  const copy = () => {
+    if (!value) return;
+    void navigator.clipboard?.writeText(value);
+    setDone(true);
+    window.setTimeout(() => setDone(false), 1200);
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title={label}
+      aria-label={label}
+      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[color:var(--color-ink)]/45 transition-colors hover:bg-[color:var(--color-bone-soft)] hover:text-[color:var(--color-forest-deep)] ${className}`}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
+        {done ? (
+          <path d="m20 6-11 11-5-5" />
+        ) : (
+          <>
+            <rect x="9" y="9" width="11" height="11" rx="2" />
+            <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+          </>
+        )}
+      </svg>
+    </button>
   );
 }
 
