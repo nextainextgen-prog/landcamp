@@ -91,6 +91,14 @@ export function AdminShell({
     if (revenueIdx >= 0) sectionItems.splice(revenueIdx + 1, 0, slips);
     else sectionItems.push(slips);
   }
+  // Pin "ลูกค้า" (customers) to the top of the "จัดการ" group. Reordered here
+  // rather than in lib/admin/sections.ts so the permission checkbox list in
+  // UsersManager (which maps over SECTIONS) keeps its original order.
+  const customersIdx = sectionItems.findIndex((s) => s.key === "customers");
+  if (customersIdx > 0) {
+    const [customers] = sectionItems.splice(customersIdx, 1);
+    sectionItems.unshift(customers);
+  }
 
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
