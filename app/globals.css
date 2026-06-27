@@ -267,4 +267,12 @@ body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  /* compact the booking voucher so it fits one A4 page */
+  .lc-doc > div {
+    padding-top: 11px !important;
+    padding-bottom: 11px !important;
+  }
+  .lc-doc li {
+    break-inside: avoid;
+  }
 }

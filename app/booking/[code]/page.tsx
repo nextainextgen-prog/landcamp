@@ -136,7 +136,7 @@ export default async function BookingReceiptPage({
             <p className="text-base text-[color:var(--color-ink)]/65">ไม่พบใบการจองนี้</p>
           </div>
         ) : (
-          <div className="mt-6 overflow-hidden rounded-[22px] bg-white/80 ring-1 ring-[color:var(--color-forest-deep)]/10 shadow-[0_24px_60px_-30px_rgba(45,55,40,0.35)] print:mt-0 print:rounded-none print:bg-white print:shadow-none">
+          <div className="lc-doc mt-6 overflow-hidden rounded-[22px] bg-white/80 ring-1 ring-[color:var(--color-forest-deep)]/10 shadow-[0_24px_60px_-30px_rgba(45,55,40,0.35)] print:mt-0 print:rounded-none print:bg-white print:shadow-none">
             {/* Brand logo */}
             <div className="flex justify-center border-b border-[color:var(--color-ink)]/10 px-7 pt-7 pb-5">
               <Image
@@ -145,7 +145,7 @@ export default async function BookingReceiptPage({
                 width={2000}
                 height={667}
                 priority
-                className="h-auto w-[210px]"
+                className="h-auto w-[210px] print:w-[150px]"
               />
             </div>
 
@@ -163,7 +163,7 @@ export default async function BookingReceiptPage({
                   {BOOKING_STATUS_TH[booking.status]}
                 </span>
               </div>
-              <h1 className="mt-3 font-display text-3xl leading-tight text-[color:var(--color-forest-deep)]">
+              <h1 className="mt-3 font-display text-3xl leading-tight text-[color:var(--color-forest-deep)] print:mt-1.5 print:text-[23px]">
                 {roomName || "ห้องพัก"}
               </h1>
               <p className="mt-1 font-mono text-sm text-[color:var(--color-ink)]/60">
