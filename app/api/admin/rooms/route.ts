@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -48,5 +49,6 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await admin.from("rooms").insert(result.data).select(FIELDS).single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidatePath("/");
   return NextResponse.json({ room: data }, { status: 201 });
 }

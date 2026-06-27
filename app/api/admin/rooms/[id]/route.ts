@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -46,6 +47,9 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "room not found" }, { status: 404 });
+  // Purge the cached public homepage so closing/opening a room (is_available)
+  // or any edit reflects on the site immediately, not after the 60s ISR window.
+  revalidatePath("/");
   return NextResponse.json({ room: data });
 }
 
@@ -65,5 +69,6 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
 
   const { error } = await admin.from("rooms").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidatePath("/");
   return NextResponse.json({ ok: true });
 }

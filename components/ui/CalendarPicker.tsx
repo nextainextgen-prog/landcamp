@@ -286,7 +286,7 @@ export function CalendarPicker({
                     className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors ${
                       disabled
                         ? marked
-                          ? "cursor-not-allowed text-[color:var(--color-warm-clay)]/80 line-through"
+                          ? "cursor-not-allowed bg-red-50 font-medium text-red-500 line-through"
                           : "cursor-not-allowed text-[color:var(--color-ink)]/30 line-through"
                         : circle
                           ? "bg-[color:var(--color-warm-clay)] font-semibold text-white"
@@ -296,7 +296,7 @@ export function CalendarPicker({
                     }`}
                   >
                     {d.getDate()}
-                    {marked && !circle && (
+                    {marked && !circle && !disabled && (
                       <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[color:var(--color-warm-clay)]" />
                     )}
                   </button>
@@ -304,14 +304,6 @@ export function CalendarPicker({
               );
             })}
           </div>
-
-          {/* legend — only when there are booked (marked) dates */}
-          {(markedDates?.length ?? 0) > 0 && (
-            <div className="mt-2.5 flex items-center gap-1.5 px-1 text-[11px] text-[color:var(--color-ink)]/55">
-              <span className="text-[color:var(--color-warm-clay)]/80 line-through">12</span>
-              <span>= เต็มแล้ว เลือกไม่ได้</span>
-            </div>
-          )}
         </>
       )}
 
