@@ -33,7 +33,7 @@ type BookingForCard = {
   total_amount: number;
 };
 
-async function loadCardData(bookingId: string) {
+export async function loadCardData(bookingId: string) {
   const admin = createSupabaseAdminClient();
   const { data: booking } = await admin
     .from("bookings")
