@@ -1,6 +1,7 @@
-// A pending booking the user started before signing in. Google OAuth redirects
-// the whole page away and back, so we stash the in-progress form in
-// sessionStorage and reopen the modal (pre-filled) on return.
+// A pending booking the user started before signing in. LINE login redirects the
+// whole page away (and on mobile often returns in a different tab/webview), so we
+// stash the in-progress form in localStorage — which is origin-scoped, not
+// tab-scoped like sessionStorage — and reopen the modal (pre-filled) on return.
 
 export type BookingIntent = {
   slug: string;
@@ -13,21 +14,31 @@ export type BookingIntent = {
 };
 
 const KEY = "landcamp:booking-intent";
+// Ignore intents older than this so an abandoned booking doesn't reopen the modal
+// on an unrelated later visit.
+const TTL_MS = 30 * 60 * 1000;
+
+type StoredIntent = BookingIntent & { savedAt: number };
 
 export function saveBookingIntent(intent: BookingIntent): void {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(intent));
+    const payload: StoredIntent = { ...intent, savedAt: Date.now() };
+    localStorage.setItem(KEY, JSON.stringify(payload));
   } catch {
-    // sessionStorage unavailable (private mode / SSR) — non-fatal.
+    // localStorage unavailable (private mode / SSR) — non-fatal.
   }
 }
 
 export function loadBookingIntent(): BookingIntent | null {
   try {
-    const raw = sessionStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<BookingIntent>;
+    const parsed = JSON.parse(raw) as Partial<StoredIntent>;
     if (typeof parsed.slug !== "string") return null;
+    if (typeof parsed.savedAt === "number" && Date.now() - parsed.savedAt > TTL_MS) {
+      clearBookingIntent();
+      return null;
+    }
     return {
       slug: parsed.slug,
       checkIn: typeof parsed.checkIn === "string" ? parsed.checkIn : "",
@@ -44,7 +55,7 @@ export function loadBookingIntent(): BookingIntent | null {
 
 export function clearBookingIntent(): void {
   try {
-    sessionStorage.removeItem(KEY);
+    localStorage.removeItem(KEY);
   } catch {
     // ignore
   }
