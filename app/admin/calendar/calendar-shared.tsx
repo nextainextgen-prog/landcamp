@@ -48,7 +48,7 @@ export type StatusKey =
 export const STATUS: Record<StatusKey, { label: string; color: string; soft: string }> = {
   pending_payment: { label: "รอชำระ", color: "#d4a24c", soft: "rgba(212,162,76,0.14)" },
   payment_review: { label: "รอตรวจสลิป", color: "#5b7fa6", soft: "rgba(91,127,166,0.14)" },
-  confirmed: { label: "ยืนยันแล้ว", color: "#4d584b", soft: "rgba(77,88,75,0.14)" },
+  confirmed: { label: "ยืนยันแล้ว", color: "#16a34a", soft: "rgba(22,163,74,0.14)" },
   completed: { label: "เสร็จสิ้น", color: "#778475", soft: "rgba(119,132,117,0.16)" },
   no_show: { label: "ไม่มาตามนัด", color: "#b5654d", soft: "rgba(181,101,77,0.14)" },
 };
