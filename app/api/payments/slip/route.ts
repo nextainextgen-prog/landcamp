@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { BOOKING_HOLD_MS } from "@/lib/booking/hold";
+import { confirmBookingPaid } from "@/lib/booking/confirm";
 import { verifyBankSlip } from "@/lib/easyslip";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCustomerSession } from "@/lib/customer/session";
@@ -13,11 +14,15 @@ const MAX_BASE64_LEN = 6_000_000; // ~4MB image
 const PG_UNIQUE_VIOLATION = "23505";
 
 /**
- * Receives a customer payment slip. The booking moves to `payment_review` and
- * the slip is verified against EasySlip in the background — the verdict is
- * stored for admins ONLY and never returned to the customer (so a system/API
- * hiccup never surfaces as a scary "invalid slip" to the guest). An admin then
- * confirms the booking after reviewing the slip + verdict.
+ * Receives a customer payment slip, verifies it against EasySlip, then decides
+ * automatically what happens next:
+ *   • matched    (QR readable + amount + receiver account ok + not duplicate)
+ *                → confirm the booking automatically (no manual review).
+ *   • duplicate  (slip already used) → don't advance; ask the guest to re-submit.
+ *   • anything else (no QR / unreadable / amount or name mismatch / API error)
+ *                → `payment_review` for an admin to check by hand.
+ * The full verdict is still stored for admins; the guest only gets a friendly,
+ * non-scary summary of the decision.
  */
 export async function POST(request: NextRequest) {
   let body: { bookingId?: string; base64?: string };
@@ -220,17 +225,41 @@ export async function POST(request: NextRequest) {
     // non-fatal — the verdict is already on the payments row.
   }
 
-  // Move the booking into admin review (also keeps the dates held).
-  if (booking.status === "pending_payment") {
-    await admin.from("bookings").update({ status: "payment_review" }).eq("id", booking.id);
+  // ── Auto-decision from the verdict ──
+  let decision: "confirmed" | "review" | "duplicate";
+  if (verifyStatus === "matched") {
+    // Fully valid slip → confirm exactly like a manual admin confirm.
+    decision = "confirmed";
+    await confirmBookingPaid(admin, booking.id, { actor: "auto-verify", method: "transfer" });
+  } else if (verifyStatus === "duplicate") {
+    // Reused slip — leave the booking where it is so the guest can transfer and
+    // attach a genuine slip (or rebook if the hold has expired).
+    decision = "duplicate";
+  } else {
+    // No QR / unreadable / amount or name mismatch / API error → human review.
+    decision = "review";
+    if (booking.status === "pending_payment") {
+      await admin.from("bookings").update({ status: "payment_review" }).eq("id", booking.id);
+    }
   }
 
   // Audit log (non-fatal).
   await admin.from("notifications").insert({
     kind: "slip_submitted",
-    payload: { booking_id: booking.id, payment_id: payment.id, verify_status: verifyStatus },
+    payload: { booking_id: booking.id, payment_id: payment.id, verify_status: verifyStatus, decision },
   });
 
-  // Always success to the customer — no verdict leaked.
-  return NextResponse.json({ ok: true, status: "received" });
+  const CUSTOMER_MESSAGE = {
+    confirmed: "ชำระเงินสำเร็จ ยืนยันการจองเรียบร้อยแล้ว ขอบคุณครับ",
+    review: "ได้รับสลิปแล้ว ทีมงานกำลังตรวจสอบ จะยืนยันให้เร็วที่สุดครับ",
+    duplicate: "สลิปนี้เคยถูกใช้ไปแล้ว กรุณาโอนชำระและแนบสลิปใหม่อีกครั้งครับ",
+  } as const;
+
+  // A duplicate is a soft failure so the customer UI lets them re-attach.
+  return NextResponse.json({
+    ok: decision !== "duplicate",
+    decision,
+    status: decision === "confirmed" ? "confirmed" : "received",
+    message: CUSTOMER_MESSAGE[decision],
+  });
 }

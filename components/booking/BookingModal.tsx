@@ -113,6 +113,8 @@ export function BookingModal({
   const [paymentError, setPaymentError] = useState("");
   const [slip, setSlip] = useState<SlipState>("idle");
   const [slipError, setSlipError] = useState("");
+  // How the slip was resolved — drives the confirmation wording.
+  const [confirmKind, setConfirmKind] = useState<"confirmed" | "review">("review");
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -302,16 +304,24 @@ export function BookingModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId: booking.id, base64: dataUrl }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        decision?: "confirmed" | "review" | "duplicate";
+        message?: string;
+      };
       if (res.ok && data.ok) {
+        // matched → auto-confirmed; otherwise it's awaiting admin review.
+        setConfirmKind(data.decision === "confirmed" ? "confirmed" : "review");
         setPhase("confirmed");
         return;
       }
       setSlip("error");
       setSlipError(
-        res.status === 410
-          ? t({ th: "การจองหมดเวลาแล้ว กรุณาจองใหม่", en: "This booking expired — please book again." })
-          : data.error ?? t({ th: "อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง", en: "Upload failed. Please try again." }),
+        data.message ??
+          (res.status === 410
+            ? t({ th: "การจองหมดเวลาแล้ว กรุณาจองใหม่", en: "This booking expired — please book again." })
+            : data.error ?? t({ th: "อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง", en: "Upload failed. Please try again." })),
       );
     } catch (err) {
       setSlip("error");
@@ -382,7 +392,7 @@ export function BookingModal({
           </header>
 
           {phase === "confirmed" && booking ? (
-            <Confirmation booking={booking} room={room} onClose={onClose} />
+            <Confirmation booking={booking} room={room} kind={confirmKind} onClose={onClose} />
           ) : phase === "payment" && booking ? (
             <PaymentStep
               booking={booking}
@@ -705,13 +715,16 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 function Confirmation({
   booking,
   room,
+  kind,
   onClose,
 }: {
   booking: BookingCreated;
   room: Room;
+  kind: "confirmed" | "review";
   onClose: () => void;
 }) {
   const t = useT();
+  const confirmed = kind === "confirmed";
   return (
     <div className="px-6 sm:px-8 py-8 flex flex-col items-center text-center gap-4">
       <div className="h-14 w-14 rounded-full bg-[color:var(--color-forest-deep)]/10 flex items-center justify-center">
@@ -720,13 +733,20 @@ function Confirmation({
         </svg>
       </div>
       <h4 className="font-display text-2xl text-[color:var(--color-forest-deep)]">
-        {t({ th: "ได้รับการจองแล้ว!", en: "Booking received!" })}
+        {confirmed
+          ? t({ th: "ยืนยันการจองแล้ว!", en: "Booking confirmed!" })
+          : t({ th: "ได้รับการจองแล้ว!", en: "Booking received!" })}
       </h4>
       <p className="text-sm text-[color:var(--color-ink)]/70 leading-relaxed">
-        {t({
-          th: `เราได้รับสลิปการชำระเงินสำหรับ ${room.name.th} แล้ว ทีมงานกำลังตรวจสอบ — ดูสถานะและใบการจองได้ที่หน้าโปรไฟล์ของคุณ`,
-          en: `We've received your payment slip for ${room.name.en}. Our team is reviewing it — track the status and your booking document in your profile.`,
-        })}
+        {confirmed
+          ? t({
+              th: `ชำระเงินสำเร็จและยืนยันการจอง ${room.name.th} เรียบร้อยแล้ว — ดูใบการจองได้ที่หน้าโปรไฟล์ของคุณ`,
+              en: `Payment received and your booking for ${room.name.en} is confirmed — find your booking document in your profile.`,
+            })
+          : t({
+              th: `เราได้รับสลิปการชำระเงินสำหรับ ${room.name.th} แล้ว ทีมงานกำลังตรวจสอบ — ดูสถานะและใบการจองได้ที่หน้าโปรไฟล์ของคุณ`,
+              en: `We've received your payment slip for ${room.name.en}. Our team is reviewing it — track the status and your booking document in your profile.`,
+            })}
       </p>
       <div className="w-full rounded-[14px] bg-[color:var(--color-bone-soft)] px-5 py-4 flex flex-col gap-2 text-sm">
         <Row label={t({ th: "รหัสการจอง", en: "Booking code" })} value={booking.bookingCode} mono />
