@@ -40,5 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# codex-team worktrees
+# codex-team worktrees + agent-team scaffolding (local only)
 .worktrees/
+ψ/
