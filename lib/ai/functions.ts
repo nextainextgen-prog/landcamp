@@ -505,6 +505,37 @@ async function getCancellations(args: Json): Promise<Json> {
  * Registry — declarations sent to Gemini + handler dispatch
  * ════════════════════════════════════════════════════════════════ */
 
+async function getNewCustomers(args: Json): Promise<Json> {
+  try {
+    const admin = createAdminClient();
+    const win =
+      args.from && args.to
+        ? { from: String(args.from), to: addDays(String(args.to), 1) }
+        : periodWindow(String(args.period ?? "month"));
+    const { data, error } = await admin
+      .from("customers")
+      .select("full_name, phone, source, created_at")
+      .gte("created_at", win.from)
+      .lt("created_at", win.to)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    const rows = (data ?? []) as Row[];
+    return {
+      period: args.from && args.to ? `${args.from} ถึง ${args.to}` : String(args.period ?? "month"),
+      from: win.from,
+      count: rows.length,
+      customers: rows.slice(0, 50).map((c) => ({
+        name: (c.full_name as string) ?? "—",
+        phone: (c.phone as string) ?? "—",
+        source: (c.source as string) ?? "online",
+        createdAt: String(c.created_at).slice(0, 10),
+      })),
+    };
+  } catch (e) {
+    return { error: errMsg(e) };
+  }
+}
+
 type Handler = (args: Json) => Promise<Json>;
 
 const HANDLERS: Record<string, Handler> = {
@@ -513,6 +544,7 @@ const HANDLERS: Record<string, Handler> = {
   getRevenueReport,
   getRoomStatus: () => getRoomStatus(),
   getCustomerInfo,
+  getNewCustomers,
   getSlipsSummary,
   getHousekeepingStatus,
   getUpcomingCheckIns,
@@ -612,6 +644,18 @@ export const functionDeclarations: FunctionDeclaration[] = [
     parameters: {
       type: Type.OBJECT,
       properties: { from: dateProp("วันเริ่มต้น"), to: dateProp("วันสิ้นสุด") },
+    },
+  },
+  {
+    name: "getNewCustomers",
+    description: "ลูกค้าใหม่ (ที่ถูกสร้าง/สมัครในระบบ) ในช่วงเวลาที่ระบุ — จำนวนและรายชื่อ พร้อมช่องทาง (ค่าเริ่มต้นเดือนนี้)",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        period: { type: Type.STRING, description: "ช่วงเวลา: today / week / month / year (ค่าเริ่มต้น month)" },
+        from: dateProp("วันเริ่มต้น (ถ้าระบุช่วงเอง)"),
+        to: dateProp("วันสิ้นสุด (ถ้าระบุช่วงเอง)"),
+      },
     },
   },
 ];

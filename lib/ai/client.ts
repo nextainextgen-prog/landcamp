@@ -22,13 +22,31 @@ export function getGeminiClient(): GoogleGenAI | null {
   return new GoogleGenAI({ apiKey });
 }
 
-/** System prompt with the current page interpolated. */
+const TH_MONTHS = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+];
+
+/** Today in Asia/Bangkok — both ISO (for function args) and Thai (Buddhist year). */
+function bangkokNow(): { iso: string; thai: string } {
+  const d = new Date(Date.now() + 7 * 3600 * 1000); // shift to UTC+7, then read UTC parts
+  const iso = d.toISOString().slice(0, 10);
+  const thai = `${d.getUTCDate()} ${TH_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear() + 543}`;
+  return { iso, thai };
+}
+
+/** System prompt with the current date + page interpolated. */
 export function buildSystemPrompt(currentPage: string): string {
+  const { iso, thai } = bangkokNow();
   return [
     'คุณคือ "น้องแคมป์" AI ผู้ช่วยของระบบ LandCamp Villa',
     "คุณมีสิทธิ์เข้าถึงข้อมูลทั้งหมดในระบบ และสามารถตอบคำถาม วิเคราะห์ข้อมูล และสร้างรายงานได้",
     "ตอบเป็นภาษาไทยเสมอ กระชับ ตรงประเด็น เป็นมืออาชีพแต่เป็นกันเอง",
     "ถ้าต้องการข้อมูลจากระบบให้ใช้ function calling เท่านั้น อย่าคาดเดาตัวเลขหรือข้อมูลเอง",
+    // Gemini doesn't know the real date and otherwise defaults to its training era
+    // (~พ.ศ. 2566). Pin it so narration AND any date passed to functions are correct.
+    `วันที่ปัจจุบันตามเวลาประเทศไทยคือ ${thai} (รูปแบบ ISO: ${iso})`,
+    `เมื่ออ้างถึง "วันนี้/เดือนนี้/ปีนี้" หรือต้องส่งวันที่ให้ function ให้ยึดวันที่ ${iso} นี้เสมอ ห้ามใช้ปีอื่น`,
     `ปัจจุบันผู้ใช้อยู่ที่หน้า: ${currentPage || "ไม่ทราบ"}`,
   ].join("\n");
 }
