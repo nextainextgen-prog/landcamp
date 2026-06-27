@@ -252,11 +252,49 @@ body {
   animation: lcCheckDraw 280ms ease-out 120ms forwards;
 }
 
-/* Print: A4 documents (booking voucher / receipt) — keep colours, clean page box */
+/* ── Booking / receipt document (.lcrcpt) — Sarabun, official-document layout ── */
+.lcrcpt.page{ max-width:760px; margin:0 auto; background:#fff; color:#1a1814; padding:48px 52px; box-shadow:0 12px 40px -18px rgba(0,0,0,.25); }
+.lcrcpt .head{ display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:28px; }
+.lcrcpt h1{ margin:0; font-size:30px; font-weight:700; letter-spacing:-.01em; }
+.lcrcpt .logo{ width:140px; height:auto; }
+.lcrcpt .cols{ display:flex; justify-content:space-between; gap:24px; margin-bottom:24px; }
+.lcrcpt .sec-label{ font-weight:700; font-size:16px; margin:0 0 8px; }
+.lcrcpt .seller p{ margin:2px 0; }
+.lcrcpt .meta{ text-align:right; }
+.lcrcpt .meta .m{ margin-bottom:10px; }
+.lcrcpt .meta .mlabel{ font-weight:700; }
+.lcrcpt .meta .mval{ color:#6b6862; }
+.lcrcpt .block{ margin-bottom:22px; }
+.lcrcpt .kv{ display:grid; grid-template-columns:200px 1fr; gap:6px 16px; margin:0; }
+.lcrcpt .kv dd{ margin:0; font-weight:500; }
+.lcrcpt .amount-big{ font-size:17px; }
+.lcrcpt table{ width:100%; border-collapse:collapse; margin-top:8px; }
+.lcrcpt thead th{ text-align:left; font-weight:700; padding:10px 0; border-bottom:1.5px solid #1a1814; }
+.lcrcpt thead th.right{ text-align:right; }
+.lcrcpt tbody td{ padding:13px 0; vertical-align:top; border-bottom:1px solid #e4e0d8; }
+.lcrcpt tbody td.right{ text-align:right; white-space:nowrap; }
+.lcrcpt tbody .detail{ color:#6b6862; }
+.lcrcpt tbody .detail .d{ margin:2px 0; }
+.lcrcpt .total-row{ display:flex; justify-content:flex-end; align-items:baseline; gap:40px; padding:16px 0 6px; }
+.lcrcpt .total-row .tlabel{ font-weight:700; font-size:17px; }
+.lcrcpt .total-row .tval{ font-weight:700; font-size:18px; color:#4d584b; }
+.lcrcpt .baht-text{ text-align:right; color:#6b6862; border-top:2px solid #1a1814; padding-top:8px; }
+.lcrcpt .pay{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin:24px 0 6px; }
+.lcrcpt .pay .paid{ display:inline-flex; align-items:center; gap:6px; color:#4d584b; font-weight:600; }
+.lcrcpt .qr-box svg{ width:88px; height:88px; display:block; }
+.lcrcpt .qr-cap{ text-align:center; color:#6b6862; font-size:12px; margin-top:4px; }
+.lcrcpt .rules h2{ font-weight:700; font-size:16px; margin:0 0 8px; }
+.lcrcpt .rules ul{ margin:0; padding-left:20px; }
+.lcrcpt .rules li{ margin:3px 0; }
+.lcrcpt .thanks{ margin-top:22px; }
+.lcrcpt .thanks p{ margin:2px 0; }
+.lcrcpt .thanks .issued-by{ margin-top:8px; color:#6b6862; font-size:13px; }
+
+/* Print: A4 documents — keep colours, clean page box, fit one page */
 @media print {
   @page {
     size: A4;
-    margin: 14mm;
+    margin: 12mm;
   }
   html,
   body {
@@ -267,12 +305,21 @@ body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  /* compact the booking voucher so it fits one A4 page */
-  .lc-doc > div {
-    padding-top: 11px !important;
-    padding-bottom: 11px !important;
-  }
-  .lc-doc li {
-    break-inside: avoid;
-  }
+  .lcrcpt.page{ max-width:none; padding:0; box-shadow:none; margin:0; font-size:13px; line-height:1.42; }
+  .lcrcpt .head{ margin-bottom:10px; }
+  .lcrcpt h1{ font-size:24px; }
+  .lcrcpt .logo{ width:116px; }
+  .lcrcpt .cols{ margin-bottom:10px; }
+  .lcrcpt .sec-label{ font-size:14px; margin-bottom:4px; }
+  .lcrcpt .block{ margin-bottom:9px; }
+  .lcrcpt .kv{ gap:3px 16px; }
+  .lcrcpt thead th, .lcrcpt tbody td{ padding:7px 0; }
+  .lcrcpt .total-row{ padding:9px 0 5px; }
+  .lcrcpt .pay{ margin:9px 0 4px; }
+  .lcrcpt .qr-box svg{ width:62px; height:62px; }
+  .lcrcpt .qr-cap{ font-size:11px; }
+  .lcrcpt .rules h2{ font-size:14px; margin-bottom:4px; }
+  .lcrcpt .rules li{ margin:1px 0; break-inside:avoid; }
+  .lcrcpt .thanks{ margin-top:7px; }
+  .lcrcpt .thanks .issued-by{ margin-top:5px; font-size:12px; }
 }

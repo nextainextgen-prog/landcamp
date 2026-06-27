@@ -2,19 +2,29 @@ import Image from "next/image";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { Sarabun } from "next/font/google";
 import QRCode from "qrcode";
 
 import { getCustomerSession } from "@/lib/customer/session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { BOOKING_STATUS_TH, formatTHB, formatThaiDate } from "@/lib/account/format";
+import { formatTHB, formatThaiDate } from "@/lib/account/format";
+import { bahtText } from "@/lib/receipt/baht";
 import { siteConfig } from "@/data/siteConfig";
 import type { BookingStatus } from "@/types";
 import { PrintButton } from "./PrintButton";
 
+const sarabun = Sarabun({
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
 export const dynamic = "force-dynamic";
 
 type BookingRow = {
+  id: string;
   booking_code: string;
+  customer_id: string;
   room_id: string;
   check_in: string;
   check_out: string;
@@ -30,17 +40,11 @@ type BookingRow = {
   created_at: string;
 };
 
-const STATUS_BADGE: Record<BookingStatus, string> = {
-  pending_payment:
-    "bg-[color:var(--color-warm-clay)]/12 text-[color:var(--color-warm-clay)] ring-[color:var(--color-warm-clay)]/30",
-  payment_review:
-    "bg-blue-50 text-blue-700 ring-blue-200",
-  confirmed:
-    "bg-[color:var(--color-forest-deep)]/10 text-[color:var(--color-forest-deep)] ring-[color:var(--color-forest-deep)]/25",
-  cancelled: "bg-neutral-200 text-neutral-600 ring-neutral-300",
-  completed:
-    "bg-[color:var(--color-sage-mid)]/15 text-[color:var(--color-sage-mid)] ring-[color:var(--color-sage-mid)]/30",
-  no_show: "bg-red-100 text-red-700 ring-red-200",
+type TaxSettings = {
+  receiptHeader?: string;
+  receiptAddress?: string;
+  taxId?: string;
+  receiptFooter?: string;
 };
 
 export default async function BookingReceiptPage({
@@ -54,14 +58,13 @@ export default async function BookingReceiptPage({
   if (!session) redirect("/");
 
   const admin = createSupabaseAdminClient();
-  // Fetch by code, then confirm it belongs to the signed-in customer.
   const { data: row } = await admin
     .from("bookings")
     .select(
       "id, booking_code, customer_id, room_id, check_in, check_out, adults, children, extra_bed, nights, base_amount, extra_bed_amount, total_amount, status, notes, created_at",
     )
     .eq("booking_code", code)
-    .maybeSingle<BookingRow & { id: string; customer_id: string }>();
+    .maybeSingle<BookingRow>();
   const booking = row && row.customer_id === session.id ? row : null;
 
   let roomName = "";
@@ -69,295 +72,261 @@ export default async function BookingReceiptPage({
   let guestPhone = "";
   let slipRef: string | null = null;
   let paidAt: string | null = null;
+  let tax: TaxSettings = {};
   if (booking) {
-    const [{ data: room }, { data: customer }, { data: payment }] = await Promise.all([
-      admin.from("rooms").select("name_th").eq("id", booking.room_id).maybeSingle<{ name_th: string }>(),
-      admin
-        .from("customers")
-        .select("full_name, phone")
-        .eq("id", booking.customer_id)
-        .maybeSingle<{ full_name: string | null; phone: string | null }>(),
-      admin
-        .from("payments")
-        .select("trans_ref, paid_at")
-        .eq("booking_id", booking.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle<{ trans_ref: string | null; paid_at: string | null }>(),
-    ]);
-    roomName = room?.name_th ?? "";
+    const [{ data: room }, { data: customer }, { data: payment }, { data: taxRow }] =
+      await Promise.all([
+        admin.from("rooms").select("name_th").eq("id", booking.room_id).maybeSingle<{ name_th: string }>(),
+        admin
+          .from("customers")
+          .select("full_name, phone")
+          .eq("id", booking.customer_id)
+          .maybeSingle<{ full_name: string | null; phone: string | null }>(),
+        admin
+          .from("payments")
+          .select("trans_ref, paid_at")
+          .eq("booking_id", booking.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle<{ trans_ref: string | null; paid_at: string | null }>(),
+        admin.from("app_settings").select("value").eq("key", "tax").maybeSingle<{ value: TaxSettings }>(),
+      ]);
+    roomName = room?.name_th ?? "ห้องพัก";
     guestName = customer?.full_name ?? "";
     guestPhone = customer?.phone ?? "";
     slipRef = payment?.trans_ref ?? null;
     paidAt = payment?.paid_at ?? null;
+    tax = taxRow?.value ?? {};
   }
 
-  const isPaid = booking?.status === "confirmed" || booking?.status === "completed";
-
-  // เอกสารอ้างอิง: เลขที่ใบเสร็จรันตามวันที่ + QR สแกนดูเอกสาร
-  // (เลขรันแบบ sequential ตามกฎหมายจะเปิดใช้เมื่อรันตาราง receipts บน DB จริง)
-  let docNo = "";
-  let issueDate = "";
-  let qrSvg = "";
-  if (booking) {
-    const issuedIso = paidAt ?? booking.created_at;
-    issueDate = formatThaiDate(issuedIso);
-    const ymd = issuedIso.slice(0, 10).replace(/-/g, "");
-    const suffix = booking.booking_code.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase();
-    docNo = `RC-${ymd}-${suffix}`;
-
-    const h = await headers();
-    const host = h.get("host") ?? "";
-    const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-    const receiptUrl = `${proto}://${host}/booking/${booking.booking_code}`;
-    qrSvg = await QRCode.toString(receiptUrl, {
-      type: "svg",
-      margin: 0,
-      color: { dark: "#1a1814", light: "#00000000" },
-    });
-  }
-
-  return (
-    <main className="min-h-screen bg-[color:var(--color-bone)] px-5 py-12 text-[color:var(--color-ink)] print:bg-white print:p-0">
-      <div className="mx-auto w-full max-w-xl">
-        <div className="flex items-center justify-between gap-3 print:hidden">
+  if (!booking) {
+    return (
+      <main className={`${sarabun.className} min-h-screen bg-neutral-100 px-4 py-12`}>
+        <div className="mx-auto max-w-3xl">
           <Link
             href="/account/bookings"
-            className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.3em] text-[color:var(--color-ink)]/55 hover:text-[color:var(--color-forest-deep)]"
-            style={{ fontFamily: "var(--font-ui)" }}
+            className="inline-flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-800"
           >
             <span aria-hidden>←</span> การจองของฉัน
           </Link>
-          {booking && <PrintButton />}
+          <div className="mt-8 rounded-2xl border border-dashed border-neutral-300 bg-white p-10 text-center text-neutral-500">
+            ไม่พบใบการจองนี้
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const isPaid = booking.status === "confirmed" || booking.status === "completed";
+
+  // เลขที่เอกสาร (รันตามวันที่) + วันที่ออก + QR
+  const issuedIso = paidAt ?? booking.created_at;
+  const issuedDate = new Date(issuedIso).toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const issuedTime = new Date(issuedIso).toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const ymd = issuedIso.slice(0, 10).replace(/-/g, "");
+  const docNo = `RC-${ymd}-${booking.booking_code.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase()}`;
+
+  const h = await headers();
+  const host = h.get("host") ?? "";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const qrSvg = await QRCode.toString(`${proto}://${host}/booking/${booking.booking_code}`, {
+    type: "svg",
+    margin: 0,
+    color: { dark: "#1a1814", light: "#00000000" },
+  });
+
+  // ผู้ขาย (snapshot จากตั้งค่าภาษี → fallback siteConfig)
+  const sellerName = tax.receiptHeader || siteConfig.brand.nameFull;
+  const sellerAddress = tax.receiptAddress || siteConfig.address.full.th;
+  const sellerTaxId = (tax.taxId || "").trim();
+
+  return (
+    <main className={`${sarabun.className} min-h-screen bg-neutral-100 px-4 py-10`}>
+      <div className="mx-auto max-w-[760px]">
+        <div className="mb-4 flex items-center justify-between gap-3 print:hidden">
+          <Link
+            href="/account/bookings"
+            className="inline-flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-800"
+          >
+            <span aria-hidden>←</span> การจองของฉัน
+          </Link>
+          <PrintButton />
         </div>
 
-        {!booking ? (
-          <div className="mt-8 rounded-[20px] border border-dashed border-[color:var(--color-forest-deep)]/20 bg-white/60 p-10 text-center">
-            <p className="text-base text-[color:var(--color-ink)]/65">ไม่พบใบการจองนี้</p>
+        <div className="lcrcpt page">
+          <div className="head">
+            <h1>ใบยืนยันการจอง</h1>
+            <Image
+              className="logo"
+              src="/images/brand/landcamp-logo.png"
+              alt="LandCamp Villa Khaoyai"
+              width={2000}
+              height={667}
+              priority
+            />
           </div>
-        ) : (
-          <div className="lc-doc mt-6 overflow-hidden rounded-[22px] bg-white/80 ring-1 ring-[color:var(--color-forest-deep)]/10 shadow-[0_24px_60px_-30px_rgba(45,55,40,0.35)] print:mt-0 print:rounded-none print:bg-white print:shadow-none">
-            {/* Brand logo */}
-            <div className="flex justify-center border-b border-[color:var(--color-ink)]/10 px-7 pt-7 pb-5">
-              <Image
-                src="/images/brand/landcamp-logo.png"
-                alt="LandCamp Villa Khaoyai"
-                width={2000}
-                height={667}
-                priority
-                className="h-auto w-[210px] print:w-[150px]"
-              />
-            </div>
 
-            <div className="border-b border-[color:var(--color-ink)]/10 px-7 py-6">
-              <div className="flex items-center justify-between gap-3">
-                <span
-                  className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-                  style={{ fontFamily: "var(--font-ui)" }}
-                >
-                  LandCamp · ใบการจอง
-                </span>
-                <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs ring-1 ${STATUS_BADGE[booking.status]}`}
-                >
-                  {BOOKING_STATUS_TH[booking.status]}
-                </span>
+          <div className="cols">
+            <div className="seller">
+              <p className="sec-label">โดย</p>
+              <p>{sellerName}</p>
+              <p>{sellerAddress}</p>
+              {sellerTaxId && <p>เลขประจำตัวผู้เสียภาษี: {sellerTaxId}</p>}
+              <p>โทร. {siteConfig.contact.phone}</p>
+              <p>Facebook: LandCamp Villa Khaoyai</p>
+            </div>
+            <div className="meta">
+              <div className="m">
+                <div className="mlabel">วันที่ออกเอกสาร</div>
+                <div className="mval">
+                  {issuedDate} เวลา {issuedTime}
+                </div>
               </div>
-              <h1 className="mt-3 font-display text-3xl leading-tight text-[color:var(--color-forest-deep)] print:mt-1.5 print:text-[23px]">
-                {roomName || "ห้องพัก"}
-              </h1>
-              <p className="mt-1 font-mono text-sm text-[color:var(--color-ink)]/60">
-                {booking.booking_code}
-              </p>
+              <div className="m">
+                <div className="mlabel">เลขที่เอกสาร</div>
+                <div className="mval">{docNo}</div>
+              </div>
             </div>
+          </div>
 
-            {/* Guest details */}
-            {(guestName || guestPhone) && (
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-b border-[color:var(--color-ink)]/10 px-7 py-6 text-sm">
-                {guestName && <Row label="ชื่อผู้เข้าพัก" value={guestName} />}
-                {guestPhone && <Row label="เบอร์โทร" value={guestPhone} />}
-              </dl>
-            )}
-
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 px-7 py-6 text-sm">
-              <Row
-                label="เช็คอิน"
-                value={`${formatThaiDate(booking.check_in)} · ${siteConfig.policy.checkIn} น.`}
-              />
-              <Row
-                label="เช็คเอาท์"
-                value={`${formatThaiDate(booking.check_out)} · ${siteConfig.policy.checkOut} น.`}
-              />
-              <Row label="จำนวนคืน" value={`${booking.nights} คืน`} />
-              <Row
-                label="ผู้เข้าพัก"
-                value={`${booking.adults} ผู้ใหญ่${booking.children > 0 ? ` · ${booking.children} เด็ก` : ""}`}
-              />
-              <Row label="เตียงเสริม" value={booking.extra_bed ? "มี" : "ไม่มี"} />
+          <div className="block">
+            <p className="sec-label">ผู้เข้าพัก</p>
+            <dl className="kv">
+              {guestName && (
+                <>
+                  <dt>ชื่อผู้เข้าพัก:</dt>
+                  <dd>{guestName}</dd>
+                </>
+              )}
+              {guestPhone && (
+                <>
+                  <dt>เบอร์โทร:</dt>
+                  <dd>{guestPhone}</dd>
+                </>
+              )}
             </dl>
+          </div>
 
-            <div className="border-t border-[color:var(--color-ink)]/10 px-7 py-6">
-              <PriceRow label="ค่าห้อง" value={formatTHB(booking.base_amount)} />
-              {booking.extra_bed_amount > 0 && (
-                <PriceRow label="เตียงเสริม" value={formatTHB(booking.extra_bed_amount)} />
-              )}
-              <div className="my-2 h-px bg-[color:var(--color-ink)]/10" />
-              <PriceRow label="ยอดรวม" value={formatTHB(booking.total_amount)} strong />
-              {isPaid && (
-                <div className="mt-2 flex items-center justify-end gap-1.5 text-xs font-medium text-[color:var(--color-forest-deep)]">
-                  <svg
-                    aria-hidden
-                    viewBox="0 0 20 20"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M16.5 6.5 8.5 14.5 4.5 10.5" />
-                  </svg>
-                  ชำระเงินแล้ว
-                </div>
-              )}
-            </div>
+          <div className="block">
+            <p className="sec-label">รายละเอียดการเข้าพัก</p>
+            <dl className="kv">
+              <dt>รหัสการจอง:</dt>
+              <dd>{booking.booking_code}</dd>
+              <dt>ห้องพัก:</dt>
+              <dd>{roomName}</dd>
+              <dt>เช็คอิน:</dt>
+              <dd>
+                {formatThaiDate(booking.check_in)} · {siteConfig.policy.checkIn} น.
+              </dd>
+              <dt>เช็คเอาท์:</dt>
+              <dd>
+                {formatThaiDate(booking.check_out)} · {siteConfig.policy.checkOut} น.
+              </dd>
+              <dt>ผู้เข้าพัก:</dt>
+              <dd>
+                {booking.adults} ผู้ใหญ่
+                {booking.children > 0 ? ` · ${booking.children} เด็ก` : ""} · {booking.nights} คืน
+              </dd>
+            </dl>
+          </div>
 
-            {/* Receipt reference + QR (แสดงเมื่อชำระเงินแล้ว) */}
-            {isPaid && (
-              <div className="flex items-start justify-between gap-5 border-t border-[color:var(--color-ink)]/10 px-7 py-6">
-                <dl className="flex flex-col gap-3 text-sm">
-                  <div className="flex flex-col gap-1">
-                    <dt
-                      className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
-                      style={{ fontFamily: "var(--font-ui)" }}
-                    >
-                      เลขที่ใบเสร็จ
-                    </dt>
-                    <dd className="font-mono font-medium text-[color:var(--color-forest-deep)]">{docNo}</dd>
+          <div className="block">
+            <p className="sec-label">ยอดเงิน</p>
+            <dl className="kv amount-big">
+              <dt>{isPaid ? "ยอดชำระ:" : "ยอดที่ต้องชำระ:"}</dt>
+              <dd>{formatTHB(booking.total_amount)}</dd>
+            </dl>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>รายการ</th>
+                <th>รายละเอียด</th>
+                <th className="right">จำนวนเงิน</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ค่าห้องพัก</td>
+                <td className="detail">
+                  <div className="d">
+                    {roomName} · {formatThaiDate(booking.check_in)} – {formatThaiDate(booking.check_out)} ({booking.nights} คืน)
                   </div>
-                  {slipRef && (
-                    <div className="flex flex-col gap-1">
-                      <dt
-                        className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
-                        style={{ fontFamily: "var(--font-ui)" }}
-                      >
-                        เลขอ้างอิงสลิป
-                      </dt>
-                      <dd className="break-all font-mono text-xs text-[color:var(--color-ink)]/70">{slipRef}</dd>
-                    </div>
+                  {booking.extra_bed_amount > 0 && (
+                    <div className="d">รวมเตียงเสริม {formatTHB(booking.extra_bed_amount)}</div>
                   )}
-                  <div className="flex flex-col gap-1">
-                    <dt
-                      className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
-                      style={{ fontFamily: "var(--font-ui)" }}
-                    >
-                      วันที่ออกเอกสาร
-                    </dt>
-                    <dd className="font-medium text-[color:var(--color-forest-deep)]">{issueDate}</dd>
-                  </div>
-                </dl>
-                <div className="flex shrink-0 flex-col items-center gap-1.5">
-                  <div
-                    className="rounded-xl bg-white p-2 ring-1 ring-[color:var(--color-ink)]/10 [&>svg]:h-24 [&>svg]:w-24"
-                    dangerouslySetInnerHTML={{ __html: qrSvg }}
-                  />
-                  <span
-                    className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--color-ink)]/45"
-                    style={{ fontFamily: "var(--font-ui)" }}
-                  >
-                    สแกนดูเอกสาร
-                  </span>
-                </div>
-              </div>
+                  {isPaid && <div className="d">ชำระโดย: โอนผ่านธนาคาร</div>}
+                  {slipRef && <div className="d">เลขอ้างอิงสลิป: {slipRef}</div>}
+                </td>
+                <td className="right">{formatTHB(booking.total_amount)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="total-row">
+            <span className="tlabel">ยอดรวมทั้งหมด</span>
+            <span className="tval">{formatTHB(booking.total_amount)}</span>
+          </div>
+          <div className="baht-text">จำนวนเงินทั้งสิ้น ({bahtText(booking.total_amount)})</div>
+
+          <div className="pay">
+            {isPaid ? (
+              <span className="paid">
+                <svg
+                  aria-hidden
+                  viewBox="0 0 20 20"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M16.5 6.5 8.5 14.5 4.5 10.5" />
+                </svg>
+                ชำระเงินแล้ว
+              </span>
+            ) : (
+              <span />
             )}
-
-            {/* House rules / เงื่อนไขการเข้าพัก */}
-            <div className="border-t border-[color:var(--color-ink)]/10 px-7 py-6">
-              <h2
-                className="mb-4 text-[11px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
-                style={{ fontFamily: "var(--font-ui)" }}
-              >
-                เงื่อนไขการเข้าพัก
-              </h2>
-              <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-[color:var(--color-ink)]/70">
-                {siteConfig.policy.houseRules.th.map((rule) => (
-                  <li key={rule} className="flex gap-2.5">
-                    <svg
-                      aria-hidden
-                      viewBox="0 0 20 20"
-                      className="mt-1 h-3.5 w-3.5 shrink-0 text-[color:var(--color-warm-clay)]"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M16.5 6.5 8.5 14.5 4.5 10.5" />
-                    </svg>
-                    <span>{rule}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {booking.notes && (
-              <div className="border-t border-[color:var(--color-ink)]/10 px-7 py-5 text-sm text-[color:var(--color-ink)]/70">
-                <span className="text-[color:var(--color-ink)]/50">หมายเหตุ: </span>
-                {booking.notes}
-              </div>
-            )}
-
-            {booking.status === "payment_review" && (
-              <div className="border-t border-[color:var(--color-ink)]/10 bg-blue-50/50 px-7 py-5 text-sm text-blue-800">
-                เราได้รับสลิปของคุณแล้ว ทีมงานกำลังตรวจสอบการชำระเงิน
-                จะอัปเดตสถานะให้เร็วที่สุด
-              </div>
-            )}
-
-            {/* Footer — contact */}
-            <div className="border-t border-[color:var(--color-ink)]/10 bg-[color:var(--color-forest-deep)]/[0.03] px-7 py-5 text-center text-sm text-[color:var(--color-ink)]/65">
-              <p>
-                ติดต่อสอบถามเพิ่มเติม โทร{" "}
-                <span className="font-medium text-[color:var(--color-forest-deep)]">
-                  {siteConfig.contact.phone}
-                </span>
-              </p>
-              <p className="mt-1">Facebook : LandCamp Villa Khaoyai</p>
+            <div>
+              <div className="qr-box" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+              <div className="qr-cap">สแกนดูเอกสาร</div>
             </div>
           </div>
-        )}
+
+          {booking.notes && (
+            <div className="block" style={{ marginTop: 18, color: "#6b6862" }}>
+              <span style={{ fontWeight: 600 }}>หมายเหตุ: </span>
+              {booking.notes}
+            </div>
+          )}
+
+          <div className="rules">
+            <h2>เงื่อนไขการเข้าพัก</h2>
+            <ul>
+              {siteConfig.policy.houseRules.th.map((rule) => (
+                <li key={rule}>{rule}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="thanks">
+            <p>ขอบคุณที่ใช้บริการ</p>
+            <p>กรุณาเก็บเอกสารนี้ไว้เป็นหลักฐาน</p>
+            <p className="issued-by">เอกสารนี้ออกโดยระบบ LandCamp · {tax.receiptFooter || siteConfig.address.full.th}</p>
+          </div>
+        </div>
       </div>
     </main>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <dt
-        className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
-        style={{ fontFamily: "var(--font-ui)" }}
-      >
-        {label}
-      </dt>
-      <dd className="font-medium text-[color:var(--color-forest-deep)]">{value}</dd>
-    </div>
-  );
-}
-
-function PriceRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className="flex items-center justify-between py-0.5">
-      <span className="text-[color:var(--color-ink)]/60">{label}</span>
-      <span
-        className={
-          strong
-            ? "text-base font-semibold text-[color:var(--color-forest-deep)]"
-            : "font-medium text-[color:var(--color-forest-deep)]"
-        }
-      >
-        {value}
-      </span>
-    </div>
   );
 }
