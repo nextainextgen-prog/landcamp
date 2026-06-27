@@ -13,9 +13,6 @@ function fmtThai(s: string): string {
   const [y, m, d] = s.split("-").map(Number);
   return `${d} ${MONTHS_TH[m - 1]} ${y + 543}`;
 }
-function fmtThaiD(d: Date): string {
-  return `${d.getDate()} ${MONTHS_TH[d.getMonth()]} ${d.getFullYear() + 543}`;
-}
 
 type Preset = "week" | "month" | "quarter" | "custom";
 
@@ -102,13 +99,7 @@ export function DashboardToolbar({
           {open && (
             <>
               <button type="button" aria-label="ปิด" className="fixed inset-0 z-20 cursor-default" onClick={() => setOpen(false)} />
-              <div className="absolute left-0 top-full z-30 mt-2 rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-3 shadow-xl">
-                <div className="mb-2 px-1">
-                  <p className="text-xs font-semibold text-[color:var(--color-forest-deep)]">เลือกช่วงวันที่ต้องการดู</p>
-                  <p className="text-[11px] text-[color:var(--color-ink)]/55">
-                    {range.start ? fmtThaiD(range.start) : "เลือกวันเริ่ม"} – {range.end ? fmtThaiD(range.end) : "วันสิ้นสุด"}
-                  </p>
-                </div>
+              <div className="absolute left-0 top-full z-30 mt-2 w-[320px]">
                 <CalendarPicker
                   mode="range"
                   rangeValue={range}
@@ -116,6 +107,7 @@ export function DashboardToolbar({
                   onConfirm={apply}
                   onCancel={() => setOpen(false)}
                   locale="th"
+                  className="border border-[color:var(--color-forest-deep)]/10"
                 />
               </div>
             </>
