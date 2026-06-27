@@ -254,6 +254,8 @@ body {
 
 /* ── Booking / receipt document (.lcrcpt) — Sarabun, official-document layout ── */
 .lcrcpt.page{ max-width:760px; margin:0 auto; background:#fff; color:#1a1814; padding:48px 52px; box-shadow:0 12px 40px -18px rgba(0,0,0,.25); }
+/* Admin live-preview: shrink the full-size document to fit the editor column. */
+.receipt-preview{ zoom:.7; }
 .lcrcpt .head{ display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:28px; }
 .lcrcpt h1{ margin:0; font-size:30px; font-weight:700; letter-spacing:-.01em; }
 .lcrcpt .logo{ width:140px; height:auto; }

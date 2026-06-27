@@ -31,7 +31,7 @@ export const ADMIN_SEARCH_INDEX: SearchEntry[] = [
 
   // ── การเงิน ──
   { label: "ตั้งค่าการเงิน", keywords: ["payment", "finance", "การเงิน", "พร้อมเพย์", "promptpay", "qr", "มัดจำ", "บัญชีรับเงิน", "easyslip"], href: "/admin/payment-settings", section: "การเงิน" },
-  { label: "ภาษี & ใบเสร็จ", keywords: ["tax", "vat", "ภาษี", "ใบกำกับภาษี", "ใบเสร็จ", "invoice", "receipt", "เลขผู้เสียภาษี", "หัวบิล"], href: "/admin/settings/tax", section: "การเงิน" },
+  { label: "ใบเสร็จรับเงิน", keywords: ["receipt", "ใบเสร็จ", "ใบเสร็จรับเงิน", "ใบยืนยันการจอง", "เอกสาร", "tax", "เลขผู้เสียภาษี", "หัวบิล", "invoice"], href: "/admin/settings/tax", section: "การเงิน" },
   { label: "เป้าหมาย / KPI", keywords: ["goals", "kpi", "เป้า", "เป้าหมาย", "target", "อัตราเข้าพัก"], href: "/admin/settings/goals", section: "การเงิน" },
 
   // ── ผู้ใช้ & สิทธิ์ ──
