@@ -54,6 +54,13 @@ export async function GET(request: NextRequest) {
 
   const room = roomRow as unknown as Room & Record<string, unknown>;
 
+  // A room closed by an admin (is_available = false) is never bookable, even if
+  // a stale cached card slipped through to the modal. Report it as unavailable
+  // so the guest sees it before filling in the form.
+  if (room.is_available === false) {
+    return NextResponse.json({ available: false, reason: "unavailable" });
+  }
+
   const availability = await checkAvailability(admin, roomId, checkIn, checkOut);
   if (!availability.available) {
     return NextResponse.json({

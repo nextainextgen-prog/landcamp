@@ -115,7 +115,12 @@ export async function getPublicRooms(): Promise<Room[]> {
     if (error || !data || data.length === 0) return staticRooms;
 
     const bySlug = new Map(staticRooms.map((r) => [r.id, r]));
-    return (data as DbRoom[]).map((db) => mergeRoom(db, bySlug.get(db.slug)));
+    // Hide rooms an admin has closed (is_available = false) from the public
+    // listing. Filtering after the empty-check above keeps the static fallback
+    // tied to "DB unreachable/empty", not "every room happens to be closed".
+    return (data as DbRoom[])
+      .filter((db) => db.is_available)
+      .map((db) => mergeRoom(db, bySlug.get(db.slug)));
   } catch {
     return staticRooms;
   }
