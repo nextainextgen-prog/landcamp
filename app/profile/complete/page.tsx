@@ -41,7 +41,7 @@ function ProfileCompleteInner() {
   const firstName = (user?.displayName ?? "").trim().split(/\s+/)[0] ?? "";
 
   return (
-    <main className="relative flex min-h-[100svh] items-center justify-center overflow-hidden px-4 py-10 sm:px-6 sm:py-16">
+    <main className="relative flex min-h-[100svh] items-center justify-center overflow-hidden px-4 py-6 sm:px-6 sm:py-16">
       {/* Soft branded backdrop */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[color:var(--color-bone-soft)]/50" />
@@ -50,8 +50,8 @@ function ProfileCompleteInner() {
       </div>
 
       <div className="grid w-full max-w-4xl overflow-hidden rounded-[28px] border border-[color:var(--color-forest-deep)]/10 bg-[color:var(--color-bone)] shadow-[0_40px_100px_-55px_rgba(45,55,40,0.65)] md:grid-cols-2">
-        {/* ── Hero panel (image + identity) ── */}
-        <div className="relative min-h-[230px] overflow-hidden md:min-h-full">
+        {/* ── Hero / identity — slim strip on mobile, tall panel on desktop ── */}
+        <div className="relative overflow-hidden md:min-h-full">
           {/* eslint-disable-next-line @next/next/no-img-element -- decorative resort hero; static asset */}
           <img
             src={HERO_IMAGE}
@@ -63,23 +63,21 @@ function ProfileCompleteInner() {
             aria-hidden
             className="absolute inset-0 bg-gradient-to-t from-[color:var(--color-forest-deep)] via-[color:var(--color-forest-deep)]/55 to-[color:var(--color-forest-deep)]/25"
           />
-          <div className="relative flex h-full flex-col justify-between p-6 text-[color:var(--color-bone)] sm:p-7">
-            <div className="flex items-start justify-between gap-3">
-              <span
-                className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-bone)]/80"
-                style={{ fontFamily: "var(--font-ui)" }}
-              >
-                LANDCAMP · ลงทะเบียน
-              </span>
-            </div>
+          <div className="relative flex items-center gap-3.5 p-4 text-[color:var(--color-bone)] md:h-full md:flex-col md:items-start md:justify-between md:p-7">
+            <span
+              className="hidden text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-bone)]/80 md:block"
+              style={{ fontFamily: "var(--font-ui)" }}
+            >
+              LANDCAMP · ลงทะเบียน
+            </span>
 
-            <div className="flex items-center gap-3.5">
-              <span className="relative inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[color:var(--color-bone)]/15 ring-2 ring-[color:var(--color-bone)]/40">
+            <div className="flex items-center gap-3 md:gap-3.5">
+              <span className="relative inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[color:var(--color-bone)]/15 ring-2 ring-[color:var(--color-bone)]/40 md:h-16 md:w-16">
                 {user?.pictureUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- LINE avatar host isn't allowlisted for next/image; matches UserMenu
                   <img src={user.pictureUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden className="h-8 w-8 text-[color:var(--color-bone)]/85">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden className="h-7 w-7 text-[color:var(--color-bone)]/85 md:h-8 md:w-8">
                     <circle cx="12" cy="8" r="4" />
                     <path d="M4 20a8 8 0 0 1 16 0" strokeLinecap="round" />
                   </svg>
@@ -89,7 +87,7 @@ function ProfileCompleteInner() {
                 <p className="text-[12px] text-[color:var(--color-bone)]/70" style={{ fontFamily: "var(--font-ui)" }}>
                   สวัสดี
                 </p>
-                <p className="truncate font-display text-2xl leading-tight">
+                <p className="truncate font-display text-xl leading-tight md:text-2xl">
                   {firstName || "ยินดีต้อนรับ"}
                 </p>
               </div>
@@ -98,11 +96,11 @@ function ProfileCompleteInner() {
         </div>
 
         {/* ── Form panel ── */}
-        <div className="flex flex-col justify-center p-6 sm:p-8">
-          <h1 className="font-display text-[26px] leading-tight text-[color:var(--color-forest-deep)] sm:text-3xl">
+        <div className="flex flex-col justify-center p-5 sm:p-8">
+          <h1 className="font-display text-[22px] leading-tight text-[color:var(--color-forest-deep)] sm:text-3xl">
             อีกขั้นเดียวก่อนเริ่มจอง
           </h1>
-          <p className="mt-2 mb-6 text-sm leading-relaxed text-[color:var(--color-ink)]/60">
+          <p className="mt-1.5 mb-5 text-[13px] leading-relaxed text-[color:var(--color-ink)]/60 sm:text-sm">
             บอกชื่อและเบอร์โทรของคุณ เพื่อให้เราติดต่อและส่งใบยืนยันการจองให้คุณได้อย่างถูกต้อง
           </p>
 
