@@ -251,3 +251,20 @@ body {
   stroke-dashoffset: 24;
   animation: lcCheckDraw 280ms ease-out 120ms forwards;
 }
+
+/* Print: A4 documents (booking voucher / receipt) — keep colours, clean page box */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  /* keep brand/background colours when printing to PDF */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

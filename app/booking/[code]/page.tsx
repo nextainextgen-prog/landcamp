@@ -9,6 +9,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { BOOKING_STATUS_TH, formatTHB, formatThaiDate } from "@/lib/account/format";
 import { siteConfig } from "@/data/siteConfig";
 import type { BookingStatus } from "@/types";
+import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -117,22 +118,25 @@ export default async function BookingReceiptPage({
   }
 
   return (
-    <main className="min-h-screen bg-[color:var(--color-bone)] px-5 py-12 text-[color:var(--color-ink)]">
+    <main className="min-h-screen bg-[color:var(--color-bone)] px-5 py-12 text-[color:var(--color-ink)] print:bg-white print:p-0">
       <div className="mx-auto w-full max-w-xl">
-        <Link
-          href="/account/bookings"
-          className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.3em] text-[color:var(--color-ink)]/55 hover:text-[color:var(--color-forest-deep)]"
-          style={{ fontFamily: "var(--font-ui)" }}
-        >
-          <span aria-hidden>←</span> การจองของฉัน
-        </Link>
+        <div className="flex items-center justify-between gap-3 print:hidden">
+          <Link
+            href="/account/bookings"
+            className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.3em] text-[color:var(--color-ink)]/55 hover:text-[color:var(--color-forest-deep)]"
+            style={{ fontFamily: "var(--font-ui)" }}
+          >
+            <span aria-hidden>←</span> การจองของฉัน
+          </Link>
+          {booking && <PrintButton />}
+        </div>
 
         {!booking ? (
           <div className="mt-8 rounded-[20px] border border-dashed border-[color:var(--color-forest-deep)]/20 bg-white/60 p-10 text-center">
             <p className="text-base text-[color:var(--color-ink)]/65">ไม่พบใบการจองนี้</p>
           </div>
         ) : (
-          <div className="mt-6 overflow-hidden rounded-[22px] bg-white/80 ring-1 ring-[color:var(--color-forest-deep)]/10 shadow-[0_24px_60px_-30px_rgba(45,55,40,0.35)]">
+          <div className="mt-6 overflow-hidden rounded-[22px] bg-white/80 ring-1 ring-[color:var(--color-forest-deep)]/10 shadow-[0_24px_60px_-30px_rgba(45,55,40,0.35)] print:mt-0 print:rounded-none print:bg-white print:shadow-none">
             {/* Brand logo */}
             <div className="flex justify-center border-b border-[color:var(--color-ink)]/10 px-7 pt-7 pb-5">
               <Image
