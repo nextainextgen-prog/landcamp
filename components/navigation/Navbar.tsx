@@ -9,6 +9,7 @@ import { Wordmark } from "@/components/ui/Wordmark";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { scrollToSection } from "@/lib/scrollToSection";
 import { NavAuth } from "./NavAuth";
+import { MobileAuthButton } from "./MobileAuthButton";
 import { CUSTOMER_AUTH_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/cn";
 
@@ -121,6 +122,13 @@ export function Navbar() {
                 </span>
               </MagneticButton>
             </div>
+
+            {/* Sign-in — mobile only (left of hamburger) */}
+            {CUSTOMER_AUTH_ENABLED && (
+              <div className="md:hidden">
+                <MobileAuthButton />
+              </div>
+            )}
 
             {/* Hamburger — mobile */}
             <button

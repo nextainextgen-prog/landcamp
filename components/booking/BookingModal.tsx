@@ -89,7 +89,6 @@ export function BookingModal({
   const [roomId, setRoomId] = useState<string | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [profileComplete, setProfileComplete] = useState(false);
-  const [displayName, setDisplayName] = useState("");
   const [authReady, setAuthReady] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -133,11 +132,10 @@ export function BookingModal({
     let active = true;
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d: { user: { profileComplete?: boolean; displayName?: string | null } | null }) => {
+      .then((d: { user: { profileComplete?: boolean } | null }) => {
         if (!active) return;
         setLoggedIn(Boolean(d.user));
         setProfileComplete(Boolean(d.user?.profileComplete));
-        setDisplayName(d.user?.displayName ?? "");
         setAuthReady(true);
       })
       .catch(() => {
@@ -458,7 +456,6 @@ export function BookingModal({
                     })}
                   </p>
                   <CompleteProfileForm
-                    initialName={displayName}
                     submitLabel={t({ th: "บันทึกและจองต่อ", en: "Save & continue" })}
                     onDone={() => {
                       setProfileComplete(true);

@@ -18,13 +18,27 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
+ * Resolve the public origin from the real request host (not the server's bound
+ * host) so the callback's redirect_uri + post-login redirect match where the
+ * client actually is — required for LAN/phone testing and reverse proxies.
+ */
+function requestOrigin(request: NextRequest): string {
+  const h = request.headers;
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? request.nextUrl.host;
+  const isLocal =
+    host.startsWith("localhost") || host.startsWith("127.") || /^\d+\.\d+\.\d+\.\d+/.test(host);
+  const proto = h.get("x-forwarded-proto") ?? (isLocal ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+/**
  * LINE Login callback. Verifies the CSRF state, exchanges the code for a
  * profile, upserts the customer (keyed by line_user_id), sets our session
  * cookie, and returns the customer to where they started. Any failure quietly
  * sends them home with ?login=error — never a scary error page.
  */
 export async function GET(request: NextRequest) {
-  const origin = request.nextUrl.origin;
+  const origin = requestOrigin(request);
   const params = request.nextUrl.searchParams;
   const code = params.get("code");
   const state = params.get("state");

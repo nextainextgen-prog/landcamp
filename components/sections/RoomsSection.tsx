@@ -50,11 +50,6 @@ export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
   }, [rooms]);
 
   function openBooking(room: Room) {
-    // Online booking is not live yet — route guests to LINE instead.
-    if (!PUBLIC_BOOKING_ENABLED) {
-      window.open(siteConfig.contact.lineUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
     setBookingIntent(null);
     setBookingRoom(room);
   }
@@ -106,8 +101,8 @@ export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
           </h2>
           <p className="max-w-xl text-sm sm:text-base leading-relaxed text-[color:var(--color-ink)]/70">
             {t({
-              th: "6 หลังให้เลือก — ดูภาพห้องเลื่อนอัตโนมัติ กดเข้าไปดูรายละเอียดทั้งหมด หรือจองทันทีผ่าน Line",
-              en: "Six villas to choose from — photos auto-slide on each card, tap any to see the full details or book instantly via Line.",
+              th: "6 หลังให้เลือก — ดูภาพห้องเลื่อนอัตโนมัติ กดเข้าไปดูรายละเอียดทั้งหมด หรือจองออนไลน์ได้ทันที",
+              en: "Six villas to choose from — photos auto-slide on each card, tap any to see the full details or book online instantly.",
             })}
           </p>
         </motion.div>
@@ -192,9 +187,7 @@ export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-5 py-3.5 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300"
                     style={{ fontFamily: "var(--font-ui)" }}
                   >
-                    {PUBLIC_BOOKING_ENABLED
-                      ? t({ th: "จองออนไลน์", en: "Book Now" })
-                      : t({ th: "จองผ่าน LINE", en: "Book via LINE" })}
+                    {t({ th: "จองออนไลน์", en: "Book Now" })}
                     <span aria-hidden>→</span>
                   </button>
                 </div>

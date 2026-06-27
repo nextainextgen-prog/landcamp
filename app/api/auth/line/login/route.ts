@@ -13,11 +13,26 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
+ * Resolve the public origin from the real request host. `request.nextUrl.origin`
+ * reports the server's bound host (e.g. localhost) rather than the Host the
+ * client actually hit — which breaks LAN/phone testing and any reverse proxy.
+ * Read x-forwarded-host / host instead so the LINE redirect_uri matches.
+ */
+function requestOrigin(request: NextRequest): string {
+  const h = request.headers;
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? request.nextUrl.host;
+  const isLocal =
+    host.startsWith("localhost") || host.startsWith("127.") || /^\d+\.\d+\.\d+\.\d+/.test(host);
+  const proto = h.get("x-forwarded-proto") ?? (isLocal ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+/**
  * Starts LINE Login: sets a CSRF `state` cookie + remembers where to return,
  * then redirects to LINE's authorize page (with auto add-friend prompt).
  */
 export async function GET(request: NextRequest) {
-  const origin = request.nextUrl.origin;
+  const origin = requestOrigin(request);
 
   // Server-side gate: while customer sign-in is soft-launched OFF, refuse to
   // start the OAuth flow even if someone hits this URL directly (the navbar
