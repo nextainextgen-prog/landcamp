@@ -7,6 +7,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 type Announcement = {
   enabled: boolean;
+  image?: string;
   title?: string;
   message?: string;
   buttonText?: string;
@@ -99,13 +100,13 @@ export function SiteAnnouncement() {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 20, opacity: 0 }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="relative w-full max-w-md rounded-[20px] bg-[color:var(--color-bone)] p-8 text-[color:var(--color-ink)] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.5)]"
+            className="relative w-full max-w-md overflow-hidden rounded-[20px] bg-[color:var(--color-bone)] text-[color:var(--color-ink)] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.5)]"
           >
             <button
               type="button"
               aria-label="ปิด"
               onClick={dismiss}
-              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--color-bone)]/95 transition-colors hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)]"
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--color-bone)]/95 transition-colors hover:bg-[color:var(--color-warm-clay)] hover:text-[color:var(--color-bone)]"
             >
               <span aria-hidden className="relative block h-5 w-5">
                 <span className="absolute inset-0 m-auto h-px w-4 rotate-45 bg-current" />
@@ -113,31 +114,43 @@ export function SiteAnnouncement() {
               </span>
             </button>
 
-            <p
-              className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
-              style={{ fontFamily: "var(--font-ui)" }}
-            >
-              ประกาศ
-            </p>
-            {data.title && (
-              <h2 className="mt-2 font-display text-3xl leading-tight text-[color:var(--color-forest-deep)]">
-                {data.title}
-              </h2>
+            {data.image && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={data.image}
+                alt={data.title ?? "ประกาศ"}
+                className="w-full object-cover"
+                style={{ aspectRatio: "16/9" }}
+              />
             )}
-            {data.message && (
-              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-[color:var(--color-ink)]/75">
-                {data.message}
-              </p>
-            )}
-            {hasButton && (
-              <a
-                href={data.buttonLink}
-                onClick={dismiss}
-                className="mt-6 inline-flex items-center justify-center rounded-full bg-[color:var(--color-warm-clay)] px-6 py-2.5 text-sm font-semibold text-[color:var(--color-bone)] transition-colors hover:bg-[color:var(--color-forest-deep)]"
+
+            <div className={`px-8 pb-8 ${data.image ? "pt-6" : "pt-8"}`}>
+              <p
+                className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)]"
+                style={{ fontFamily: "var(--font-ui)" }}
               >
-                {data.buttonText}
-              </a>
-            )}
+                ประกาศ
+              </p>
+              {data.title && (
+                <h2 className="mt-2 font-display text-3xl leading-tight text-[color:var(--color-forest-deep)]">
+                  {data.title}
+                </h2>
+              )}
+              {data.message && (
+                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-[color:var(--color-ink)]/75">
+                  {data.message}
+                </p>
+              )}
+              {hasButton && (
+                <a
+                  href={data.buttonLink}
+                  onClick={dismiss}
+                  className="mt-6 inline-flex items-center justify-center rounded-full bg-[color:var(--color-warm-clay)] px-6 py-2.5 text-sm font-semibold text-[color:var(--color-bone)] transition-colors hover:bg-[color:var(--color-forest-deep)]"
+                >
+                  {data.buttonText}
+                </a>
+              )}
+            </div>
           </motion.div>
         </motion.div>
       )}

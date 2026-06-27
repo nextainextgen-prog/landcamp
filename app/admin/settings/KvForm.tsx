@@ -8,9 +8,13 @@ import { useSettingsToast } from "./useSettingsToast";
 export type KvField = {
   name: string;
   label: string;
-  type: "text" | "textarea" | "number" | "checkbox";
+  type: "text" | "textarea" | "number" | "checkbox" | "switch" | "image";
   hint?: string;
   placeholder?: string;
+  /** image type: POST endpoint that accepts `file` and returns `{ url }`. */
+  upload?: string;
+  /** image type: preview aspect-ratio, e.g. "16/9" (default). */
+  aspect?: string;
 };
 
 const inputCls =
@@ -35,6 +39,7 @@ export function KvForm({
   const [saved, setSaved] = useState<Record<string, unknown>>(defaults);
   const [unavailable, setUnavailable] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<string | null>(null);
   const { show, toastNode } = useSettingsToast();
 
   const dirty = useMemo(() => JSON.stringify(value) !== JSON.stringify(saved), [value, saved]);
@@ -57,6 +62,26 @@ export function KvForm({
 
   function set(name: string, v: unknown) {
     setValue((p) => ({ ...p, [name]: v }));
+  }
+
+  async function uploadImage(f: KvField, file: File) {
+    if (!f.upload) return;
+    setUploading(f.name);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(f.upload, { method: "POST", body: fd });
+      const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        show("err", data.error ?? "อัปโหลดรูปไม่สำเร็จ");
+        return;
+      }
+      set(f.name, data.url);
+    } catch {
+      show("err", "อัปโหลดรูปไม่สำเร็จ");
+    } finally {
+      setUploading(null);
+    }
   }
 
   function reset() {
@@ -108,6 +133,79 @@ export function KvForm({
                 />
                 <span className="text-sm text-[color:var(--color-ink)]">{f.label}</span>
               </label>
+            );
+          }
+          if (f.type === "switch") {
+            const on = Boolean(value[f.name]);
+            return (
+              <div key={f.name} className="flex items-center justify-between gap-4">
+                <span className="text-sm text-[color:var(--color-ink)]">{f.label}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
+                  onClick={() => set(f.name, !on)}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    on
+                      ? "bg-[color:var(--color-warm-clay)]"
+                      : "bg-[color:var(--color-forest-deep)]/20"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                      on ? "left-[22px]" : "left-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            );
+          }
+          if (f.type === "image") {
+            const url = String(value[f.name] ?? "");
+            const busy = uploading === f.name;
+            return (
+              <div key={f.name} className="grid gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/70">
+                  {f.label}
+                </span>
+                {url ? (
+                  <div className="relative overflow-hidden rounded-lg border border-[color:var(--color-forest-deep)]/15">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt="ตัวอย่างรูปประกาศ"
+                      className="w-full object-cover"
+                      style={{ aspectRatio: f.aspect ?? "16/9" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => set(f.name, "")}
+                      className="absolute right-2 top-2 rounded-md bg-black/55 px-2.5 py-1 text-xs font-medium text-white hover:bg-black/75"
+                    >
+                      ลบรูป
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-[color:var(--color-forest-deep)]/25 bg-[color:var(--color-bone-soft)]/30 px-4 py-8 text-sm text-[color:var(--color-ink)]/60 transition-colors hover:border-[color:var(--color-warm-clay)]"
+                    style={{ aspectRatio: f.aspect ?? "16/9" }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={busy}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadImage(f, file);
+                        e.target.value = "";
+                      }}
+                    />
+                    {busy ? "กำลังอัปโหลด…" : "คลิกเพื่ออัปโหลดรูป"}
+                  </label>
+                )}
+                {f.hint && <span className="text-[11px] text-[color:var(--color-ink)]/40">{f.hint}</span>}
+              </div>
             );
           }
           return (

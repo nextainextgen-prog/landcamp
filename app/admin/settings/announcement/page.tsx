@@ -7,16 +7,25 @@ import { KvForm, type KvField } from "../KvForm";
 export const dynamic = "force-dynamic";
 
 const FIELDS: KvField[] = [
-  { name: "enabled", label: "เปิดใช้งานป๊อปอัปประกาศบนหน้าเว็บ", type: "checkbox" },
+  { name: "enabled", label: "เปิดใช้งานป๊อปอัปประกาศบนหน้าเว็บ", type: "switch" },
+  {
+    name: "image",
+    label: "รูปประกาศ (ถ้ามี)",
+    type: "image",
+    aspect: "16/9",
+    upload: "/api/admin/announcement/media",
+    hint: "ขนาดมาตรฐาน 1200 × 675 px (อัตราส่วน 16:9) · ไฟล์ JPG/PNG/WebP สูงสุด 8MB · รูปจะถูกครอบให้พอดีกรอบอัตโนมัติ",
+  },
   { name: "title", label: "หัวข้อประกาศ", type: "text", placeholder: "เช่น โปรโมชันเดือนนี้" },
   { name: "message", label: "ข้อความประกาศ", type: "textarea", placeholder: "รายละเอียดที่จะแสดงในป๊อปอัป (ขึ้นบรรทัดใหม่ได้)" },
   { name: "buttonText", label: "ข้อความบนปุ่ม (เว้นว่าง = ไม่มีปุ่ม)", type: "text", placeholder: "เช่น ดูรายละเอียด" },
   { name: "buttonLink", label: "ลิงก์เมื่อกดปุ่ม", type: "text", placeholder: "เช่น /#rooms หรือ https://line.me/..." },
-  { name: "showOnce", label: "แสดงครั้งเดียวต่อผู้เข้าชม (จะเด้งใหม่เมื่อแก้ข้อความประกาศ)", type: "checkbox" },
+  { name: "showOnce", label: "แสดงครั้งเดียวต่อผู้เข้าชม (จะเด้งใหม่เมื่อแก้ประกาศ)", type: "switch" },
 ];
 
 const DEFAULTS = {
   enabled: false,
+  image: "",
   title: "",
   message: "",
   buttonText: "",

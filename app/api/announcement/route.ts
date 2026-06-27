@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 type Announcement = {
   enabled?: boolean;
+  image?: string;
   title?: string;
   message?: string;
   buttonText?: string;
@@ -24,9 +25,10 @@ export async function GET() {
       .maybeSingle<{ value: Announcement }>();
 
     const a = data?.value ?? {};
+    const image = (a.image ?? "").trim();
     const title = (a.title ?? "").trim();
     const message = (a.message ?? "").trim();
-    if (!a.enabled || (!title && !message)) {
+    if (!a.enabled || (!title && !message && !image)) {
       return NextResponse.json({ enabled: false });
     }
 
@@ -34,12 +36,13 @@ export async function GET() {
     const buttonLink = (a.buttonLink ?? "").trim();
 
     // Content version → dismissing is remembered per content; editing re-shows it.
-    const raw = `${title}|${message}|${buttonText}|${buttonLink}`;
+    const raw = `${image}|${title}|${message}|${buttonText}|${buttonLink}`;
     let hash = 0;
     for (let i = 0; i < raw.length; i++) hash = (hash * 31 + raw.charCodeAt(i)) | 0;
 
     return NextResponse.json({
       enabled: true,
+      image,
       title,
       message,
       buttonText: buttonLink ? buttonText : "",
