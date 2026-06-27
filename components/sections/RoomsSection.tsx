@@ -187,7 +187,7 @@ export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-5 py-3.5 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300"
                     style={{ fontFamily: "var(--font-ui)" }}
                   >
-                    {t({ th: "จองออนไลน์", en: "Book Now" })}
+                    {t({ th: "จอง", en: "Book Now" })}
                     <span aria-hidden>→</span>
                   </button>
                 </div>
