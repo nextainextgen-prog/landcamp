@@ -68,26 +68,59 @@ async function loadCardData(bookingId: string) {
   return { booking, lineUserId: customer?.line_user_id ?? null, vars };
 }
 
-async function sendCard(bookingId: string, key: CardKey): Promise<boolean> {
-  const data = await loadCardData(bookingId);
-  if (!data || !data.lineUserId) return false;
-  const config = await getCardConfig(key);
-  if (!config.enabled) return false;
-  const flex = buildCardFlex(config, data.vars);
-  return pushLineMessages(data.lineUserId, [flex]);
+type CardData = NonNullable<Awaited<ReturnType<typeof loadCardData>>>;
+
+/**
+ * Records a card-send attempt in the `notifications` log so admins get a
+ * per-customer history (ส​่งสำเร็จ / ส่งไม่สำเร็จ / ไม่ได้ส่ง). Never throws —
+ * logging must not break the send.
+ */
+async function logCardSend(
+  bookingId: string,
+  data: CardData,
+  key: CardKey,
+  ok: boolean,
+): Promise<void> {
+  try {
+    const admin = createSupabaseAdminClient();
+    const status = ok ? "sent" : data.lineUserId ? "failed" : "skipped";
+    await admin.from("notifications").insert({
+      kind: key,
+      status,
+      sent_at: ok ? new Date().toISOString() : null,
+      payload: {
+        channel: "line",
+        customer_id: data.booking.customer_id,
+        booking_id: bookingId,
+        booking_code: data.booking.booking_code,
+        line_user_id: data.lineUserId,
+        ok,
+      },
+    });
+  } catch {
+    // ignore — history logging is best-effort
+  }
 }
 
-/** Fired when an admin confirms a booking. */
-export async function sendBookingConfirmation(bookingId: string): Promise<void> {
+/** Sends one card type to the customer (if LINE-linked + enabled) and logs it. */
+async function sendCardFor(bookingId: string, data: CardData, key: CardKey): Promise<boolean> {
+  let ok = false;
+  if (data.lineUserId) {
+    const config = await getCardConfig(key);
+    if (config.enabled) {
+      ok = await pushLineMessages(data.lineUserId, [buildCardFlex(config, data.vars)]);
+    }
+  }
+  await logCardSend(bookingId, data, key, ok);
+  return ok;
+}
+
+/** Fired when an admin confirms a booking (and by the manual resend buttons). */
+export async function sendBookingConfirmation(bookingId: string): Promise<boolean> {
   try {
     const data = await loadCardData(bookingId);
-    if (!data) return;
-    if (data.lineUserId) {
-      const config = await getCardConfig("card_confirm");
-      if (config.enabled) {
-        await pushLineMessages(data.lineUserId, [buildCardFlex(config, data.vars)]);
-      }
-    }
+    if (!data) return false;
+    const ok = await sendCardFor(bookingId, data, "card_confirm");
     // Team group alert (no-op until a group id is configured).
     await pushToTeamGroup([
       {
@@ -95,15 +128,19 @@ export async function sendBookingConfirmation(bookingId: string): Promise<void> 
         text: `🆕 ยืนยันการจอง ${data.vars.booking_code}\n${data.vars.name} · ${data.vars.room}\n${data.vars.check_in} – ${data.vars.check_out} · ${data.vars.total} บาท`,
       },
     ]);
+    return ok;
   } catch {
     // notifications must never break the booking flow
+    return false;
   }
 }
 
-/** Fired by the reminder cron, a few days before check-in. */
+/** Fired by the reminder cron, a day before check-in. */
 export async function sendBookingReminder(bookingId: string): Promise<boolean> {
   try {
-    return await sendCard(bookingId, "card_reminder");
+    const data = await loadCardData(bookingId);
+    if (!data) return false;
+    return await sendCardFor(bookingId, data, "card_reminder");
   } catch {
     return false;
   }

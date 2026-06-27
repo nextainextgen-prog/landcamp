@@ -7,6 +7,7 @@ import type { CustomerMetrics } from "@/lib/customers/metrics";
 import type { BookingStatus } from "@/types";
 import { CustomerTimeline, type TimelineItem } from "./CustomerTimeline";
 import { CustomerAnalytics } from "./CustomerAnalytics";
+import { CustomerNotifications, type NotifyLogItem } from "./CustomerNotifications";
 import {
   VipTagsPanel,
   TaxPanel,
@@ -134,14 +135,16 @@ const I = {
   Piggy: () => svg(<><path d="M19 9a7 7 0 0 0-13 2 4 4 0 0 0 1 7v2h2v-1.5a8 8 0 0 0 4 0V20h2v-2a7 7 0 0 0 2-5" /><path d="M19 9l2-1M9 8h3" /></>),
   Clock: () => svg(<><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>),
   Download: () => svg(<path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />),
+  Bell: () => svg(<><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></>),
 };
 
-type TabKey = "overview" | "bookings" | "payments" | "files" | "timeline" | "notes" | "communications" | "analytics";
+type TabKey = "overview" | "bookings" | "payments" | "files" | "notify" | "timeline" | "notes" | "communications" | "analytics";
 const TABS: { key: TabKey; label: string; icon: ReactNode }[] = [
   { key: "overview", label: "ภาพรวม", icon: <I.Grid /> },
   { key: "bookings", label: "การจอง", icon: <I.Calendar /> },
   { key: "payments", label: "การชำระเงิน", icon: <I.Card /> },
   { key: "files", label: "ไฟล์", icon: <I.Files /> },
+  { key: "notify", label: "แจ้งเตือน LINE", icon: <I.Bell /> },
   { key: "timeline", label: "ไทม์ไลน์", icon: <I.Activity /> },
   { key: "notes", label: "โน้ต", icon: <I.Note /> },
   { key: "communications", label: "การติดต่อ", icon: <I.Chat /> },
@@ -158,6 +161,8 @@ export function CustomerProfile({
   tax,
   timeline,
   totalSpent,
+  lineLinked,
+  notifyLog,
 }: {
   customer: ProfileCustomer;
   metrics: CustomerMetrics;
@@ -168,6 +173,8 @@ export function CustomerProfile({
   tax: CrmTax;
   timeline: TimelineItem[];
   totalSpent: number;
+  lineLinked: boolean;
+  notifyLog: NotifyLogItem[];
 }) {
   const [tab, setTab] = useState<TabKey>("overview");
 
@@ -412,6 +419,20 @@ export function CustomerProfile({
         <SectionCard title="ไทม์ไลน์กิจกรรม" noPad>
           {timeline.length === 0 ? <div className="p-5"><Empty>ยังไม่มีกิจกรรม</Empty></div> : <CustomerTimeline items={timeline} />}
         </SectionCard>
+      )}
+
+      {tab === "notify" && (
+        <CustomerNotifications
+          customerId={customer.id}
+          lineLinked={lineLinked}
+          initialLog={notifyLog}
+          bookings={bookings.map((b) => ({
+            id: b.id,
+            code: b.code,
+            roomName: b.roomName,
+            status: b.status,
+          }))}
+        />
       )}
 
       {tab === "notes" && <NotesPanel customerId={customer.id} initialNotes={notes} />}

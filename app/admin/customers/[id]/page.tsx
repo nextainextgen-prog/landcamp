@@ -11,6 +11,7 @@ import {
   type ProfileBooking,
   type ProfilePayment,
 } from "./CustomerProfile";
+import type { NotifyLogItem } from "./CustomerNotifications";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function CustomerDetailPage({ params }: Ctx) {
   const { data: customer } = await admin
     .from("customers")
     .select(
-      "id, full_name, email, phone, avatar_url, is_vip, tags, source, auth_provider, created_at, tax_id, tax_name, tax_address, tax_branch, is_vat",
+      "id, full_name, email, phone, avatar_url, is_vip, tags, source, auth_provider, line_user_id, created_at, tax_id, tax_name, tax_address, tax_branch, is_vat",
     )
     .eq("id", id)
     .maybeSingle();
@@ -155,6 +156,25 @@ export default async function CustomerDetailPage({ params }: Ctx) {
     })),
   ].sort((a, b) => (a.at < b.at ? 1 : -1));
 
+  // ── LINE notification send history (kind = card_confirm / card_reminder) ──
+  const { data: notifyData } = await admin
+    .from("notifications")
+    .select("id, kind, status, payload, created_at")
+    .eq("payload->>customer_id", id)
+    .in("kind", ["card_confirm", "card_reminder"])
+    .order("created_at", { ascending: false })
+    .limit(50);
+  const notifyLog: NotifyLogItem[] = (notifyData ?? []).map((n) => {
+    const payload = (n.payload ?? {}) as Record<string, unknown>;
+    return {
+      id: n.id as string,
+      kind: n.kind as string,
+      status: (n.status as string) ?? "skipped",
+      bookingCode: (payload.booking_code as string) ?? null,
+      at: n.created_at as string,
+    };
+  });
+
   const tax: CrmTax = {
     taxId: (customer.tax_id as string) ?? "",
     taxName: (customer.tax_name as string) ?? "",
@@ -185,6 +205,8 @@ export default async function CustomerDetailPage({ params }: Ctx) {
       tax={tax}
       timeline={timeline}
       totalSpent={metrics.totalSpent}
+      lineLinked={Boolean(customer.line_user_id)}
+      notifyLog={notifyLog}
     />
   );
 }
