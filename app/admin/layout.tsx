@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminLogin } from "@/components/admin/AdminLogin";
+import { AIChatWidget } from "@/components/admin/AIChatWidget";
 import { getAdminSession } from "@/lib/admin/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -53,6 +54,7 @@ export default async function AdminLayout({
       >
         {children}
       </AdminShell>
+      <AIChatWidget />
     </div>
   );
 }
