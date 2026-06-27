@@ -59,7 +59,10 @@ export default async function BookingReceiptPage({
   const docTitle = docKind === "receipt" ? "ใบเสร็จรับเงิน" : "ใบยืนยันการจอง";
 
   const session = await getCustomerSession();
-  if (!session) redirect("/");
+  // No session (e.g. opened fresh from the LINE card's "ดูใบจอง" button in the
+  // in-app browser): kick off LINE login and return here afterwards, so the
+  // customer lands straight on their own booking instead of the homepage.
+  if (!session) redirect(`/api/auth/line/login?next=/booking/${encodeURIComponent(code)}`);
 
   const admin = createSupabaseAdminClient();
   const { data: row } = await admin
