@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Panel } from "@/components/admin/ui";
+import { useSettingsToast } from "./useSettingsToast";
 
 export type KvField = {
   name: string;
@@ -30,9 +31,13 @@ export function KvForm({
   note?: string;
 }) {
   const [value, setValue] = useState<Record<string, unknown>>(defaults);
+  // Last value loaded from / saved to the server — the baseline for "คืนค่า".
+  const [saved, setSaved] = useState<Record<string, unknown>>(defaults);
   const [unavailable, setUnavailable] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const { show, toastNode } = useSettingsToast();
+
+  const dirty = useMemo(() => JSON.stringify(value) !== JSON.stringify(saved), [value, saved]);
 
   useEffect(() => {
     fetch(`/api/admin/settings/kv/${settingKey}`)
@@ -42,7 +47,9 @@ export function KvForm({
           setUnavailable(true);
           return;
         }
-        setValue({ ...defaults, ...(data.value ?? {}) });
+        const next = { ...defaults, ...(data.value ?? {}) };
+        setValue(next);
+        setSaved(next);
       })
       .catch(() => setUnavailable(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,12 +57,14 @@ export function KvForm({
 
   function set(name: string, v: unknown) {
     setValue((p) => ({ ...p, [name]: v }));
-    setMsg(null);
+  }
+
+  function reset() {
+    setValue(saved);
   }
 
   async function save() {
     setSaving(true);
-    setMsg(null);
     const res = await fetch(`/api/admin/settings/kv/${settingKey}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -63,11 +72,12 @@ export function KvForm({
     });
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      setMsg({ kind: "err", text: data.error ?? "บันทึกไม่สำเร็จ" });
+      show("err", data.error ?? "บันทึกไม่สำเร็จ");
       setSaving(false);
       return;
     }
-    setMsg({ kind: "ok", text: "บันทึกแล้ว" });
+    setSaved(value);
+    show("ok", "บันทึกแล้ว");
     setSaving(false);
   }
 
@@ -127,18 +137,27 @@ export function KvForm({
           );
         })}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 border-t border-[color:var(--color-forest-deep)]/8 pt-4">
           <button
             type="button"
             onClick={save}
-            disabled={saving}
+            disabled={saving || !dirty}
             className="rounded-lg bg-[color:var(--color-warm-clay)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[color:var(--color-forest-deep)] disabled:opacity-50"
           >
             {saving ? "กำลังบันทึก…" : "บันทึก"}
           </button>
-          {msg && <span className={msg.kind === "ok" ? "text-sm text-emerald-600" : "text-sm text-red-600"}>{msg.text}</span>}
+          <button
+            type="button"
+            onClick={reset}
+            disabled={saving || !dirty}
+            className="rounded-lg border border-[color:var(--color-forest-deep)]/15 px-4 py-2 text-sm font-medium text-[color:var(--color-ink)]/70 transition-colors hover:bg-[color:var(--color-bone-soft)]/60 disabled:opacity-40"
+          >
+            คืนค่า
+          </button>
+          {dirty && <span className="text-xs text-[color:var(--color-ink)]/40">มีการแก้ไขที่ยังไม่บันทึก</span>}
         </div>
       </Panel>
+      {toastNode}
     </div>
   );
 }
