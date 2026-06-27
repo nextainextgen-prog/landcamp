@@ -121,13 +121,8 @@ export async function sendBookingConfirmation(bookingId: string): Promise<boolea
     const data = await loadCardData(bookingId);
     if (!data) return false;
     const ok = await sendCardFor(bookingId, data, "card_confirm");
-    // Team group alert (no-op until a group id is configured).
-    await pushToTeamGroup([
-      {
-        type: "text",
-        text: `🆕 ยืนยันการจอง ${data.vars.booking_code}\n${data.vars.name} · ${data.vars.room}\n${data.vars.check_in} – ${data.vars.check_out} · ${data.vars.total} บาท`,
-      },
-    ]);
+    // Detailed team-group alert (no-op until a group id is configured).
+    await notifyTeamConfirmed(bookingId);
     return ok;
   } catch {
     // notifications must never break the booking flow
@@ -196,6 +191,7 @@ const SOURCE_TH: Record<string, string> = {
 const SLIP_VERDICT_TH: Record<string, string> = {
   matched: "✅ สลิปถูกต้อง",
   amount_mismatch: "⚠️ ยอดไม่ตรง",
+  account_mismatch: "⚠️ บัญชีปลายทางไม่ตรง",
   duplicate: "⚠️ สลิปซ้ำ",
   unreadable: "❓ อ่านสลิปไม่ออก",
   error: "❓ ตรวจสลิปไม่สำเร็จ",
@@ -203,6 +199,13 @@ const SLIP_VERDICT_TH: Record<string, string> = {
 const thb = (n: number) => n.toLocaleString("en-US");
 const guestText = (a: number, c: number) => `${a} ผู้ใหญ่${c ? ` · ${c} เด็ก` : ""}`;
 const nameLine = (name: string, phone: string | null) => `${name}${phone ? ` · ${phone}` : ""}`;
+function nightsBetween(checkIn: string, checkOut: string): number {
+  const ms = new Date(`${checkOut}T00:00:00`).getTime() - new Date(`${checkIn}T00:00:00`).getTime();
+  const n = Math.round(ms / 86_400_000);
+  return n > 0 ? n : 1;
+}
+/** Deep link to open this booking directly in the admin backend. */
+const adminBookingLink = (code: string) => `${siteConfig.seo.siteUrl}/admin/bookings?b=${code}`;
 
 /** Fired when a customer creates an online booking (status pending_payment). */
 export async function notifyTeamNewBooking(bookingId: string): Promise<void> {
@@ -215,9 +218,12 @@ export async function notifyTeamNewBooking(bookingId: string): Promise<void> {
       {
         type: "text",
         text:
-          `📥 มีจองใหม่ · รอชำระเงิน\n${b.booking_code} · ${room}\n${nameLine(name, phone)}\n` +
-          `เข้าพัก ${thaiDate(b.check_in)} – ${thaiDate(b.check_out)} · ${guestText(b.adults, b.children)}\n` +
-          `ยอด ${thb(b.total_amount)} บาท · ช่องทาง: ${SOURCE_TH[b.source ?? "online"] ?? "จองออนไลน์"}`,
+          `📥 มีจองใหม่ · รอชำระเงิน\n${b.booking_code} · ${room}\n` +
+          `👤 ${nameLine(name, phone)}\n` +
+          `📅 ${thaiDate(b.check_in)} – ${thaiDate(b.check_out)} (${nightsBetween(b.check_in, b.check_out)} คืน)\n` +
+          `🛏️ ${guestText(b.adults, b.children)}\n` +
+          `💰 ${thb(b.total_amount)} บาท · ช่องทาง: ${SOURCE_TH[b.source ?? "online"] ?? "จองออนไลน์"}\n` +
+          `👉 เปิดหลังบ้าน: ${adminBookingLink(b.booking_code)}`,
       },
     ]);
   } catch {
@@ -236,9 +242,37 @@ export async function notifyTeamSlipPending(bookingId: string, verifyStatus: str
       {
         type: "text",
         text:
-          `🧾 ลูกค้าแนบสลิปแล้ว · รอยืนยัน\n${b.booking_code} · ${room}\n${nameLine(name, phone)}\n` +
-          `ยอด ${thb(b.total_amount)} บาท\nผลตรวจสลิป: ${SLIP_VERDICT_TH[verifyStatus] ?? "—"}\n` +
-          `→ เข้าตรวจ/ยืนยันที่หลังบ้าน`,
+          `🧾 ลูกค้าแนบสลิปแล้ว · รอยืนยัน\n${b.booking_code} · ${room}\n` +
+          `👤 ${nameLine(name, phone)}\n` +
+          `📅 ${thaiDate(b.check_in)} – ${thaiDate(b.check_out)} · ${guestText(b.adults, b.children)}\n` +
+          `💰 ${thb(b.total_amount)} บาท\n` +
+          `ผลตรวจสลิป: ${SLIP_VERDICT_TH[verifyStatus] ?? "—"}\n` +
+          `👉 เปิดหลังบ้าน: ${adminBookingLink(b.booking_code)}`,
+      },
+    ]);
+  } catch {
+    // best-effort
+  }
+}
+
+/** Fired when a booking is confirmed (auto-verify or admin) — full detail + link. */
+export async function notifyTeamConfirmed(bookingId: string): Promise<void> {
+  try {
+    const admin = createSupabaseAdminClient();
+    const info = await loadTeamBooking(admin, bookingId);
+    if (!info) return;
+    const { b, name, phone, room } = info;
+    await pushToTeamGroup([
+      {
+        type: "text",
+        text:
+          `✅ ยืนยันการจองแล้ว\n${b.booking_code} · ${room}\n` +
+          `👤 ${nameLine(name, phone)}\n` +
+          `📅 ${thaiDate(b.check_in)} – ${thaiDate(b.check_out)} (${nightsBetween(b.check_in, b.check_out)} คืน)\n` +
+          `🛏️ ${guestText(b.adults, b.children)}\n` +
+          `💰 ${thb(b.total_amount)} บาท · ชำระแล้ว\n` +
+          `📲 ช่องทาง: ${SOURCE_TH[b.source ?? "online"] ?? "จองออนไลน์"}\n` +
+          `👉 เปิดหลังบ้าน: ${adminBookingLink(b.booking_code)}`,
       },
     ]);
   } catch {

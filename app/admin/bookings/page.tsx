@@ -13,8 +13,13 @@ function firstImage(images: unknown): string | null {
   return first ? (first as { src: string }).src : null;
 }
 
-export default async function AdminBookingsPage() {
+export default async function AdminBookingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ b?: string }>;
+}) {
   if (!(await requireSection("bookings")).ok) redirect("/admin");
+  const deepLinkCode = (await searchParams)?.b ?? null;
 
   let rows: BookingRow[] = [];
   let errorMsg: string | null = null;
@@ -142,7 +147,12 @@ export default async function AdminBookingsPage() {
           โหลดข้อมูลไม่สำเร็จ: {errorMsg}
         </div>
       ) : (
-        <BookingsManager initialRows={rows} />
+        <BookingsManager
+          initialRows={rows}
+          initialSelectedId={
+            (deepLinkCode && rows.find((r) => r.booking_code === deepLinkCode)?.id) || null
+          }
+        />
       )}
     </div>
   );

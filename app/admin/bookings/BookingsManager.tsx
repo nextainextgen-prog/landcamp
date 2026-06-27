@@ -193,14 +193,20 @@ function ProviderBadge({ provider }: { provider: string | null }) {
   return <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-neutral-500">Walk-in</span>;
 }
 
-export function BookingsManager({ initialRows }: { initialRows: BookingRow[] }) {
+export function BookingsManager({
+  initialRows,
+  initialSelectedId = null,
+}: {
+  initialRows: BookingRow[];
+  initialSelectedId?: string | null;
+}) {
   const [rows, setRows] = useState<BookingRow[]>(initialRows);
   const [filter, setFilter] = useState<"all" | BookingStatus>("all");
   const [source, setSource] = useState<"all" | "line" | "google" | "walkin">("all");
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [sort, setSort] = useState<"recent" | "checkin" | "amount">("recent");
   const [q, setQ] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(initialRows[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? initialRows[0]?.id ?? null);
   const [busy, setBusy] = useState(false);
   const [zoom, setZoom] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
