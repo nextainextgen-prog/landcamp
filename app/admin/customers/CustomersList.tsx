@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { Metric, MetricStrip, MetricDelta } from "@/components/admin/ui";
+import type { BadgeTone, CustomerMetrics } from "@/lib/customers/metrics";
 
 export type Channel = "line" | "google" | "walk_in" | "online";
 export type SortKey = "name" | "bookings" | "spent" | "last";
@@ -32,6 +33,8 @@ export type CustomerRow = {
   stays: number;
   total_spent: number;
   last_booking: string | null;
+  /** Customer segment (same source as the profile page — kept consistent). */
+  segment: CustomerMetrics["segment"];
 };
 
 export type CustomerStats = {
@@ -113,24 +116,25 @@ function pctChange(now: number, prev: number): number {
   return now > 0 ? 100 : 0;
 }
 
+const SEGMENT_CLS: Record<BadgeTone, string> = {
+  forest: "bg-emerald-100 text-emerald-700",
+  sage: "bg-[color:var(--color-sage-mid)]/15 text-[color:var(--color-sage-mid)]",
+  amber: "bg-amber-100 text-amber-700",
+  red: "bg-rose-100 text-rose-600",
+  clay: "bg-[color:var(--color-warm-clay)]/15 text-[color:var(--color-warm-clay)]",
+  blue: "bg-blue-100 text-blue-700",
+  neutral: "bg-slate-100 text-slate-600",
+};
+
 /**
- * Lightweight RFM segmentation. Loyalty is based on *actual stays*
- * (confirmed/completed bookings), not raw booking rows, and on account age —
- * a brand-new account with a couple of test bookings stays "ใหม่".
- *   • ห่างหาย — had a real stay but hasn't returned in >120 days
- *   • ใหม่    — account < 60 days old, or 0–1 real stays
- *   • ประจำ   — ≥3 real stays and active within 90 days
+ * Segment badge — reads the SAME segment the profile page shows
+ * (computeCustomerMetrics on the server), so the list and the profile never
+ * disagree. Customers with no bookings ("prospect") get no badge to keep the
+ * list clean.
  */
 function rfm(r: CustomerRow): { label: string; cls: string } | null {
-  const last = daysAgo(r.last_booking);
-  const age = daysAgo(r.created_at);
-  if (r.stays >= 1 && last !== null && last > 120)
-    return { label: "ห่างหาย", cls: "bg-rose-100 text-rose-600" };
-  if (r.stays <= 1 || (age !== null && age <= 60))
-    return { label: "ใหม่", cls: "bg-[color:var(--color-warm-clay)]/15 text-[color:var(--color-warm-clay)]" };
-  if (r.stays >= 3 && last !== null && last <= 90)
-    return { label: "ประจำ", cls: "bg-emerald-100 text-emerald-700" };
-  return null;
+  if (!r.segment || r.segment.key === "prospect") return null;
+  return { label: r.segment.label, cls: SEGMENT_CLS[r.segment.tone] };
 }
 
 const CHANNEL_META: Record<Channel, { label: string; cls: string; ring: string }> = {

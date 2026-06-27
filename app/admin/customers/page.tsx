@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { computeCustomerMetrics } from "@/lib/customers/metrics";
 import {
   CustomersList,
   type Channel,
@@ -48,6 +49,8 @@ export default async function AdminCustomersPage({
   let rows: CustomerRow[] = [];
   let allBookings: Record<string, unknown>[] = [];
   let errorMsg: string | null = null;
+  const now = new Date();
+  const nowMs = now.getTime();
 
   try {
     const admin = createAdminClient();
@@ -64,8 +67,14 @@ export default async function AdminCustomersPage({
     allBookings = (bookings ?? []) as Record<string, unknown>[];
 
     const agg = new Map<string, { count: number; stays: number; spent: number; last: string | null }>();
+    // Per-customer booking rows so the list can compute the SAME segment as the
+    // profile page (computeCustomerMetrics) — keeps the badge consistent.
+    const byCust = new Map<string, { status: string; total_amount: number | null; created_at: string }[]>();
     for (const b of bookings ?? []) {
       const cid = b.customer_id as string;
+      const list = byCust.get(cid) ?? [];
+      list.push({ status: b.status as string, total_amount: (b.total_amount as number) ?? null, created_at: b.created_at as string });
+      byCust.set(cid, list);
       const cur = agg.get(cid) ?? { count: 0, stays: 0, spent: 0, last: null };
       cur.count += 1;
       if (EARNING_STATUSES.has(b.status as string)) {
@@ -102,13 +111,13 @@ export default async function AdminCustomersPage({
         stays: a?.stays ?? 0,
         total_spent: a?.spent ?? 0,
         last_booking: a?.last ?? null,
+        segment: computeCustomerMetrics(byCust.get(c.id as string) ?? [], nowMs).segment,
       };
     });
   } catch (err) {
     errorMsg = err instanceof Error ? err.message : "failed to load customers";
   }
 
-  const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
 
