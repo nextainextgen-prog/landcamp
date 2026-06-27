@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Auto-decision from the verdict ──
-  let decision: "confirmed" | "review" | "duplicate";
+  let decision: "confirmed" | "review" | "duplicate" | "account_mismatch";
   if (verifyStatus === "matched") {
     // Fully valid slip → confirm exactly like a manual admin confirm.
     decision = "confirmed";
@@ -251,8 +251,12 @@ export async function POST(request: NextRequest) {
     // Reused slip — leave the booking where it is so the guest can transfer and
     // attach a genuine slip (or rebook if the hold has expired).
     decision = "duplicate";
+  } else if (verifyStatus === "account_mismatch") {
+    // Paid to the wrong account — tell the customer plainly and let them re-attach
+    // a correct slip. Leave the booking pending so the hold/flow continues.
+    decision = "account_mismatch";
   } else {
-    // No QR / unreadable / amount or name mismatch / API error → human review.
+    // No QR / unreadable / amount mismatch / API error → human review.
     decision = "review";
     if (booking.status === "pending_payment") {
       await admin.from("bookings").update({ status: "payment_review" }).eq("id", booking.id);
@@ -265,9 +269,9 @@ export async function POST(request: NextRequest) {
     payload: { booking_id: booking.id, payment_id: payment.id, verify_status: verifyStatus, decision },
   });
 
-  // Alert the team group only when the slip needs human action — a "matched"
-  // slip already auto-confirmed (which sends its own confirmation alert).
-  if (decision === "review" || decision === "duplicate") {
+  // Alert the team group whenever the slip needs attention — a "matched" slip
+  // already auto-confirmed (which sends its own confirmation alert).
+  if (decision !== "confirmed") {
     await notifyTeamSlipPending(booking.id, verifyStatus);
   }
 
@@ -275,11 +279,13 @@ export async function POST(request: NextRequest) {
     confirmed: "ชำระเงินสำเร็จ ยืนยันการจองเรียบร้อยแล้ว ขอบคุณครับ",
     review: "ได้รับสลิปแล้ว ทีมงานกำลังตรวจสอบ จะยืนยันให้เร็วที่สุดครับ",
     duplicate: "สลิปนี้เคยถูกใช้ไปแล้ว กรุณาโอนชำระและแนบสลิปใหม่อีกครั้งครับ",
+    account_mismatch:
+      "ข้อมูลไม่ถูกต้อง — เลขบัญชีผู้รับไม่ตรงกัน กรุณาโอนเข้าบัญชีที่ถูกต้องแล้วแนบสลิปใหม่อีกครั้งครับ",
   } as const;
 
-  // A duplicate is a soft failure so the customer UI lets them re-attach.
+  // Duplicate / wrong-account are soft failures so the customer UI lets them re-attach.
   return NextResponse.json({
-    ok: decision !== "duplicate",
+    ok: decision === "confirmed" || decision === "review",
     decision,
     status: decision === "confirmed" ? "confirmed" : "received",
     message: CUSTOMER_MESSAGE[decision],

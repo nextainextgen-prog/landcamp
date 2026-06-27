@@ -469,7 +469,7 @@ export function BookingsManager({
           </button>
         )}
 
-        <ul className="flex max-h-[78vh] flex-col gap-2 overflow-y-auto pr-1">
+        <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
           {sorted.length === 0 && <li className="rounded-lg border border-dashed p-6 text-center text-sm text-[color:var(--color-ink)]/45">ไม่พบรายการ</li>}
           {groups
             ? groups.map((g) => (

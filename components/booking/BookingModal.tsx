@@ -307,7 +307,7 @@ export function BookingModal({
       const data = (await res.json()) as {
         ok?: boolean;
         error?: string;
-        decision?: "confirmed" | "review" | "duplicate";
+        decision?: "confirmed" | "review" | "duplicate" | "account_mismatch";
         message?: string;
       };
       if (res.ok && data.ok) {
