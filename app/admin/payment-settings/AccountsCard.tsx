@@ -291,27 +291,19 @@ export function AccountsCard({
         </Button>
       </Card.Header>
       <Card.Content>
-        <div className="mb-4 flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+        <div className="mb-4 flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
+            <path d="M12 2 4 5v6c0 5 3.4 7.7 8 9 4.6-1.3 8-4 8-9V5l-8-3Z" />
+            <path d="m9 12 2 2 4-4" />
           </svg>
           <div className="flex flex-col gap-1">
             <span>
-              บัญชีในหน้านี้คือบัญชีที่ <strong>แสดงให้ลูกค้าโอนเข้า</strong>. การตรวจสลิปอัตโนมัติ (ตรวจบัญชีปลายทาง)
-              ใช้บัญชีที่ลงทะเบียนไว้บน EasySlip dashboard แยกต่างหาก — โปรดตั้งค่าบัญชีรับเงินให้ตรงกันทั้งสองที่
+              ตั้งบัญชีรับเงิน <strong>ที่นี่ที่เดียว</strong> — บัญชีในหน้านี้ใช้ทั้ง <strong>แสดงให้ลูกค้าโอนเข้า</strong> และ
+              <strong> ตรวจสลิปอัตโนมัติ</strong> (เทียบบัญชีปลายทางบนสลิปกับบัญชีที่เปิดใช้งานไว้ที่นี่) ไม่ต้องไปตั้งค่าบน EasySlip dashboard อีก
             </span>
-            <a
-              href="https://developer.easyslip.com/auth/sign-in"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex w-fit items-center gap-1 font-medium text-blue-700 underline underline-offset-2 hover:text-blue-800"
-            >
-              ตั้งค่าบัญชีตรวจสลิปบน EasySlip dashboard
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
-                <path d="M7 17L17 7M7 7h10v10" />
-              </svg>
-            </a>
+            <span className="text-xs text-emerald-700/80">
+              หมายเหตุ: ระบบเทียบจากเลขบัญชี 4 ตัวท้าย (EasySlip ปิดเลขกลางไว้) — ใส่เลขบัญชีให้ถูกต้องครบถ้วน
+            </span>
           </div>
         </div>
         {rows.length === 0 ? (
