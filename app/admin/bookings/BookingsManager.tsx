@@ -6,6 +6,7 @@ import type { BookingStatus } from "@/types";
 import { siteConfig } from "@/data/siteConfig";
 import { ActionButton } from "@/components/admin/ActionButton";
 import { useConfirmAction } from "@/components/admin/useConfirmAction";
+import { CalendarField } from "@/components/ui/CalendarField";
 
 const ACTIVE_STATUSES = new Set<BookingStatus>(["pending_payment", "payment_review", "confirmed"]);
 
@@ -984,11 +985,14 @@ function EditDialog({
         <h3 className="text-base font-semibold text-[color:var(--color-forest-deep)]">แก้ไขการจอง {r.booking_code}</h3>
         <p className="mt-1 text-xs text-[color:var(--color-ink)]/45">{r.room_name}</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">เช็คอิน
-            <input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className={inputCls} />
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">เช็คเอาท์
-            <input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className={inputCls} />
+          <label className="col-span-2 flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">ช่วงวันเข้าพัก
+            <CalendarField
+              mode="range"
+              start={checkIn}
+              end={checkOut}
+              onRangeChange={({ start, end }) => { setCheckIn(start); setCheckOut(end); }}
+              className={inputCls}
+            />
           </label>
           <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">ผู้ใหญ่
             <input type="number" min={1} value={adults} onChange={(e) => setAdults(Math.max(1, Number(e.target.value) || 1))} className={inputCls} />

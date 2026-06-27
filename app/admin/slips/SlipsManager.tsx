@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { Metric, MetricStrip } from "@/components/admin/ui";
+import { CalendarField } from "@/components/ui/CalendarField";
 import { addDays, startOfMonth, type DateRange } from "@/lib/revenue/metrics";
 
 export type SlipRow = {
@@ -296,22 +297,15 @@ export function SlipsManager({
               {p.label}
             </button>
           ))}
-          <div className="flex items-center gap-1.5 rounded-full bg-[color:var(--color-bone-soft)]/60 px-2 py-1">
-            <input
-              type="date"
-              value={range.from}
-              max={range.to}
-              onChange={(e) => { setCustom({ from: e.target.value, to: range.to }); setPreset("custom"); setPage(0); }}
-              className="bg-transparent text-xs text-[color:var(--color-ink)]/70 focus:outline-none"
-            />
-            <span className="text-[color:var(--color-ink)]/30">–</span>
-            <input
-              type="date"
-              value={range.to}
-              min={range.from}
-              max={today}
-              onChange={(e) => { setCustom({ from: range.from, to: e.target.value }); setPreset("custom"); setPage(0); }}
-              className="bg-transparent text-xs text-[color:var(--color-ink)]/70 focus:outline-none"
+          <div className="rounded-full bg-[color:var(--color-bone-soft)]/60 px-3 py-1">
+            <CalendarField
+              mode="range"
+              start={range.from}
+              end={range.to}
+              maxDate={today}
+              onRangeChange={({ start, end }) => { setCustom({ from: start, to: end }); setPreset("custom"); setPage(0); }}
+              placeholder="เลือกช่วงวันที่"
+              className="text-xs text-[color:var(--color-ink)]/70"
             />
           </div>
           {accounts.length > 0 && (

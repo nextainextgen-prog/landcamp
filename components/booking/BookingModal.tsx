@@ -4,8 +4,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useT } from "@/app/providers";
+import { useLocale, useT } from "@/app/providers";
 import { calculateBookingTotal } from "@/lib/booking/pricing";
+import { CalendarPicker } from "@/components/ui/CalendarPicker";
 import {
   clearBookingIntent,
   saveBookingIntent,
@@ -53,6 +54,15 @@ function todayISO(): string {
   return new Date(now.getTime() - tz).toISOString().slice(0, 10);
 }
 
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const dateToISO = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+function isoToDate(s?: string | null): Date | null {
+  if (!s) return null;
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
 function thb(n: number): string {
   return n.toLocaleString("en-US");
 }
@@ -76,6 +86,7 @@ export function BookingModal({
   onClose: () => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
 
   const prefill = initialIntent?.slug === room.id ? initialIntent : null;
 
@@ -127,6 +138,23 @@ export function BookingModal({
       active = false;
     };
   }, [room.id]);
+
+  // Occupied nights for this room → calendar dots + blocked dates.
+  const [bookedDates, setBookedDates] = useState<string[]>([]);
+  useEffect(() => {
+    if (!roomId) return; // roomId resolves once and never clears; nothing to reset
+    const ctrl = new AbortController();
+    fetch(`/api/bookings/booked-dates?roomId=${roomId}`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : { dates: [] }))
+      .then((j: { dates?: string[] }) => setBookedDates(j.dates ?? []))
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [roomId]);
+
+  const bookedDateObjs = useMemo(
+    () => bookedDates.map(isoToDate).filter((d): d is Date => Boolean(d)),
+    [bookedDates],
+  );
 
   useEffect(() => {
     let active = true;
@@ -366,29 +394,23 @@ export function BookingModal({
             />
           ) : (
             <div className="px-6 sm:px-8 py-6 flex flex-col gap-6">
-              <div className="grid grid-cols-2 gap-4">
-                <Field label={t({ th: "เช็คอิน", en: "Check-in" })}>
-                  <input
-                    type="date"
-                    value={checkIn}
-                    min={todayISO()}
-                    onChange={(e) => {
-                      setCheckIn(e.target.value);
-                      if (checkOut && checkOut <= e.target.value) setCheckOut("");
+              <Field label={t({ th: "เลือกวันเข้าพัก", en: "Select dates" })}>
+                <div className="flex justify-center">
+                  <CalendarPicker
+                    mode="range"
+                    locale={locale}
+                    showQuickSelect
+                    minDate={isoToDate(todayISO()) ?? undefined}
+                    markedDates={bookedDateObjs}
+                    disabledDates={bookedDateObjs}
+                    rangeValue={{ start: isoToDate(checkIn), end: isoToDate(checkOut) }}
+                    onRangeChange={(r) => {
+                      setCheckIn(r.start ? dateToISO(r.start) : "");
+                      setCheckOut(r.end ? dateToISO(r.end) : "");
                     }}
-                    className={inputClass}
                   />
-                </Field>
-                <Field label={t({ th: "เช็คเอาท์", en: "Check-out" })}>
-                  <input
-                    type="date"
-                    value={checkOut}
-                    min={checkIn || todayISO()}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
+                </div>
+              </Field>
 
               <div className="grid grid-cols-2 gap-4">
                 <Stepper label={t({ th: "ผู้ใหญ่", en: "Adults" })} value={adults} min={1} max={room.maxGuests} onChange={setAdults} />

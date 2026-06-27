@@ -2,17 +2,25 @@
 
 import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { useT } from "@/app/providers";
+import { useLocale, useT } from "@/app/providers";
 import { cn } from "@/lib/cn";
+import { CalendarField } from "@/components/ui/CalendarField";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+function localTodayISO(): string {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+}
 
 type FormState = "idle" | "submitting" | "success" | "error";
 
 export function ContactForm() {
   const t = useT();
+  const { locale } = useLocale();
   const [state, setState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [checkin, setCheckin] = useState("");
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,7 +32,7 @@ export function ContactForm() {
       name: String(fd.get("name") ?? "").trim(),
       phone: String(fd.get("phone") ?? "").trim(),
       email: String(fd.get("email") ?? "").trim() || null,
-      checkin_date: String(fd.get("checkin") ?? "") || null,
+      checkin_date: checkin || null,
       message: String(fd.get("message") ?? "").trim() || null,
       source: "landing-page",
     };
@@ -58,6 +66,7 @@ export function ContactForm() {
       }
       setState("success");
       form.reset();
+      setCheckin("");
     } catch (err) {
       console.error(err);
       setErrorMessage(
@@ -125,11 +134,23 @@ export function ContactForm() {
           type="email"
           autoComplete="email"
         />
-        <FormField
-          label={t({ th: "วันที่ต้องการเข้าพัก", en: "Preferred check-in" })}
-          name="checkin"
-          type="date"
-        />
+        <label className="flex flex-col gap-2">
+          <span
+            className="text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-bone)]/65"
+            style={{ fontFamily: "var(--font-ui)" }}
+          >
+            {t({ th: "วันที่ต้องการเข้าพัก", en: "Preferred check-in" })}
+          </span>
+          <CalendarField
+            mode="single"
+            locale={locale}
+            value={checkin}
+            onChange={setCheckin}
+            minDate={localTodayISO()}
+            placeholder={t({ th: "เลือกวันที่", en: "Pick a date" })}
+            className="w-full rounded-[10px] border border-[color:var(--color-bone)]/15 bg-[color:var(--color-bone)]/5 px-4 py-3 text-sm text-[color:var(--color-bone)] transition-colors focus:border-[color:var(--color-warm-clay)] focus:outline-none"
+          />
+        </label>
       </div>
 
       <FormField

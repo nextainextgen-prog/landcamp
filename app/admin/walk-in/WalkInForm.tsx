@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { Panel } from "@/components/admin/ui";
+import { CalendarPicker } from "@/components/ui/CalendarPicker";
 import { calculateBookingTotal } from "@/lib/booking/pricing";
 
 export type WalkInRoom = {
@@ -28,11 +29,13 @@ function addDays(s: string, n: number): string {
   const dt = new Date(utc(s) + n * 86_400_000);
   return iso(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
 }
-const dow = (s: string) => new Date(utc(s)).getUTCDay(); // 0=Sun … 6=Sat
-const isWeekendNight = (s: string) => dow(s) === 5 || dow(s) === 6; // Fri/Sat priced higher
-const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-const monthLabel = (y: number, m0: number) =>
-  new Date(Date.UTC(y, m0, 1)).toLocaleDateString("th-TH", { month: "long", year: "numeric", timeZone: "UTC" });
+/** ISO "YYYY-MM-DD" <-> local Date, for the shared CalendarPicker. */
+const isoToDate = (s: string): Date | null => {
+  if (!s) return null;
+  const [y, m, d] = s.split("-").map(Number);
+  return y && m && d ? new Date(y, m - 1, d) : null;
+};
+const dateToISO = (d: Date) => iso(d.getFullYear(), d.getMonth(), d.getDate());
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -43,124 +46,6 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       </span>
       {children}
     </label>
-  );
-}
-
-/* ── month-grid range picker ─────────────────────────────────────── */
-function Calendar({
-  today,
-  occupied,
-  checkIn,
-  checkOut,
-  onPick,
-}: {
-  today: string;
-  occupied: Set<string>;
-  checkIn: string;
-  checkOut: string;
-  onPick: (d: string) => void;
-}) {
-  const [view, setView] = useState(() => ({ y: +today.slice(0, 4), m: +today.slice(5, 7) - 1 }));
-  const [hover, setHover] = useState<string>("");
-  const curY = +today.slice(0, 4);
-  const curM = +today.slice(5, 7) - 1;
-  const atFloor = view.y < curY || (view.y === curY && view.m <= curM);
-
-  const shift = (n: number) =>
-    setView((v) => {
-      const t = v.m + n;
-      return { y: v.y + Math.floor(t / 12), m: ((t % 12) + 12) % 12 };
-    });
-
-  const months = [view, { y: view.y + (view.m === 11 ? 1 : 0), m: (view.m + 1) % 12 }];
-
-  function renderMonth(y: number, m0: number) {
-    const start = dow(iso(y, m0, 1));
-    const days = new Date(Date.UTC(y, m0 + 1, 0)).getUTCDate();
-    const cells: (string | null)[] = Array.from({ length: start }, () => null);
-    for (let d = 1; d <= days; d += 1) cells.push(iso(y, m0, d));
-
-    return (
-      <div key={`${y}-${m0}`} className="flex-1">
-        <p className="mb-2 text-center text-sm font-semibold text-[color:var(--color-forest-deep)]">{monthLabel(y, m0)}</p>
-        <div className="grid grid-cols-7 gap-0.5 text-center text-[11px] text-[color:var(--color-ink)]/40">
-          {WEEKDAYS.map((w) => <span key={w} className="py-1">{w}</span>)}
-        </div>
-        <div className="grid grid-cols-7 gap-0.5">
-          {cells.map((d, i) => {
-            if (!d) return <span key={i} />;
-            const past = d < today;
-            const isOcc = occupied.has(d);
-            const isIn = d === checkIn;
-            const isOut = d === checkOut;
-            const inRange = checkIn && checkOut && d > checkIn && d < checkOut;
-            const inHover = checkIn && !checkOut && hover && d > checkIn && d <= hover;
-            const weekend = isWeekendNight(d);
-
-            let cls = "text-[color:var(--color-ink)]/80 hover:bg-[color:var(--color-bone-soft)]";
-            if (past) cls = "text-[color:var(--color-ink)]/25 cursor-not-allowed";
-            else if (isIn || isOut) cls = "bg-[color:var(--color-forest-deep)] text-white font-semibold";
-            else if (inRange) cls = "bg-[color:var(--color-warm-clay)]/18 text-[color:var(--color-forest-deep)]";
-            else if (inHover) cls = "bg-[color:var(--color-warm-clay)]/10 text-[color:var(--color-forest-deep)]";
-            else if (isOcc) cls = "text-red-400/70 line-through cursor-not-allowed";
-
-            return (
-              <button
-                key={i}
-                type="button"
-                disabled={past}
-                onMouseEnter={() => setHover(d)}
-                onMouseLeave={() => setHover("")}
-                onClick={() => onPick(d)}
-                className={`relative aspect-square rounded-lg text-sm transition-colors ${cls}`}
-              >
-                {+d.slice(8, 10)}
-                {!past && !isIn && !isOut && (
-                  <span
-                    className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                      isOcc ? "bg-red-400" : weekend ? "bg-[color:var(--color-warm-clay)]/70" : "bg-transparent"
-                    }`}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="mb-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => shift(-1)}
-          disabled={atFloor}
-          className="rounded-lg border border-[color:var(--color-forest-deep)]/15 p-1.5 text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)] disabled:opacity-30"
-          aria-label="เดือนก่อนหน้า"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-        </button>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[color:var(--color-ink)]/50">
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-[color:var(--color-forest-deep)]" />เลือก</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-[color:var(--color-warm-clay)]/70" />วันหยุด (ราคาสูง)</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-400" />ถูกจองแล้ว</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => shift(1)}
-          className="rounded-lg border border-[color:var(--color-forest-deep)]/15 p-1.5 text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"
-          aria-label="เดือนถัดไป"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-        </button>
-      </div>
-      <div className="flex flex-col gap-5 sm:flex-row sm:gap-6">
-        {renderMonth(months[0].y, months[0].m)}
-        <div className="hidden flex-1 sm:block">{renderMonth(months[1].y, months[1].m)}</div>
-      </div>
-    </div>
   );
 }
 
@@ -208,25 +93,11 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
     return false;
   };
 
-  function pickDate(d: string) {
-    setResult(null);
-    // start a fresh range
-    if (!checkIn || (checkIn && checkOut)) {
-      if (occupied.has(d)) return; // can't start on a taken night
-      setCheckIn(d);
-      setCheckOut("");
-      return;
-    }
-    // choosing checkout
-    if (d <= checkIn) {
-      if (occupied.has(d)) return;
-      setCheckIn(d);
-      setCheckOut("");
-      return;
-    }
-    if (!rangeBlocked(checkIn, d)) setCheckOut(d);
-    else if (!occupied.has(d)) { setCheckIn(d); setCheckOut(""); } // jumped past a taken night → restart
-  }
+  // Occupied nights as Date objects for the shared CalendarPicker (dots + blocked).
+  const occupiedDates = useMemo(
+    () => Array.from(occupied).map(isoToDate).filter((d): d is Date => Boolean(d)),
+    [occupied],
+  );
 
   const validRange = Boolean(checkIn && checkOut && checkOut > checkIn && !rangeBlocked(checkIn, checkOut));
   const pricing = room && validRange
@@ -351,7 +222,19 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
         </Panel>
 
         <Panel title="เลือกวันเข้าพัก">
-          <Calendar today={today} occupied={occupied} checkIn={checkIn} checkOut={checkOut} onPick={pickDate} />
+          <CalendarPicker
+            mode="range"
+            locale="th"
+            minDate={isoToDate(today) ?? undefined}
+            markedDates={occupiedDates}
+            disabledDates={occupiedDates}
+            rangeValue={{ start: isoToDate(checkIn), end: isoToDate(checkOut) }}
+            onRangeChange={(r) => {
+              setResult(null);
+              setCheckIn(r.start ? dateToISO(r.start) : "");
+              setCheckOut(r.end ? dateToISO(r.end) : "");
+            }}
+          />
         </Panel>
 
         <Panel title="การชำระเงิน">

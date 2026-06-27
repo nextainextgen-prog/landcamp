@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 
 import { ActionButton } from "@/components/admin/ActionButton";
 import { useConfirmAction } from "@/components/admin/useConfirmAction";
+import { CalendarField } from "@/components/ui/CalendarField";
 
 export type TaskStatus = "pending" | "in_progress" | "done";
 export type Task = {
@@ -196,7 +197,7 @@ function AddDialog({ rooms, busy, onClose, onSave }: { rooms: RoomOption[]; busy
             <input value={assignee} onChange={(e) => setAssignee(e.target.value)} className={inputCls} />
           </label>
           <label className="flex flex-col gap-1 text-xs text-[color:var(--color-ink)]/55">กำหนดเสร็จ
-            <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className={inputCls} />
+            <CalendarField mode="single" value={due} onChange={setDue} placeholder="เลือกวันที่" className={inputCls} />
           </label>
         </div>
         <div className="mt-5 flex justify-end gap-2">

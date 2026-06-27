@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Panel, EmptyState, Metric, MetricStrip } from "@/components/admin/ui";
+import { CalendarField } from "@/components/ui/CalendarField";
 import {
   computeRevenue,
   addDays,
@@ -203,22 +204,15 @@ export function RevenueReport(data: RevenueData) {
               {p.label}
             </button>
           ))}
-          <div className="flex items-center gap-1.5 rounded-full bg-[color:var(--color-bone-soft)]/60 px-2 py-1">
-            <input
-              type="date"
-              value={custom.from}
-              max={custom.to}
-              onChange={(e) => { setCustom((c) => ({ ...c, from: e.target.value })); setPreset("custom"); }}
-              className="bg-transparent text-xs text-[color:var(--color-ink)]/70 focus:outline-none"
-            />
-            <span className="text-[color:var(--color-ink)]/30">–</span>
-            <input
-              type="date"
-              value={custom.to}
-              min={custom.from}
-              max={data.today}
-              onChange={(e) => { setCustom((c) => ({ ...c, to: e.target.value })); setPreset("custom"); }}
-              className="bg-transparent text-xs text-[color:var(--color-ink)]/70 focus:outline-none"
+          <div className="rounded-full bg-[color:var(--color-bone-soft)]/60 px-3 py-1">
+            <CalendarField
+              mode="range"
+              start={custom.from}
+              end={custom.to}
+              maxDate={data.today}
+              onRangeChange={({ start, end }) => { setCustom({ from: start, to: end }); setPreset("custom"); }}
+              placeholder="เลือกช่วงวันที่"
+              className="text-xs text-[color:var(--color-ink)]/70"
             />
           </div>
           <div className="ml-auto flex items-center gap-2">
