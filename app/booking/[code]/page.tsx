@@ -323,7 +323,14 @@ export default async function BookingReceiptPage({
           <div className="thanks">
             <p>ขอบคุณที่ใช้บริการ</p>
             <p>กรุณาเก็บเอกสารนี้ไว้เป็นหลักฐาน</p>
-            <p className="issued-by">เอกสารนี้ออกโดยระบบ LandCamp · {tax.receiptFooter || siteConfig.address.full.th}</p>
+          </div>
+
+          <div className="note-box">
+            <p className="nl">หมายเหตุ</p>
+            <p className="nt">
+              {tax.receiptFooter ||
+                "เอกสารนี้เป็นเพียงหลักฐานการจองและการชำระเงิน ไม่ใช่ใบกำกับภาษี"}
+            </p>
           </div>
         </div>
       </div>
