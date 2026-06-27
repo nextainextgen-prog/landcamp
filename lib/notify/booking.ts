@@ -262,7 +262,10 @@ export async function notifyTeamDailyDigest(todayBkk: string): Promise<{ checkIn
     const outRows = (outs ?? []) as { booking_code: string; room_id: string; customer_id: string }[];
     result.checkIn = inRows.length;
     result.checkOut = outRows.length;
-    if (!inRows.length && !outRows.length) return result;
+    // Only post the digest on days that have at least one arrival (check-in).
+    // A day with no check-ins (even if it has check-outs) stays quiet, so the
+    // team isn't pinged every morning — per owner preference.
+    if (!inRows.length) return result;
 
     const roomIds = [...new Set([...inRows, ...outRows].map((r) => r.room_id))];
     const custIds = [...new Set([...inRows, ...outRows].map((r) => r.customer_id))];
