@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { BOOKING_HOLD_MS } from "@/lib/booking/hold";
 import { confirmBookingPaid } from "@/lib/booking/confirm";
 import { notifyTeamSlipPending } from "@/lib/notify/booking";
-import { verifyBankSlip } from "@/lib/easyslip";
+import { verifyBankSlip, slipAccountMatches } from "@/lib/easyslip";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCustomerSession } from "@/lib/customer/session";
 
@@ -115,7 +115,6 @@ export async function POST(request: NextRequest) {
     const v = await verifyBankSlip({
       base64: base64Only,
       matchAmount: payment.amount as number,
-      matchAccount: true,
     });
     verify = v;
     transRef = v.transRef;
@@ -138,8 +137,22 @@ export async function POST(request: NextRequest) {
       dbDuplicate = Boolean(prior && prior.length);
     }
 
+    // Receiver-account check — against the account(s) the admin configured in the
+    // backend (payment_accounts), NOT the EasySlip dashboard. Only gates when at
+    // least one active account number is configured; otherwise we can't compare,
+    // so we don't fail the slip on this dimension.
+    const { data: acctRows } = await admin
+      .from("payment_accounts")
+      .select("account_number")
+      .eq("is_active", true)
+      .not("account_number", "is", null);
+    const configured = (acctRows ?? []).map((a) => a.account_number as string | null);
+    const accountChecked = configured.length > 0;
+    const accountMatched = !accountChecked || slipAccountMatches(v.receiverAccount, configured);
+
     if (!v.success) verifyStatus = "unreadable";
     else if (v.isDuplicate || dbDuplicate) verifyStatus = "duplicate";
+    else if (!accountMatched) verifyStatus = "account_mismatch";
     else if (!v.isAmountMatched) verifyStatus = "amount_mismatch";
     else verifyStatus = "matched";
     verifyNote = JSON.stringify({
@@ -147,6 +160,8 @@ export async function POST(request: NextRequest) {
       expected: payment.amount,
       sender: v.senderName,
       receiver: v.receiverAccount,
+      accountChecked,
+      accountMatched,
       transRef: v.transRef,
       message: v.message,
     });

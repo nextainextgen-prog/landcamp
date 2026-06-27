@@ -128,3 +128,32 @@ export async function verifyBankSlip(opts: {
     raw: raw ?? null,
   };
 }
+
+// ── Receiver-account matching (backend-driven) ────────────────────────────
+// We no longer rely on EasySlip's dashboard-registered accounts (matchAccount).
+// Instead the admin configures the receiving account(s) in /admin/payment-settings
+// (the payment_accounts table) and we match the slip's receiver account against
+// them here — so the receiving account is managed entirely from our backend.
+
+/** Digits only — strips masking chars, spaces, and dashes. */
+export function normalizeAccountDigits(s: string | null | undefined): string {
+  return (s ?? "").replace(/\D/g, "");
+}
+
+/**
+ * Masked-aware receiver match. EasySlip usually returns the receiver account
+ * with only the last 4 digits visible (e.g. "xxx-x-x4019-x"), so we match on the
+ * trailing 4 digits against any configured account number. Returns false when the
+ * slip exposes fewer than 4 digits (can't safely match).
+ */
+export function slipAccountMatches(
+  slipAccount: string | null,
+  configured: Array<string | null | undefined>,
+): boolean {
+  const tail = normalizeAccountDigits(slipAccount).slice(-4);
+  if (tail.length < 4) return false;
+  return configured.some((acc) => {
+    const d = normalizeAccountDigits(acc);
+    return d.length >= 4 && d.slice(-4) === tail;
+  });
+}

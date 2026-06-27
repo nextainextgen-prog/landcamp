@@ -31,6 +31,7 @@ export type SlipRow = {
 const VERIFY: Record<string, { label: string; cls: string }> = {
   matched: { label: "สลิปถูกต้อง", cls: "bg-emerald-100 text-emerald-800 ring-emerald-200" },
   amount_mismatch: { label: "ยอดไม่ตรง", cls: "bg-amber-100 text-amber-800 ring-amber-200" },
+  account_mismatch: { label: "บัญชีไม่ตรง", cls: "bg-amber-100 text-amber-800 ring-amber-200" },
   duplicate: { label: "สลิปซ้ำ", cls: "bg-red-100 text-red-700 ring-red-200" },
   unreadable: { label: "อ่านสลิปไม่ออก", cls: "bg-red-100 text-red-700 ring-red-200" },
   error: { label: "ระบบตรวจขัดข้อง", cls: "bg-red-100 text-red-700 ring-red-200" },
@@ -248,6 +249,7 @@ export function SlipsManager({
     { key: "matched", label: "สลิปถูกต้อง" },
     { key: "duplicate", label: "สลิปซ้ำ" },
     { key: "amount_mismatch", label: "ยอดไม่ตรง" },
+    { key: "account_mismatch", label: "บัญชีไม่ตรง" },
     { key: "unreadable", label: "อ่านไม่ออก/ขัดข้อง" },
   ];
 
