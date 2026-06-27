@@ -395,7 +395,7 @@ export function CustomersList({
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400">
                   <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" strokeLinecap="round" />
                 </svg>
-                <input type="search" value={q} onChange={(e) => onSearch(e.target.value)} placeholder="กรองรายการนี้ — ชื่อ / อีเมล / เบอร์ / แท็ก"
+                <input type="search" value={q} onChange={(e) => onSearch(e.target.value)} placeholder="ค้นหา ชื่อ / อีเมล / เบอร์"
                   className="w-full rounded-full border border-slate-200 bg-slate-50/60 py-2 pl-9 pr-9 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[color:var(--color-warm-clay)]/45 focus:bg-white focus:ring-2 focus:ring-[color:var(--color-warm-clay)]/15" />
                 {q && (
                   <button type="button" onClick={() => onSearch("")} aria-label="ล้างการค้นหา" className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">

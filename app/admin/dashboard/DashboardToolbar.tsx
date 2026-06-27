@@ -9,13 +9,12 @@ const MONTHS_TH = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.�
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-function fromISO(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
 function fmtThai(s: string): string {
   const [y, m, d] = s.split("-").map(Number);
   return `${d} ${MONTHS_TH[m - 1]} ${y + 543}`;
+}
+function fmtThaiD(d: Date): string {
+  return `${d.getDate()} ${MONTHS_TH[d.getMonth()]} ${d.getFullYear() + 543}`;
 }
 
 type Preset = "week" | "month" | "quarter" | "custom";
@@ -42,10 +41,12 @@ export function DashboardToolbar({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [range, setRange] = useState<{ start: Date | null; end: Date | null }>({
-    start: fromISO(from),
-    end: fromISO(to),
-  });
+  const [range, setRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+
+  function openPicker() {
+    setRange({ start: null, end: null }); // fresh pick each time
+    setOpen((o) => !o);
+  }
 
   function apply() {
     if (range.start && range.end) {
@@ -84,7 +85,7 @@ export function DashboardToolbar({
         <div className="relative">
           <button
             type="button"
-            onClick={() => setOpen((o) => !o)}
+            onClick={openPicker}
             className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
               preset === "custom"
                 ? "border-[color:var(--color-warm-clay)]/40 bg-[color:var(--color-warm-clay)]/10 text-[color:var(--color-warm-clay)]"
@@ -102,6 +103,12 @@ export function DashboardToolbar({
             <>
               <button type="button" aria-label="ปิด" className="fixed inset-0 z-20 cursor-default" onClick={() => setOpen(false)} />
               <div className="absolute left-0 top-full z-30 mt-2 rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white p-3 shadow-xl">
+                <div className="mb-2 px-1">
+                  <p className="text-xs font-semibold text-[color:var(--color-forest-deep)]">เลือกช่วงวันที่ต้องการดู</p>
+                  <p className="text-[11px] text-[color:var(--color-ink)]/55">
+                    {range.start ? fmtThaiD(range.start) : "เลือกวันเริ่ม"} – {range.end ? fmtThaiD(range.end) : "วันสิ้นสุด"}
+                  </p>
+                </div>
                 <CalendarPicker
                   mode="range"
                   rangeValue={range}
