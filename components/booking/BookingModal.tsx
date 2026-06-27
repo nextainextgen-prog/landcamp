@@ -12,7 +12,7 @@ import {
   saveBookingIntent,
   type BookingIntent,
 } from "@/lib/booking/intent";
-import { bankLabel } from "@/lib/payment/banks";
+import { bankLabel, bankLogo } from "@/lib/payment/banks";
 import { AuthOptions } from "@/components/auth/AuthOptions";
 import { CompleteProfileForm } from "@/components/auth/CompleteProfileForm";
 import { useAvailability } from "@/hooks/useAvailability";
@@ -625,20 +625,78 @@ function AccountCard({ account }: { account: PaymentAccountDisplay }) {
   }
 
   const isPromptPay = account.type === "promptpay_phone" || account.type === "promptpay_id";
+  const logo = !isPromptPay ? bankLogo(account.bank) : null;
   return (
     <div className="rounded-[14px] bg-[color:var(--color-bone-soft)] px-5 py-4 flex flex-col gap-1.5 text-sm">
       {account.bank && !isPromptPay && (
-        <Row label={t({ th: "ธนาคาร", en: "Bank" })} value={bankLabel(account.bank)} />
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-[color:var(--color-ink)]/60">{t({ th: "ธนาคาร", en: "Bank" })}</span>
+          <span className="flex items-center gap-2 font-medium text-[color:var(--color-forest-deep)]">
+            {logo && (
+              <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-[color:var(--color-forest-deep)]/12">
+                {/* eslint-disable-next-line @next/next/no-img-element -- small static bank logo */}
+                <img src={logo} alt="" className="h-5 w-5 object-contain" />
+              </span>
+            )}
+            {bankLabel(account.bank)}
+          </span>
+        </div>
       )}
       <Row label={t({ th: "ชื่อบัญชี", en: "Account name" })} value={account.account_name} />
       {account.account_name_en && (
         <Row label={t({ th: "ชื่อ (EN)", en: "Name (EN)" })} value={account.account_name_en} />
       )}
-      <Row
+      <CopyRow
         label={isPromptPay ? t({ th: "พร้อมเพย์", en: "PromptPay" }) : t({ th: "เลขที่บัญชี", en: "Account no." })}
         value={account.account_number ?? "—"}
-        mono
       />
+    </div>
+  );
+}
+
+/** A Row whose value can be tapped to copy (digits only) — for account / PromptPay numbers. */
+function CopyRow({ label, value }: { label: string; value: string }) {
+  const t = useT();
+  const [copied, setCopied] = useState(false);
+  const canCopy = Boolean(value && value !== "—");
+
+  async function copy() {
+    if (!canCopy) return;
+    try {
+      await navigator.clipboard.writeText(value.replace(/[^\d]/g, ""));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard unavailable — ignore
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-[color:var(--color-ink)]/60">{label}</span>
+      <button
+        type="button"
+        onClick={copy}
+        disabled={!canCopy}
+        aria-label={t({ th: "คัดลอกเลขบัญชี", en: "Copy number" })}
+        className="group -mx-1 inline-flex items-center gap-2 rounded-lg px-1 py-0.5 font-medium tracking-wider text-[color:var(--color-forest-deep)] transition-colors hover:bg-[color:var(--color-forest-deep)]/5 disabled:cursor-default"
+      >
+        <span>{value}</span>
+        {canCopy &&
+          (copied ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-normal tracking-normal text-[color:var(--color-sage-mid)]">
+              <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden>
+                <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {t({ th: "คัดลอกแล้ว", en: "Copied" })}
+            </span>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-[color:var(--color-ink)]/40 transition-colors group-hover:text-[color:var(--color-warm-clay)]" aria-hidden>
+              <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.7" />
+              <path d="M5 15V5a2 2 0 0 1 2-2h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+          ))}
+      </button>
     </div>
   );
 }

@@ -26,3 +26,13 @@ export function bankLabel(value: string | null): string {
   if (!value) return "";
   return BANK_LABELS.get(value) ?? value;
 }
+
+// Logo assets we have under public/banks/. Banks without one resolve to null
+// (the UI just shows the name). Add more as `public/banks/<code>.png` lands.
+const BANK_LOGOS = new Map<string, string>([["kbank", "/banks/kbank.png"]]);
+
+/** Public path to a bank's logo, or null when we don't have one. */
+export function bankLogo(value: string | null): string | null {
+  if (!value) return null;
+  return BANK_LOGOS.get(value) ?? null;
+}
