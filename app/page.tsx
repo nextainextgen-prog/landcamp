@@ -2,7 +2,8 @@ import { getSiteContent } from "@/lib/content/server";
 import { ContentProvider } from "@/lib/content/provider";
 import { LandingSections } from "@/components/sections/LandingSections";
 import { FloatingLineButton } from "@/components/ui/FloatingLineButton";
-import { BookingDeepLink } from "@/components/booking/BookingDeepLink";
+import { RichMenuEntry } from "@/components/navigation/RichMenuEntry";
+import { SiteAnnouncement } from "@/components/ui/SiteAnnouncement";
 
 /**
  * LandCamp Villa Khao Yai — single-page landing.
@@ -18,9 +19,10 @@ export default async function Home() {
 
   return (
     <ContentProvider content={content}>
-      <BookingDeepLink />
+      <RichMenuEntry />
       <LandingSections />
       <FloatingLineButton />
+      <SiteAnnouncement />
     </ContentProvider>
   );
 }

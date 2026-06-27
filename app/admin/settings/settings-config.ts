@@ -42,6 +42,7 @@ export const SETTINGS_GROUPS: SettingGroup[] = [
     label: "เนื้อหาเว็บ & แบรนด์",
     cards: [
       { title: "แก้เนื้อหาเว็บ (CMS)", desc: "ข้อความ · รูป · วิดีโอ + พรีวิวสด", icon: "cms", href: "/admin/content" },
+      { title: "ป๊อปอัปประกาศ", desc: "ข้อความประกาศเด้งบนหน้าเว็บ · โปรโมชัน · ข่าวทั่วไป", icon: "megaphone", href: "/admin/settings/announcement" },
     ],
   },
   {
