@@ -478,6 +478,36 @@ function RoomModal({
             </p>
           </div>
 
+          {/* ── House rules ────────────────────────── */}
+          <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8 border-b border-[color:var(--color-ink)]/10">
+            <h4
+              className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-warm-clay)] mb-5"
+              style={{ fontFamily: "var(--font-ui)" }}
+            >
+              {t({ th: "เงื่อนไขการเข้าพัก", en: "House rules" })}
+            </h4>
+            <ul className="flex flex-col gap-3.5 text-sm leading-relaxed">
+              <li className="flex items-start gap-3.5 text-[color:var(--color-ink)]/85">
+                <RuleIcon name="noPets" />
+                <span>
+                  {t({
+                    th: `ไม่อนุญาตให้นำสัตว์เลี้ยงทุกชนิดเข้าพัก ฝ่าฝืนปรับ ${siteConfig.policy.petFine.toLocaleString("en-US")} บาท`,
+                    en: `No pets of any kind — ${siteConfig.policy.petFine.toLocaleString("en-US")} THB fine for violations.`,
+                  })}
+                </span>
+              </li>
+              <li className="flex items-start gap-3.5 text-[color:var(--color-ink)]/85">
+                <RuleIcon name="noSmoking" />
+                <span>
+                  {t({
+                    th: "งดสูบบุหรี่ภายในห้องพักโดยเด็ดขาด",
+                    en: "Strictly no smoking inside the room.",
+                  })}
+                </span>
+              </li>
+            </ul>
+          </div>
+
           {/* ── Photo gallery ──────────────────────── */}
           <div className="px-6 sm:px-8 lg:px-10 py-6 sm:py-8">
             <h4
@@ -623,6 +653,40 @@ function ServiceIcon({ index }: { index: number }) {
       <path d="M7.5 14.5a7 7 0 0 1 9 0" />
       <path d="M10.5 17.5a3 3 0 0 1 3 0" />
       <circle cx="12" cy="19.8" r="0.7" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function RuleIcon({ name }: { name: "noPets" | "noSmoking" }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.5,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+    className: "h-5 w-5 shrink-0 text-[color:var(--color-warm-clay)]",
+  };
+  if (name === "noPets") {
+    // Paw print with a ban slash
+    return (
+      <svg {...common}>
+        <ellipse cx="12" cy="15" rx="3.6" ry="2.8" />
+        <circle cx="6.8" cy="10.5" r="1.3" />
+        <circle cx="10.5" cy="8" r="1.3" />
+        <circle cx="14.5" cy="8.2" r="1.3" />
+        <path d="M4 4l16 16" />
+      </svg>
+    );
+  }
+  // No smoking — cigarette with a ban slash
+  return (
+    <svg {...common}>
+      <rect x="3" y="13.5" width="13" height="3" rx="0.6" />
+      <path d="M18.5 13.5v3M21 13.5v3" />
+      <path d="M15 6c1.4 1 1.4 2.4 0 3.4" />
+      <path d="M3.5 5l17 14" />
     </svg>
   );
 }
