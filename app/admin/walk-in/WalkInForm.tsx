@@ -15,7 +15,13 @@ export type WalkInRoom = {
   priceWeekend: number;
   maxGuests: number;
 };
-export type BookedRange = { roomId: string; checkIn: string; checkOut: string };
+export type BookedRange = {
+  roomId: string;
+  checkIn: string;
+  checkOut: string;
+  bookingCode: string;
+  guestName: string;
+};
 
 const baht = (n: number) => `฿${n.toLocaleString("en-US")}`;
 const inputClass =
@@ -98,6 +104,18 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
     () => Array.from(occupied).map(isoToDate).filter((d): d is Date => Boolean(d)),
     [occupied],
   );
+
+  // Existing bookings for the selected room — reference list beside the calendar.
+  const roomBookings = useMemo(() => {
+    return booked
+      .filter((b) => b.roomId === roomId)
+      .map((b) => {
+        const ms = new Date(`${b.checkOut}T00:00:00`).getTime() - new Date(`${b.checkIn}T00:00:00`).getTime();
+        const nights = Math.max(1, Math.round(ms / 86_400_000));
+        return { ...b, nights };
+      })
+      .sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+  }, [booked, roomId]);
 
   const validRange = Boolean(checkIn && checkOut && checkOut > checkIn && !rangeBlocked(checkIn, checkOut));
   const pricing = room && validRange
@@ -228,19 +246,59 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
         </Panel>
 
         <Panel title="เลือกวันเข้าพัก">
-          <CalendarPicker
-            mode="range"
-            locale="th"
-            minDate={isoToDate(today) ?? undefined}
-            markedDates={occupiedDates}
-            disabledDates={occupiedDates}
-            rangeValue={{ start: isoToDate(checkIn), end: isoToDate(checkOut) }}
-            onRangeChange={(r) => {
-              setResult(null);
-              setCheckIn(r.start ? dateToISO(r.start) : "");
-              setCheckOut(r.end ? dateToISO(r.end) : "");
-            }}
-          />
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,auto)_minmax(0,1fr)]">
+            <CalendarPicker
+              mode="range"
+              locale="th"
+              minDate={isoToDate(today) ?? undefined}
+              markedDates={occupiedDates}
+              disabledDates={occupiedDates}
+              rangeValue={{ start: isoToDate(checkIn), end: isoToDate(checkOut) }}
+              onRangeChange={(r) => {
+                setResult(null);
+                setCheckIn(r.start ? dateToISO(r.start) : "");
+                setCheckOut(r.end ? dateToISO(r.end) : "");
+              }}
+            />
+
+            {/* Existing bookings for the selected room — so staff see what's taken. */}
+            <div className="flex min-w-0 flex-col gap-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/60">
+                การจองที่มีอยู่{room ? ` · ${room.name}` : ""}
+              </div>
+              {roomBookings.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-[color:var(--color-forest-deep)]/15 bg-[color:var(--color-bone-soft)]/30 px-3 py-6 text-center text-xs text-[color:var(--color-ink)]/45">
+                  ยังไม่มีการจองสำหรับห้องนี้
+                </p>
+              ) : (
+                <ul className="flex max-h-[320px] flex-col gap-1.5 overflow-y-auto pr-1">
+                  {roomBookings.map((b) => {
+                    const fmt = (iso: string) =>
+                      isoToDate(iso)?.toLocaleDateString("th-TH", { day: "numeric", month: "short" }) ?? iso;
+                    return (
+                      <li
+                        key={b.bookingCode || `${b.checkIn}-${b.checkOut}`}
+                        className="rounded-lg border border-[color:var(--color-forest-deep)]/10 bg-white px-3 py-2 text-sm"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-[color:var(--color-forest-deep)]">
+                            {fmt(b.checkIn)} – {fmt(b.checkOut)}
+                          </span>
+                          <span className="flex-shrink-0 rounded-full bg-[color:var(--color-bone-soft)] px-2 py-0.5 text-[11px] text-[color:var(--color-ink)]/60">
+                            {b.nights} คืน
+                          </span>
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-[color:var(--color-ink)]/55">
+                          <span className="font-mono text-[11px]">{b.bookingCode}</span>
+                          {b.guestName ? <span className="truncate">· {b.guestName}</span> : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
         </Panel>
 
         <Panel title="การชำระเงิน">
