@@ -35,14 +35,14 @@ export default async function AccountLayout({
             className="flex items-center gap-6 text-[11px] uppercase tracking-[0.32em] text-[color:var(--color-forest-deep)]/70"
             style={{ fontFamily: "var(--font-ui)" }}
           >
-            <Link href="/account" className="hover:text-[color:var(--color-warm-clay)]">
-              บัญชี
+            <Link href="/" className="hover:text-[color:var(--color-warm-clay)]">
+              หน้าแรก
             </Link>
             <Link
               href="/account/bookings"
               className="hover:text-[color:var(--color-warm-clay)]"
             >
-              การจอง
+              บัญชีและการจอง
             </Link>
           </nav>
         </div>

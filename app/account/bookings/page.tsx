@@ -1,190 +1,95 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCustomerSession } from "@/lib/customer/session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import {
-  BOOKING_STATUS_TH,
-  formatTHB,
-  formatThaiDate,
-} from "@/lib/account/format";
-import type { BookingStatus } from "@/types";
+import type { BookingStatus, Customer } from "@/types";
+import { AccountDashboard, type BookingCard, type Profile } from "./AccountDashboard";
 
 export const dynamic = "force-dynamic";
+
+const PROVIDER_LABEL: Record<string, string> = {
+  line: "เข้าสู่ระบบผ่าน LINE",
+  google: "เข้าสู่ระบบผ่าน Google",
+};
 
 type BookingRow = {
   id: string;
   booking_code: string;
+  room_id: string;
   check_in: string;
   check_out: string;
-  status: BookingStatus;
-  total_amount: number;
-  room_id: string;
-  room_name: string;
+  nights: number;
   adults: number;
   children: number;
-};
-
-const STATUS_BADGE: Record<BookingStatus, string> = {
-  pending_payment:
-    "bg-[color:var(--color-warm-clay)]/12 text-[color:var(--color-warm-clay)] ring-[color:var(--color-warm-clay)]/30",
-  payment_review: "bg-blue-50 text-blue-700 ring-blue-200",
-  confirmed:
-    "bg-[color:var(--color-forest-deep)]/10 text-[color:var(--color-forest-deep)] ring-[color:var(--color-forest-deep)]/25",
-  cancelled: "bg-neutral-200 text-neutral-600 ring-neutral-300",
-  completed:
-    "bg-[color:var(--color-sage-mid)]/15 text-[color:var(--color-sage-mid)] ring-[color:var(--color-sage-mid)]/30",
-  no_show: "bg-red-100 text-red-700 ring-red-200",
+  extra_bed: boolean;
+  base_amount: number;
+  extra_bed_amount: number;
+  total_amount: number;
+  status: BookingStatus;
+  notes: string | null;
+  created_at: string;
 };
 
 export default async function AccountBookingsPage() {
   const session = await getCustomerSession();
-  if (!session) {
-    redirect("/");
-  }
+  if (!session) redirect("/");
 
   const admin = createSupabaseAdminClient();
-  let bookings: BookingRow[] = [];
-  {
-    const { data } = await admin
+
+  const [{ data: customer }, { data: bookingData }] = await Promise.all([
+    admin
+      .from("customers")
+      .select("id, full_name, email, avatar_url")
+      .eq("id", session.id)
+      .maybeSingle<Pick<Customer, "id" | "full_name" | "email" | "avatar_url">>(),
+    admin
       .from("bookings")
       .select(
-        "id, booking_code, check_in, check_out, status, total_amount, room_id, adults, children",
+        "id, booking_code, room_id, check_in, check_out, nights, adults, children, extra_bed, base_amount, extra_bed_amount, total_amount, status, notes, created_at",
       )
       .eq("customer_id", session.id)
-      .order("created_at", { ascending: false });
-    const rows = (data ?? []) as Omit<BookingRow, "room_name">[];
+      .order("created_at", { ascending: false }),
+  ]);
 
-    // Resolve room names.
-    const roomIds = [...new Set(rows.map((r) => r.room_id))];
-    const { data: rooms } = roomIds.length
-      ? await admin.from("rooms").select("id, name_th").in("id", roomIds)
-      : { data: [] };
-    const roomName = new Map((rooms ?? []).map((r) => [r.id as string, r.name_th as string]));
+  const rows = (bookingData ?? []) as BookingRow[];
 
-    bookings = rows.map((r) => ({ ...r, room_name: roomName.get(r.room_id) ?? "—" }));
+  // Resolve room names + latest slip per booking in two batched queries.
+  const roomIds = [...new Set(rows.map((r) => r.room_id))];
+  const bookingIds = rows.map((r) => r.id);
+  const [{ data: rooms }, { data: payments }] = await Promise.all([
+    roomIds.length
+      ? admin.from("rooms").select("id, name_th").in("id", roomIds)
+      : Promise.resolve({ data: [] as { id: string; name_th: string }[] }),
+    bookingIds.length
+      ? admin
+          .from("payments")
+          .select("booking_id, slip_image, trans_ref, created_at")
+          .in("booking_id", bookingIds)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] as { booking_id: string; slip_image: string | null; trans_ref: string | null }[] }),
+  ]);
+
+  const roomName = new Map((rooms ?? []).map((r) => [r.id as string, r.name_th as string]));
+  const slipByBooking = new Map<string, { slip_image: string | null; trans_ref: string | null }>();
+  for (const p of (payments ?? []) as { booking_id: string; slip_image: string | null; trans_ref: string | null }[]) {
+    // ordered newest-first → keep the first seen per booking
+    if (!slipByBooking.has(p.booking_id)) {
+      slipByBooking.set(p.booking_id, { slip_image: p.slip_image, trans_ref: p.trans_ref });
+    }
   }
 
-  return (
-    <div className="space-y-10">
-      <div
-        className="flex items-center gap-3 text-[10px] uppercase tracking-[0.42em] sm:text-[11px]"
-        style={{ fontFamily: "var(--font-ui)" }}
-      >
-        <span className="text-[color:var(--color-warm-clay)]">02</span>
-        <span aria-hidden className="h-px w-10 bg-[color:var(--color-forest-deep)]/35" />
-        <span className="text-[color:var(--color-forest-deep)]/65">การจองของฉัน</span>
-      </div>
+  const bookings: BookingCard[] = rows.map((r) => ({
+    ...r,
+    room_name: roomName.get(r.room_id) ?? "ห้องพัก",
+    slip_image: slipByBooking.get(r.id)?.slip_image ?? null,
+    trans_ref: slipByBooking.get(r.id)?.trans_ref ?? null,
+  }));
 
-      <h1 className="font-display text-[32px] leading-tight text-[color:var(--color-forest-deep)] sm:text-[42px]">
-        ประวัติการจอง
-      </h1>
+  const profile: Profile = {
+    fullName: customer?.full_name ?? session.displayName ?? null,
+    email: customer?.email ?? "",
+    avatarUrl: customer?.avatar_url ?? session.pictureUrl ?? null,
+    providerLabel: PROVIDER_LABEL[session.provider] ?? "",
+  };
 
-      {bookings.length === 0 ? (
-        <div className="rounded-[22px] border border-dashed border-[color:var(--color-forest-deep)]/20 bg-white/60 p-10 text-center">
-          <p className="text-base text-[color:var(--color-ink)]/65">
-            ยังไม่มีการจอง
-          </p>
-          <Link
-            href="/#rooms"
-            className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[color:var(--color-warm-clay)] hover:text-[color:var(--color-forest-deep)]"
-          >
-            เลือกห้องพัก
-            <span aria-hidden>→</span>
-          </Link>
-        </div>
-      ) : (
-        <BookingsList bookings={bookings} />
-      )}
-    </div>
-  );
-}
-
-function BookingsList({ bookings }: { bookings: BookingRow[] }) {
-  return (
-    <>
-      {/* Desktop table */}
-      <div className="hidden overflow-hidden rounded-[18px] border border-[color:var(--color-forest-deep)]/10 bg-white/70 md:block">
-        <table className="w-full text-sm">
-          <thead
-            className="bg-[color:var(--color-bone-soft)]/70 text-left text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-forest-deep)]/65"
-            style={{ fontFamily: "var(--font-ui)" }}
-          >
-            <tr>
-              <th className="px-5 py-3 font-medium">รหัสจอง</th>
-              <th className="px-5 py-3 font-medium">ห้อง</th>
-              <th className="px-5 py-3 font-medium">วันเข้า–ออก</th>
-              <th className="px-5 py-3 font-medium">สถานะ</th>
-              <th className="px-5 py-3 text-right font-medium">ยอด</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookings.map((b) => (
-              <tr
-                key={b.id}
-                className="border-t border-[color:var(--color-forest-deep)]/8 transition-colors hover:bg-[color:var(--color-bone-soft)]/40"
-              >
-                <td className="px-5 py-4">
-                  <Link
-                    href={`/booking/${b.booking_code}`}
-                    className="font-mono text-[13px] text-[color:var(--color-forest-deep)] hover:text-[color:var(--color-warm-clay)]"
-                  >
-                    {b.booking_code}
-                  </Link>
-                </td>
-                <td className="px-5 py-4 text-[color:var(--color-ink)]/80">{b.room_name}</td>
-                <td className="px-5 py-4 text-[color:var(--color-ink)]/80">
-                  {formatThaiDate(b.check_in)} – {formatThaiDate(b.check_out)}
-                </td>
-                <td className="px-5 py-4">
-                  <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs ring-1 ${STATUS_BADGE[b.status]}`}
-                  >
-                    {BOOKING_STATUS_TH[b.status]}
-                  </span>
-                </td>
-                <td className="px-5 py-4 text-right font-medium text-[color:var(--color-forest-deep)]">
-                  {formatTHB(b.total_amount)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile cards */}
-      <ul className="space-y-4 md:hidden">
-        {bookings.map((b) => (
-          <li key={b.id}>
-            <Link
-              href={`/booking/${b.booking_code}`}
-              className="block rounded-[18px] border border-[color:var(--color-forest-deep)]/10 bg-white/70 p-5 shadow-[0_12px_32px_-22px_rgba(45,55,40,0.25)] transition-colors hover:border-[color:var(--color-warm-clay)]/40"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <span className="font-mono text-sm text-[color:var(--color-forest-deep)]">
-                  {b.booking_code}
-                </span>
-                <span
-                  className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] ring-1 ${STATUS_BADGE[b.status]}`}
-                >
-                  {BOOKING_STATUS_TH[b.status]}
-                </span>
-              </div>
-              <div className="mt-3 text-sm text-[color:var(--color-ink)]/75">
-                {formatThaiDate(b.check_in)} – {formatThaiDate(b.check_out)}
-              </div>
-              <div className="mt-1 text-xs text-[color:var(--color-ink)]/55">
-                ห้อง: {b.room_name}
-                <span className="mx-2">·</span>
-                {b.adults} ผู้ใหญ่
-                {b.children > 0 ? ` · ${b.children} เด็ก` : null}
-              </div>
-              <div className="mt-3 text-right font-medium text-[color:var(--color-forest-deep)]">
-                {formatTHB(b.total_amount)}
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
+  return <AccountDashboard profile={profile} bookings={bookings} />;
 }

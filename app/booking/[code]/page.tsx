@@ -49,10 +49,14 @@ type TaxSettings = {
 
 export default async function BookingReceiptPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string }>;
+  searchParams?: Promise<{ doc?: string }>;
 }) {
   const { code } = await params;
+  const docKind = (await searchParams)?.doc === "receipt" ? "receipt" : "booking";
+  const docTitle = docKind === "receipt" ? "ใบเสร็จรับเงิน" : "ใบยืนยันการจอง";
 
   const session = await getCustomerSession();
   if (!session) redirect("/");
@@ -131,7 +135,8 @@ export default async function BookingReceiptPage({
     minute: "2-digit",
   });
   const ymd = issuedIso.slice(0, 10).replace(/-/g, "");
-  const docNo = `RC-${ymd}-${booking.booking_code.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase()}`;
+  const docPrefix = docKind === "receipt" ? "RC" : "BK";
+  const docNo = `${docPrefix}-${ymd}-${booking.booking_code.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase()}`;
 
   const h = await headers();
   const host = h.get("host") ?? "";
@@ -162,7 +167,7 @@ export default async function BookingReceiptPage({
 
         <div className="lcrcpt page">
           <div className="head">
-            <h1>ใบยืนยันการจอง</h1>
+            <h1>{docTitle}</h1>
             <Image
               className="logo"
               src="/images/brand/landcamp-logo.png"
