@@ -103,23 +103,43 @@ export function AdminLogin() {
       </aside>
 
       {/* ── Form panel ────────────────────────────────────────── */}
-      <main className="relative flex items-center justify-center bg-[color:var(--color-bone)] px-5 py-10 sm:px-8">
-        {/* subtle texture on the form side */}
+      <main className="relative flex min-h-screen flex-col bg-[color:var(--color-bone)] lg:items-center lg:justify-center lg:px-8 lg:py-10">
+        {/* mobile brand hero — curved bottom, the form card overlaps it */}
+        <div className="relative overflow-hidden bg-[color:var(--color-forest-night)] px-6 pb-24 pt-14 text-[color:var(--color-bone)] lg:hidden">
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(120% 90% at 15% 0%, rgba(154,121,91,0.32), transparent 55%), radial-gradient(90% 80% at 100% 100%, rgba(119,132,117,0.34), transparent 60%)",
+            }}
+          />
+          <svg aria-hidden className="absolute inset-0 h-full w-full opacity-[0.10]" preserveAspectRatio="xMidYMid slice" viewBox="0 0 400 300" fill="none" stroke="currentColor" strokeWidth={1.2}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <path key={i} d={`M-20 ${60 + i * 46} C 100 ${30 + i * 46}, 240 ${110 + i * 46}, 440 ${50 + i * 46}`} />
+            ))}
+          </svg>
+          <div className="relative z-10 flex flex-col items-center gap-2.5 text-center">
+            <Wordmark size="lg" color="bone" href="" />
+            <p className="text-[13px] font-light text-[color:var(--color-bone)]/70">
+              พื้นที่ทำงานสำหรับทีมดูแล Villa Khao Yai
+            </p>
+          </div>
+        </div>
+
+        {/* subtle texture on the form side (desktop only) */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-60"
+          className="pointer-events-none absolute inset-0 hidden opacity-60 lg:block"
           style={{
             background:
               "radial-gradient(70% 50% at 50% -10%, rgba(154,121,91,0.08), transparent 60%)",
           }}
         />
 
-        <div className="relative w-full max-w-sm">
-          {/* mobile wordmark */}
-          <div className="mb-9 flex justify-center lg:hidden">
-            <Wordmark size="md" color="ink" href="" />
-          </div>
-
+        {/* form card — overlaps the hero on mobile, plain centered on desktop */}
+        <div className="relative z-10 -mt-9 flex-1 rounded-t-[2rem] bg-[color:var(--color-bone)] px-5 pb-10 pt-9 shadow-[0_-14px_40px_-26px_rgba(45,55,40,0.45)] sm:px-8 lg:mt-0 lg:w-full lg:max-w-sm lg:flex-none lg:rounded-none lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:shadow-none">
+          <div className="mx-auto w-full max-w-sm">
           <div className="mb-8">
             <h2
               className="text-[1.9rem] font-semibold tracking-tight text-[color:var(--color-forest-deep)]"
@@ -207,6 +227,7 @@ export function AdminLogin() {
           <p className="mt-8 text-center text-[12px] font-light text-[color:var(--color-ink)]/40">
             © {new Date().getFullYear()} LandCamp · เฉพาะเจ้าหน้าที่ที่ได้รับอนุญาต
           </p>
+          </div>
         </div>
       </main>
     </div>
