@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Bar,
   BarChart,
@@ -55,6 +55,13 @@ export function CustomerAnalytics({
   metrics: CustomerMetrics;
   memberSince: string;
 }) {
+  // Grow every colored bar / meter from 0 on mount so the page animates in.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   const a = useMemo(() => {
     const n = bookings.length;
     const earn = bookings.filter((b) => EARNING.has(b.status));
@@ -185,17 +192,43 @@ export function CustomerAnalytics({
 
       {/* Room preference */}
       <ChartCard title="ห้องที่ชอบจอง">
-        <div className="flex flex-col gap-3">
-          {a.rooms.map((r) => {
-            const max = a.rooms[0]?.count || 1;
+        <div className="flex flex-col gap-2.5">
+          {a.rooms.map((r, i) => {
+            const maxSpent = Math.max(...a.rooms.map((x) => x.spent), 1);
+            const pct = Math.round((r.spent / maxSpent) * 100);
+            const top = i === 0;
             return (
-              <div key={r.name}>
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <span className="text-[color:var(--color-ink)]/70">{r.name}</span>
-                  <span className="text-[color:var(--color-ink)]/45">{r.count} ครั้ง · ฿{r.spent.toLocaleString("en-US")}</span>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-[color:var(--color-bone-soft)]">
-                  <div className="h-full rounded-full bg-[color:var(--color-warm-clay)]" style={{ width: `${(r.count / max) * 100}%` }} />
+              <div key={r.name} className="flex items-center gap-3">
+                <span
+                  className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                    top ? "bg-[color:var(--color-warm-clay)] text-white" : "bg-[color:var(--color-bone-soft)] text-[color:var(--color-ink)]/55"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-center justify-between gap-2 text-sm">
+                    <span className="flex min-w-0 items-center gap-1.5 text-[color:var(--color-forest-deep)]">
+                      <span className="truncate">{r.name}</span>
+                      {top && (
+                        <span className="flex-shrink-0 rounded-full bg-[color:var(--color-warm-clay)]/12 px-1.5 py-0.5 text-[10px] font-medium text-[color:var(--color-warm-clay)]">
+                          ชอบสุด
+                        </span>
+                      )}
+                    </span>
+                    <span className="flex-shrink-0 text-[color:var(--color-ink)]/45">
+                      {r.count} ครั้ง · ฿{r.spent.toLocaleString("en-US")}
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[color:var(--color-bone-soft)]">
+                    <div
+                      className="h-full rounded-full transition-[width] duration-700 ease-out"
+                      style={{
+                        width: mounted ? `${pct}%` : "0%",
+                        background: top ? "var(--color-warm-clay)" : "var(--color-sage-mid)",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             );
@@ -221,7 +254,7 @@ export function CustomerAnalytics({
                   return (
                     <div key={m.name}>
                       <div className="mb-0.5 flex justify-between text-xs text-[color:var(--color-ink)]/60"><span>{m.name}</span><span>{m.count}</span></div>
-                      <div className="h-2 overflow-hidden rounded-full bg-[color:var(--color-bone-soft)]"><div className="h-full rounded-full bg-[color:var(--color-sage-mid)]" style={{ width: `${(m.count / max) * 100}%` }} /></div>
+                      <div className="h-2 overflow-hidden rounded-full bg-[color:var(--color-bone-soft)]"><div className="h-full rounded-full bg-[color:var(--color-sage-mid)] transition-[width] duration-700 ease-out" style={{ width: mounted ? `${(m.count / max) * 100}%` : "0%" }} /></div>
                     </div>
                   );
                 })}
@@ -257,15 +290,31 @@ export function CustomerAnalytics({
 
       {/* RFM + segment */}
       <ChartCard title="คะแนน RFM และกลุ่มลูกค้า">
-        <div className="flex flex-col gap-3">
-          <Rfm label="Recency (ความใหม่)" score={metrics.rfm.r} />
-          <Rfm label="Frequency (ความถี่)" score={metrics.rfm.f} />
-          <Rfm label="Monetary (มูลค่า)" score={metrics.rfm.m} />
+        {(() => {
+          const tone = healthTone(metrics.health.score);
+          return (
+            <div className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ring-1 ${tone.bg} ${tone.ring}`}>
+              <div className="min-w-0">
+                <div className={`text-sm font-semibold ${tone.text}`}>กลุ่ม{metrics.segment.label}</div>
+                <div className="text-xs text-[color:var(--color-ink)]/50">
+                  {metrics.recencyDays === null ? "ยังไม่เคยจอง" : `จองล่าสุด ${metrics.recencyDays} วันก่อน`}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="text-right leading-none">
+                  <div className={`font-display text-2xl font-bold ${tone.text}`}>{metrics.health.score}</div>
+                  <div className="text-[10px] text-[color:var(--color-ink)]/45">Health · {metrics.health.label}</div>
+                </div>
+                <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: tone.dot }} />
+              </div>
+            </div>
+          );
+        })()}
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <RfmCol label="Recency" sub="ความใหม่" score={metrics.rfm.r} mounted={mounted} />
+          <RfmCol label="Frequency" sub="ความถี่" score={metrics.rfm.f} mounted={mounted} />
+          <RfmCol label="Monetary" sub="มูลค่า" score={metrics.rfm.m} mounted={mounted} />
         </div>
-        <p className="mt-3 text-xs text-[color:var(--color-ink)]/45">
-          {metrics.recencyDays === null ? "ยังไม่เคยจอง" : `จองล่าสุด ${metrics.recencyDays} วันก่อน`}
-          {" · "}กลุ่ม {metrics.segment.label} · Health {metrics.health.score} ({metrics.health.label})
-        </p>
       </ChartCard>
     </div>
   );
@@ -301,16 +350,33 @@ function MiniBox({ label, value, tone }: { label: string; value: string; tone: "
   );
 }
 
-function Rfm({ label, score }: { label: string; score: number }) {
+function healthTone(score: number): { bg: string; text: string; ring: string; dot: string } {
+  if (score >= 80) return { bg: "bg-emerald-50", text: "text-emerald-700", ring: "ring-emerald-200", dot: "#10b981" };
+  if (score >= 50) return { bg: "bg-amber-50", text: "text-amber-700", ring: "ring-amber-200", dot: "#d4a24c" };
+  return { bg: "bg-red-50", text: "text-red-700", ring: "ring-red-200", dot: "#c0563f" };
+}
+
+/** One RFM dimension as a 3-dot meter; dots pop in (staggered) on mount. */
+function RfmCol({ label, sub, score, mounted }: { label: string; sub: string; score: number; mounted: boolean }) {
   return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-xs">
-        <span className="text-[color:var(--color-ink)]/55">{label}</span>
-        <span className="font-medium text-[color:var(--color-forest-deep)]">{score}/3</span>
+    <div className="flex flex-col items-center gap-1.5 rounded-xl bg-[color:var(--color-bone-soft)]/40 px-2 py-3 text-center">
+      <div className="flex gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="h-2.5 w-2.5 rounded-full transition-all duration-500 ease-out"
+            style={{
+              transitionDelay: `${i * 120}ms`,
+              transform: mounted ? "scale(1)" : "scale(0.3)",
+              opacity: mounted ? 1 : 0,
+              background: i < score ? "var(--color-warm-clay)" : "rgba(45,55,40,0.12)",
+            }}
+          />
+        ))}
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-[color:var(--color-bone-soft)]">
-        <div className="h-full rounded-full bg-[color:var(--color-warm-clay)]" style={{ width: `${(score / 3) * 100}%` }} />
-      </div>
+      <div className="text-xs font-semibold text-[color:var(--color-forest-deep)]">{label}</div>
+      <div className="text-[10px] text-[color:var(--color-ink)]/45">{sub}</div>
+      <div className="text-[11px] font-semibold text-[color:var(--color-forest-deep)]">{score}/3</div>
     </div>
   );
 }
