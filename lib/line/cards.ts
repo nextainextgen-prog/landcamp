@@ -26,7 +26,7 @@ export const CARD_DEFAULTS: Record<CardKey, LineCardConfig> = {
     imageUrl: "",
     title: "ยืนยันการจองสำเร็จ ✅",
     body: "สวัสดีคุณ {{name}}\nรหัสจอง {{booking_code}}\nห้อง {{room}}\nเข้าพัก {{check_in}} – {{check_out}}\nยอดรวม {{total}} บาท\n\nขอบคุณที่จองกับ LandCamp Villa 🌲",
-    buttonLabel: "ดูใบจอง",
+    buttonLabel: "ดูเอกสารการจอง",
     buttonUrl: "{{receipt_url}}",
   },
   card_reminder: {
