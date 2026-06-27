@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCustomerSession } from "@/lib/customer/session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { BOOKING_STATUS_TH, formatTHB, formatThaiDate } from "@/lib/account/format";
+import { siteConfig } from "@/data/siteConfig";
 import type { BookingStatus } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -60,14 +61,23 @@ export default async function BookingReceiptPage({
   const booking = row && row.customer_id === session.id ? row : null;
 
   let roomName = "";
+  let guestName = "";
+  let guestPhone = "";
   if (booking) {
-    const { data: room } = await admin
-      .from("rooms")
-      .select("name_th")
-      .eq("id", booking.room_id)
-      .maybeSingle<{ name_th: string }>();
+    const [{ data: room }, { data: customer }] = await Promise.all([
+      admin.from("rooms").select("name_th").eq("id", booking.room_id).maybeSingle<{ name_th: string }>(),
+      admin
+        .from("customers")
+        .select("full_name, phone")
+        .eq("id", row!.customer_id)
+        .maybeSingle<{ full_name: string | null; phone: string | null }>(),
+    ]);
     roomName = room?.name_th ?? "";
+    guestName = customer?.full_name ?? "";
+    guestPhone = customer?.phone ?? "";
   }
+
+  const isPaid = booking?.status === "confirmed" || booking?.status === "completed";
 
   return (
     <main className="min-h-screen bg-[color:var(--color-bone)] px-5 py-12 text-[color:var(--color-ink)]">
@@ -86,6 +96,19 @@ export default async function BookingReceiptPage({
           </div>
         ) : (
           <div className="mt-6 overflow-hidden rounded-[22px] bg-white/80 ring-1 ring-[color:var(--color-forest-deep)]/10 shadow-[0_24px_60px_-30px_rgba(45,55,40,0.35)]">
+            {/* Brand mark — TODO: แทนที่ด้วย <Image> โลโก้จริงเมื่อได้รับไฟล์โลโก้ */}
+            <div className="flex flex-col items-center gap-1 border-b border-[color:var(--color-ink)]/10 px-7 pt-7 pb-5">
+              <span className="font-display text-2xl leading-none text-[color:var(--color-forest-deep)]">
+                Landcamp
+              </span>
+              <span
+                className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-sage-mid)]"
+                style={{ fontFamily: "var(--font-ui)" }}
+              >
+                Villa Khaoyai
+              </span>
+            </div>
+
             <div className="border-b border-[color:var(--color-ink)]/10 px-7 py-6">
               <div className="flex items-center justify-between gap-3">
                 <span
@@ -108,9 +131,23 @@ export default async function BookingReceiptPage({
               </p>
             </div>
 
+            {/* Guest details */}
+            {(guestName || guestPhone) && (
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-b border-[color:var(--color-ink)]/10 px-7 py-6 text-sm">
+                {guestName && <Row label="ชื่อผู้เข้าพัก" value={guestName} />}
+                {guestPhone && <Row label="เบอร์โทร" value={guestPhone} />}
+              </dl>
+            )}
+
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4 px-7 py-6 text-sm">
-              <Row label="เช็คอิน" value={formatThaiDate(booking.check_in)} />
-              <Row label="เช็คเอาท์" value={formatThaiDate(booking.check_out)} />
+              <Row
+                label="เช็คอิน"
+                value={`${formatThaiDate(booking.check_in)} · ${siteConfig.policy.checkIn} น.`}
+              />
+              <Row
+                label="เช็คเอาท์"
+                value={`${formatThaiDate(booking.check_out)} · ${siteConfig.policy.checkOut} น.`}
+              />
               <Row label="จำนวนคืน" value={`${booking.nights} คืน`} />
               <Row
                 label="ผู้เข้าพัก"
@@ -126,6 +163,52 @@ export default async function BookingReceiptPage({
               )}
               <div className="my-2 h-px bg-[color:var(--color-ink)]/10" />
               <PriceRow label="ยอดรวม" value={formatTHB(booking.total_amount)} strong />
+              {isPaid && (
+                <div className="mt-2 flex items-center justify-end gap-1.5 text-xs font-medium text-[color:var(--color-forest-deep)]">
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 20 20"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M16.5 6.5 8.5 14.5 4.5 10.5" />
+                  </svg>
+                  ชำระเงินแล้ว
+                </div>
+              )}
+            </div>
+
+            {/* House rules / เงื่อนไขการเข้าพัก */}
+            <div className="border-t border-[color:var(--color-ink)]/10 px-7 py-6">
+              <h2
+                className="mb-4 text-[11px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
+                style={{ fontFamily: "var(--font-ui)" }}
+              >
+                เงื่อนไขการเข้าพัก
+              </h2>
+              <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-[color:var(--color-ink)]/70">
+                {siteConfig.policy.houseRules.th.map((rule) => (
+                  <li key={rule} className="flex gap-2.5">
+                    <svg
+                      aria-hidden
+                      viewBox="0 0 20 20"
+                      className="mt-1 h-3.5 w-3.5 shrink-0 text-[color:var(--color-warm-clay)]"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M16.5 6.5 8.5 14.5 4.5 10.5" />
+                    </svg>
+                    <span>{rule}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             {booking.notes && (
@@ -141,6 +224,17 @@ export default async function BookingReceiptPage({
                 จะอัปเดตสถานะให้เร็วที่สุด
               </div>
             )}
+
+            {/* Footer — contact */}
+            <div className="border-t border-[color:var(--color-ink)]/10 bg-[color:var(--color-forest-deep)]/[0.03] px-7 py-5 text-center text-sm text-[color:var(--color-ink)]/65">
+              <p>
+                ติดต่อสอบถามเพิ่มเติม โทร{" "}
+                <span className="font-medium text-[color:var(--color-forest-deep)]">
+                  {siteConfig.contact.phone}
+                </span>
+              </p>
+              <p className="mt-1">Facebook : LandCamp Villa Khaoyai</p>
+            </div>
           </div>
         )}
       </div>
