@@ -27,6 +27,16 @@ const MAX_HISTORY = 20;
 let msgSeq = 0;
 const newId = () => `m${++msgSeq}`;
 
+/** Quick-ask chips shown above the input — one tap sends the question. */
+const SUGGESTIONS = [
+  "สรุปภาพรวมวันนี้",
+  "รายได้เดือนนี้",
+  "ห้องว่างคืนนี้",
+  "สลิปที่รอตรวจ",
+  "เช็คอินวันนี้",
+  "ลูกค้าใหม่เดือนนี้",
+];
+
 export function AIChatWidget() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -64,8 +74,8 @@ export function AIChatWidget() {
     });
   }
 
-  async function send() {
-    const text = input.trim();
+  async function send(preset?: string) {
+    const text = (preset ?? input).trim();
     if (!text || loading) return;
     const userMsg: ChatMsg = { id: newId(), role: "user", content: text };
     const next = [...messages, userMsg];
@@ -210,8 +220,23 @@ export function AIChatWidget() {
             )}
           </div>
 
+          {/* Quick-ask chips */}
+          <div className="flex gap-1.5 overflow-x-auto border-t border-[color:var(--color-forest-deep)]/8 bg-white px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                disabled={loading}
+                onClick={() => void send(s)}
+                className="whitespace-nowrap rounded-full border border-[color:var(--color-forest-deep)]/15 bg-[color:var(--color-bone-soft)]/40 px-3 py-1.5 text-xs text-[color:var(--color-forest-deep)] transition-colors hover:border-[color:var(--color-warm-clay)]/40 hover:bg-[color:var(--color-warm-clay)]/10 disabled:opacity-40"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
           {/* Input */}
-          <div className="flex items-center gap-2 border-t border-[color:var(--color-forest-deep)]/8 bg-white px-3 py-2.5">
+          <div className="flex items-center gap-2 bg-white px-3 py-2.5">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -226,7 +251,7 @@ export function AIChatWidget() {
             />
             <button
               type="button"
-              onClick={send}
+              onClick={() => void send()}
               disabled={loading || !input.trim()}
               aria-label="ส่ง"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color:var(--color-warm-clay)] text-white transition-colors hover:bg-[color:var(--color-forest-deep)] disabled:opacity-40"
