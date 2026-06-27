@@ -54,7 +54,7 @@ export function computeCustomerMetrics(
   const m = totalSpent >= 10000 ? 3 : totalSpent >= 3000 ? 2 : 1;
   const code = `${r}${f}${m}`;
 
-  const segment = pickSegment({ r, f, m, totalBookings });
+  const segment = pickSegment({ r, f, m, totalBookings, paidBookings });
 
   // ── Projected lifetime value: avg order × expected future visits. ──
   const clv = paidBookings > 0 ? Math.round(avgOrderValue * (paidBookings + 2)) : 0;
@@ -95,15 +95,19 @@ function pickSegment({
   f,
   m,
   totalBookings,
+  paidBookings,
 }: {
   r: number;
   f: number;
   m: number;
   totalBookings: number;
+  paidBookings: number;
 }): CustomerMetrics["segment"] {
   if (totalBookings === 0) return { key: "prospect", label: "ยังไม่เคยจอง", tone: "neutral" };
+  // "ประจำ" / "ชั้นดี" mean the guest actually came back — require ≥2 real stays
+  // (champion already needs f≥3 ⇒ ≥3 stays). A single recent booking → "ลูกค้าใหม่".
   if (r >= 3 && f >= 3) return { key: "champion", label: "ลูกค้าชั้นดี", tone: "forest" };
-  if (r >= 2 && f >= 2) return { key: "loyal", label: "ลูกค้าประจำ", tone: "sage" };
+  if (paidBookings >= 2 && r >= 2 && f >= 2) return { key: "loyal", label: "ลูกค้าประจำ", tone: "sage" };
   if (r === 1 && f >= 2) return { key: "at_risk", label: "เสี่ยงหาย", tone: "amber" };
   if (r === 1 && f <= 1) return { key: "lost", label: "หายไปแล้ว", tone: "red" };
   if (f <= 1 && m >= 2) return { key: "big_spender", label: "จองใหญ่", tone: "clay" };
