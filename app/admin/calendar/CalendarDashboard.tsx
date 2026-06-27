@@ -16,6 +16,7 @@ import {
   sourceLabel,
   statusColor,
   statusLabel,
+  thaiShortDate,
   ymd,
   type CalBooking,
   type CalRoom,
@@ -57,6 +58,7 @@ export function CalendarDashboard({
   const [roomSel, setRoomSel] = useState<Set<string>>(new Set());
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set());
   const [sourceSel, setSourceSel] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<CalBooking | null>(null);
 
   function shift(dir: number) {
     if (view === "day") setAnchor((a) => addDays(a, dir));
@@ -266,12 +268,91 @@ export function CalendarDashboard({
             </div>
           )}
 
-          {view === "day" && <DayView bookings={visibleBookings} rooms={visibleRooms} anchor={anchor} today={today} />}
-          {view === "week" && <WeekView bookings={visibleBookings} anchor={anchor} today={today} />}
-          {view === "month" && <MonthView bookings={visibleBookings} rooms={visibleRooms} anchor={anchor} today={today} />}
-          {view === "list" && <ListView bookings={visibleBookings} />}
+          {view === "day" && <DayView bookings={visibleBookings} rooms={visibleRooms} anchor={anchor} today={today} onSelect={setSelected} />}
+          {view === "week" && <WeekView bookings={visibleBookings} anchor={anchor} today={today} onSelect={setSelected} />}
+          {view === "month" && <MonthView bookings={visibleBookings} rooms={visibleRooms} anchor={anchor} today={today} onSelect={setSelected} />}
+          {view === "list" && <ListView bookings={visibleBookings} onSelect={setSelected} />}
         </section>
       </div>
+
+      {selected && <BookingDetailModal b={selected} onClose={() => setSelected(null)} />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Booking detail modal — full stay info + link to the customer's profile
+// ─────────────────────────────────────────────
+function BookingDetailModal({ b, onClose }: { b: CalBooking; onClose: () => void }) {
+  const color = statusColor(b.status);
+  const createdLabel = b.createdAt
+    ? new Date(b.createdAt).toLocaleString("th-TH", { day: "numeric", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })
+    : null;
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={onClose} style={{ animation: "fadeIn 120ms ease-out" }}>
+      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+        {/* header */}
+        <div className="flex items-start justify-between gap-3 border-b border-[color:var(--color-forest-deep)]/10 px-5 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[color:var(--color-forest-deep)] to-[color:var(--color-forest-night)] text-base font-semibold text-[color:var(--color-bone)]">
+              {b.customer.slice(0, 1).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-base font-semibold text-[color:var(--color-forest-deep)]">{b.customer}</span>
+                {b.isVip && <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-amber-200">VIP</span>}
+              </div>
+              <div className="font-mono text-[11px] text-[color:var(--color-ink)]/45">{b.code}</div>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="ปิด" className="rounded-md p-1 text-[color:var(--color-ink)]/50 hover:bg-[color:var(--color-bone-soft)]/60">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        {/* status */}
+        <div className="flex items-center gap-2 px-5 pt-4">
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-white" style={{ background: color }}>
+            {statusLabel(b.status)}
+          </span>
+          <span className="text-xs text-[color:var(--color-ink)]/50">{sourceLabel(b.source)}</span>
+        </div>
+
+        {/* details */}
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 text-sm">
+          <Detail label="ห้องพัก" value={b.room} />
+          <Detail label="จำนวนผู้เข้าพัก" value={`${b.guests} คน`} />
+          <Detail label="เช็คอิน" value={thaiShortDate(b.check_in)} />
+          <Detail label="เช็คเอาท์" value={thaiShortDate(b.check_out)} />
+          <Detail label="จำนวนคืน" value={`${b.nights} คืน`} />
+          <Detail label="ยอดรวม" value={`฿${b.total.toLocaleString("en-US")}`} />
+          {b.phone && <Detail label="เบอร์โทร" value={b.phone} />}
+          {createdLabel && <Detail label="วันที่จอง" value={createdLabel} />}
+        </dl>
+
+        {/* actions */}
+        <div className="flex gap-2 border-t border-[color:var(--color-forest-deep)]/10 px-5 py-4">
+          <button type="button" onClick={onClose} className="rounded-xl border border-[color:var(--color-forest-deep)]/15 px-4 py-2 text-sm font-medium text-[color:var(--color-ink)]/70 transition-colors hover:bg-[color:var(--color-bone-soft)]/60">
+            ปิด
+          </button>
+          <Link
+            href={`/admin/customers/${b.customerId}`}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-[color:var(--color-forest-deep)] px-4 py-2 text-sm font-semibold text-[color:var(--color-bone)] transition-colors hover:bg-[color:var(--color-warm-clay)]"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6" /></svg>
+            ไปหน้าโปรไฟล์ลูกค้า
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col">
+      <dt className="text-[11px] uppercase tracking-wide text-[color:var(--color-ink)]/45">{label}</dt>
+      <dd className="text-[color:var(--color-forest-deep)]">{value}</dd>
     </div>
   );
 }

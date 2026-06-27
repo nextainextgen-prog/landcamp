@@ -44,11 +44,13 @@ export function DayView({
   rooms,
   anchor,
   today,
+  onSelect,
 }: {
   bookings: CalBooking[];
   rooms: CalRoom[];
   anchor: Date;
   today: string;
+  onSelect: (b: CalBooking) => void;
 }) {
   const key = ymd(anchor);
   const isToday = key === today;
@@ -205,8 +207,12 @@ export function DayView({
                   return (
                     <div
                       key={b.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onSelect(b)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(b); } }}
                       title={`${b.code} · ${b.customer} · ${b.room} · ${statusLabel(b.status)} · เช็คอิน ${CHECK_IN_H}:00 / เช็คเอาท์ ${CHECK_OUT_H}:00`}
-                      className="absolute left-1 right-1 cursor-default overflow-hidden rounded-lg px-2.5 py-1.5 ring-1 ring-inset ring-black/[0.04] transition-shadow hover:shadow-md"
+                      className="absolute left-1 right-1 cursor-pointer overflow-hidden rounded-lg px-2.5 py-1.5 ring-1 ring-inset ring-black/[0.04] transition-shadow hover:shadow-md"
                       style={{
                         top: geo.top + 2,
                         height: geo.height - 4,
@@ -254,7 +260,7 @@ export function DayView({
 // ─────────────────────────────────────────────
 // WEEK — 7 day columns, each lists that day's stays
 // ─────────────────────────────────────────────
-export function WeekView({ bookings, anchor, today }: { bookings: CalBooking[]; anchor: Date; today: string }) {
+export function WeekView({ bookings, anchor, today, onSelect }: { bookings: CalBooking[]; anchor: Date; today: string; onSelect: (b: CalBooking) => void }) {
   const start = weekStart(anchor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
 
@@ -288,8 +294,12 @@ export function WeekView({ bookings, anchor, today }: { bookings: CalBooking[]; 
               {dayBookings.map((b) => (
                 <div
                   key={b.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onSelect(b)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(b); } }}
                   title={`${b.code} · ${b.customer} · ${b.room}`}
-                  className="overflow-hidden rounded-md px-2 py-1.5"
+                  className="cursor-pointer overflow-hidden rounded-md px-2 py-1.5 transition-shadow hover:shadow-md"
                   style={{ background: softOf(b.status), borderLeft: `3px solid ${statusColor(b.status)}` }}
                 >
                   <p className="truncate text-[11px] font-semibold text-[color:var(--color-forest-deep)]">{b.customer}</p>
@@ -312,11 +322,13 @@ export function MonthView({
   rooms,
   anchor,
   today,
+  onSelect,
 }: {
   bookings: CalBooking[];
   rooms: CalRoom[];
   anchor: Date;
   today: string;
+  onSelect: (b: CalBooking) => void;
 }) {
   const year = anchor.getFullYear();
   const month = anchor.getMonth();
@@ -396,8 +408,12 @@ export function MonthView({
                 {roomBookings.map(({ b, s }) => (
                   <div
                     key={b.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onSelect(b)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(b); } }}
                     title={`${b.code} · ${b.customer} · ${thaiShortDate(b.check_in)}–${thaiShortDate(b.check_out)}`}
-                    className="z-[1] m-1 flex items-center overflow-hidden rounded-md px-2 text-[10px] font-medium text-white"
+                    className="z-[1] m-1 flex cursor-pointer items-center overflow-hidden rounded-md px-2 text-[10px] font-medium text-white transition-shadow hover:shadow-md"
                     style={{ gridColumn: `${s.start} / ${s.end}`, gridRow: 1, background: statusColor(b.status) }}
                   >
                     <span className="truncate">{b.customer}</span>
@@ -415,7 +431,7 @@ export function MonthView({
 // ─────────────────────────────────────────────
 // LIST — flat table of bookings (filtered) sorted by check-in
 // ─────────────────────────────────────────────
-export function ListView({ bookings }: { bookings: CalBooking[] }) {
+export function ListView({ bookings, onSelect }: { bookings: CalBooking[]; onSelect: (b: CalBooking) => void }) {
   const rows = [...bookings].sort((a, b) => a.check_in.localeCompare(b.check_in));
   if (rows.length === 0) {
     return <p className="px-5 py-10 text-center text-sm text-[color:var(--color-ink)]/40">ไม่มีรายการจองตามตัวกรอง</p>;
@@ -436,7 +452,7 @@ export function ListView({ bookings }: { bookings: CalBooking[] }) {
         </thead>
         <tbody>
           {rows.map((b) => (
-            <tr key={b.id} className="border-b border-[color:var(--color-forest-deep)]/6 hover:bg-[color:var(--color-bone-soft)]/30">
+            <tr key={b.id} onClick={() => onSelect(b)} className="cursor-pointer border-b border-[color:var(--color-forest-deep)]/6 hover:bg-[color:var(--color-bone-soft)]/30">
               <td className="px-4 py-2.5 font-mono text-[12px] text-[color:var(--color-forest-deep)]">{b.code}</td>
               <td className="px-4 py-2.5 text-[color:var(--color-ink)]/80">{b.customer}</td>
               <td className="px-4 py-2.5 text-[color:var(--color-ink)]/70">{b.room}</td>
