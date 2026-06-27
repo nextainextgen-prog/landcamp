@@ -96,6 +96,7 @@ const STATUS_ACCENT: Record<BookingStatus, string> = {
 const VERIFY: Record<string, { label: string; cls: string }> = {
   matched: { label: "สลิปตรง (ยอด+บัญชีถูกต้อง)", cls: "bg-emerald-100 text-emerald-800" },
   amount_mismatch: { label: "ยอดไม่ตรง", cls: "bg-amber-100 text-amber-800" },
+  account_mismatch: { label: "บัญชีปลายทางไม่ตรง", cls: "bg-amber-100 text-amber-800" },
   duplicate: { label: "สลิปซ้ำ (เคยใช้แล้ว)", cls: "bg-red-100 text-red-700" },
   unreadable: { label: "อ่านสลิปไม่ออก", cls: "bg-red-100 text-red-700" },
   error: { label: "ระบบตรวจไม่สำเร็จ", cls: "bg-neutral-200 text-neutral-600" },

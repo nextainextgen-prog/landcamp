@@ -141,19 +141,23 @@ export function normalizeAccountDigits(s: string | null | undefined): string {
 }
 
 /**
- * Masked-aware receiver match. EasySlip usually returns the receiver account
- * with only the last 4 digits visible (e.g. "xxx-x-x4019-x"), so we match on the
- * trailing 4 digits against any configured account number. Returns false when the
- * slip exposes fewer than 4 digits (can't safely match).
+ * Masked-aware receiver match. EasySlip returns the receiver account partially
+ * masked, and the revealed digits are NOT always the last four — KBank reveals
+ * the middle (e.g. "xxx-x-x5565-x" for account 126-3-65565-2). So instead of a
+ * fixed last-4 compare, we take each contiguous run of revealed digits (≥4 long)
+ * and check it's a substring of a configured account's digits. A fully-revealed
+ * slip account is treated as one run, so exact matches still work.
  */
 export function slipAccountMatches(
   slipAccount: string | null,
   configured: Array<string | null | undefined>,
 ): boolean {
-  const tail = normalizeAccountDigits(slipAccount).slice(-4);
-  if (tail.length < 4) return false;
+  // Normalise to digits + a single mask marker "x", dropping dashes/spaces.
+  const masked = (slipAccount ?? "").toLowerCase().replace(/[*•]/g, "x").replace(/[^0-9x]/g, "");
+  const runs = masked.split(/x+/).filter((r) => r.length >= 4);
+  if (runs.length === 0) return false;
   return configured.some((acc) => {
     const d = normalizeAccountDigits(acc);
-    return d.length >= 4 && d.slice(-4) === tail;
+    return d.length >= 4 && runs.some((run) => d.includes(run));
   });
 }
