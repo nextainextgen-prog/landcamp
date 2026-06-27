@@ -14,7 +14,7 @@ export default async function AdminOccupancyPage() {
   const admin = createAdminClient();
   const [{ data: rooms }, { data: bookings }] = await Promise.all([
     admin.from("rooms").select("id, name_th").order("display_order"),
-    admin.from("bookings").select("room_id, check_in, check_out, status").neq("status", "cancelled"),
+    admin.from("bookings").select("room_id, check_in, check_out, status, booking_code").neq("status", "cancelled"),
   ]);
 
   const occRooms: OccRoom[] = (rooms ?? []).map((r) => ({ id: r.id as string, name: r.name_th as string }));
@@ -23,6 +23,7 @@ export default async function AdminOccupancyPage() {
     check_in: b.check_in as string,
     check_out: b.check_out as string,
     status: b.status as string,
+    booking_code: (b.booking_code as string) ?? null,
   }));
 
   return (

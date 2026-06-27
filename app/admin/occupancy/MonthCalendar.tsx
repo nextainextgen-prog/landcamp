@@ -18,24 +18,30 @@ type Cell = { date: Date; key: string; booked: number } | null;
 const CARD =
   "rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white shadow-[0_18px_44px_-30px_rgba(45,55,40,0.35)]";
 
-/** Heatmap tint for a day given its occupancy ratio. */
+/**
+ * Status tint for a day given its occupancy ratio:
+ *   ว่าง (none booked)  → เขียว
+ *   มีบางห้องว่าง (partial) → เหลือง (เข้มขึ้นตามสัดส่วนที่จอง)
+ *   เต็ม (ratio ≥ 1)     → แดง
+ */
 function tint(booked: number, roomCount: number): { box: string; text: string; full: boolean } {
   if (roomCount === 0 || booked === 0) {
-    return { box: "bg-[color:var(--color-sage-mid)]/8", text: "text-[color:var(--color-ink)]/40", full: false };
+    return { box: "bg-emerald-500/12", text: "text-emerald-700", full: false };
   }
   const ratio = booked / roomCount;
   if (ratio >= 1) {
-    return { box: "bg-[color:var(--color-warm-clay)]", text: "text-white", full: true };
+    return { box: "bg-red-500", text: "text-white", full: true };
   }
   if (ratio >= 0.5) {
-    return { box: "bg-[color:var(--color-warm-clay)]/35", text: "text-[color:var(--color-forest-deep)]", full: false };
+    return { box: "bg-amber-400/55", text: "text-amber-900", full: false };
   }
-  return { box: "bg-[color:var(--color-warm-clay)]/15", text: "text-[color:var(--color-forest-deep)]", full: false };
+  return { box: "bg-amber-300/30", text: "text-amber-800", full: false };
 }
 
 export function MonthCalendar({ rooms, bookings }: { rooms: OccRoom[]; bookings: OccBooking[] }) {
   const [today] = useState(() => new Date());
   const [offset, setOffset] = useState(0); // months from current
+  const [selected, setSelected] = useState<{ date: Date; key: string; booked: number } | null>(null);
   const roomCount = rooms.length;
   const todayKey = ymd(today);
 
@@ -66,6 +72,17 @@ export function MonthCalendar({ rooms, bookings }: { rooms: OccRoom[]; bookings:
     return { cells, label: `${TH_MONTHS[m]} ${y + 543}` };
   }, [offset, today, active]);
 
+  // Per-room status for the day the user clicked.
+  const dayRooms = useMemo(() => {
+    if (!selected) return [];
+    return rooms.map((r) => {
+      const b = active.find(
+        (x) => x.room_id === r.id && x.check_in <= selected.key && selected.key < x.check_out,
+      );
+      return { room: r, occupied: Boolean(b), code: b?.booking_code ?? null };
+    });
+  }, [selected, rooms, active]);
+
   return (
     <section className={CARD}>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--color-forest-deep)]/8 px-5 py-4">
@@ -77,10 +94,10 @@ export function MonthCalendar({ rooms, bookings }: { rooms: OccRoom[]; bookings:
           {/* legend */}
           <div className="hidden items-center gap-2 text-[11px] text-[color:var(--color-ink)]/55 sm:flex">
             <span>ว่าง</span>
-            <span className="h-3 w-4 rounded bg-[color:var(--color-sage-mid)]/8 ring-1 ring-inset ring-[color:var(--color-forest-deep)]/10" />
-            <span className="h-3 w-4 rounded bg-[color:var(--color-warm-clay)]/15" />
-            <span className="h-3 w-4 rounded bg-[color:var(--color-warm-clay)]/35" />
-            <span className="h-3 w-4 rounded bg-[color:var(--color-warm-clay)]" />
+            <span className="h-3 w-4 rounded bg-emerald-500/12 ring-1 ring-inset ring-emerald-500/25" />
+            <span className="h-3 w-4 rounded bg-amber-300/30" />
+            <span className="h-3 w-4 rounded bg-amber-400/55" />
+            <span className="h-3 w-4 rounded bg-red-500" />
             <span>เต็ม</span>
           </div>
           <div className="flex items-center gap-2">
@@ -109,29 +126,68 @@ export function MonthCalendar({ rooms, bookings }: { rooms: OccRoom[]; bookings:
             const t = tint(c.booked, roomCount);
             const free = roomCount - c.booked;
             return (
-              <div
+              <button
                 key={c.key}
-                title={`${c.date.getDate()} ${view.label} · จอง ${c.booked}/${roomCount} ห้อง`}
-                className={`relative flex aspect-square flex-col rounded-lg p-1.5 ring-1 ring-inset ring-[color:var(--color-forest-deep)]/8 transition-colors sm:aspect-[4/3] sm:p-2 ${t.box} ${isPast ? "opacity-55" : ""} ${isToday ? "outline outline-2 outline-[color:var(--color-forest-deep)]" : ""}`}
+                type="button"
+                onClick={() => setSelected(c)}
+                title={`${c.date.getDate()} ${view.label} · จอง ${c.booked}/${roomCount} ห้อง — คลิกดูรายห้อง`}
+                className={`relative flex aspect-square flex-col rounded-lg p-1.5 text-left ring-1 ring-inset ring-[color:var(--color-forest-deep)]/8 transition-[transform,box-shadow] hover:z-10 hover:shadow-md sm:aspect-[4/3] sm:p-2 ${t.box} ${isPast ? "opacity-55" : ""} ${isToday ? "outline outline-2 outline-[color:var(--color-forest-deep)]" : ""}`}
               >
                 <span className={`text-xs font-semibold leading-none ${t.text}`}>{c.date.getDate()}</span>
                 <span className="mt-auto leading-tight">
                   {c.booked === 0 ? (
-                    <span className="text-[10px] text-[color:var(--color-ink)]/35">ว่าง</span>
+                    <span className="text-[10px] font-medium text-emerald-700">ว่าง</span>
                   ) : t.full ? (
                     <span className="text-[10px] font-semibold text-white">เต็ม</span>
                   ) : (
                     <span className={`text-[10px] font-medium ${t.text}`}>
                       จอง {c.booked}/{roomCount}
-                      <span className="hidden text-[color:var(--color-ink)]/40 sm:inline"> · ว่าง {free}</span>
+                      <span className="hidden opacity-70 sm:inline"> · ว่าง {free}</span>
                     </span>
                   )}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
+
+      {/* Day detail — which rooms are free / occupied */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSelected(null)}>
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[color:var(--color-forest-deep)]/10 px-5 py-3.5">
+              <div>
+                <div className="text-sm font-semibold text-[color:var(--color-forest-deep)]">
+                  {selected.date.getDate()} {view.label}
+                </div>
+                <div className="text-[11px] text-[color:var(--color-ink)]/50">
+                  จอง {selected.booked}/{roomCount} ห้อง · ว่าง {roomCount - selected.booked}
+                </div>
+              </div>
+              <button type="button" onClick={() => setSelected(null)} aria-label="ปิด" className="rounded-md p-1 text-[color:var(--color-ink)]/50 hover:bg-[color:var(--color-bone-soft)]/60">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <ul className="max-h-[60vh] divide-y divide-[color:var(--color-forest-deep)]/8 overflow-y-auto">
+              {dayRooms.map(({ room, occupied, code }) => (
+                <li key={room.id} className="flex items-center gap-3 px-5 py-2.5">
+                  <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${occupied ? "bg-red-500" : "bg-emerald-500"}`} />
+                  <span className="flex-1 text-sm text-[color:var(--color-forest-deep)]">{room.name}</span>
+                  {occupied ? (
+                    <span className="flex items-center gap-2">
+                      {code && <span className="font-mono text-[11px] text-[color:var(--color-ink)]/45">{code}</span>}
+                      <span className="text-xs font-medium text-red-600">ไม่ว่าง</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium text-emerald-600">ว่าง</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

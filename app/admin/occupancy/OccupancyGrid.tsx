@@ -3,13 +3,34 @@
 import { useMemo, useState } from "react";
 
 export type OccRoom = { id: string; name: string };
-export type OccBooking = { room_id: string; check_in: string; check_out: string; status: string };
+export type OccBooking = { room_id: string; check_in: string; check_out: string; status: string; booking_code?: string | null };
 
 const DAYS = 14;
 const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+const TH_MONTHS = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+];
+const TH_MONTHS_SHORT = [
+  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
+];
 
 function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Label for the visible range, e.g. "มิถุนายน 2569" or "มิ.ย. – ก.ค. 2569". */
+function rangeLabel(start: Date, end: Date): string {
+  const sy = start.getFullYear() + 543;
+  const ey = end.getFullYear() + 543;
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${TH_MONTHS[start.getMonth()]} ${sy}`;
+  }
+  if (sy === ey) {
+    return `${TH_MONTHS_SHORT[start.getMonth()]} – ${TH_MONTHS_SHORT[end.getMonth()]} ${sy}`;
+  }
+  return `${TH_MONTHS_SHORT[start.getMonth()]} ${sy} – ${TH_MONTHS_SHORT[end.getMonth()]} ${ey}`;
 }
 
 export function OccupancyGrid({ rooms, bookings }: { rooms: OccRoom[]; bookings: OccBooking[] }) {
@@ -47,12 +68,14 @@ export function OccupancyGrid({ rooms, bookings }: { rooms: OccRoom[]; bookings:
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-[color:var(--color-ink)]/60">
-          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[color:var(--color-warm-clay)]" /> ไม่ว่าง</span>
-          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[color:var(--color-sage-mid)]/25" /> ว่าง</span>
+          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-emerald-400 ring-1 ring-inset ring-emerald-500/30" /> ว่าง</span>
+          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-red-400 ring-1 ring-inset ring-red-500/30" /> ไม่ว่าง</span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setOffset((o) => o - 1)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color:var(--color-forest-deep)]/15 text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">‹</button>
-          <button onClick={() => setOffset(0)} className="rounded-lg border border-[color:var(--color-forest-deep)]/15 px-3 py-1.5 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">วันนี้</button>
+          <button onClick={() => setOffset(0)} title="ไปวันนี้" className="min-w-[150px] rounded-lg border border-[color:var(--color-forest-deep)]/15 px-3 py-1.5 text-center text-sm font-semibold text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">
+            {rangeLabel(days[0].date, days[days.length - 1].date)}
+          </button>
           <button onClick={() => setOffset((o) => o + 1)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color:var(--color-forest-deep)]/15 text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">›</button>
         </div>
       </div>
@@ -66,10 +89,11 @@ export function OccupancyGrid({ rooms, bookings }: { rooms: OccRoom[]; bookings:
               </th>
               {days.map((d) => {
                 const isToday = d.key === todayKey;
+                const isMonthStart = d.date.getDate() === 1;
                 return (
                   <th key={d.key} className="px-1 py-2 text-center">
-                    <div className={`text-[10px] font-medium uppercase ${isToday ? "text-[color:var(--color-warm-clay)]" : "text-[color:var(--color-ink)]/55"}`}>
-                      {WEEKDAYS[d.date.getDay()]}
+                    <div className={`text-[10px] font-medium ${isMonthStart ? "text-[color:var(--color-warm-clay)]" : isToday ? "text-[color:var(--color-warm-clay)]" : "text-[color:var(--color-ink)]/55"}`}>
+                      {isMonthStart ? TH_MONTHS_SHORT[d.date.getMonth()] : WEEKDAYS[d.date.getDay()]}
                     </div>
                     {isToday ? (
                       <div className="mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[color:var(--color-warm-clay)] text-sm font-semibold tabular-nums text-white">
@@ -99,7 +123,7 @@ export function OccupancyGrid({ rooms, bookings }: { rooms: OccRoom[]; bookings:
                       <td key={d.key} className="px-1 py-1">
                         <div
                           title={busy ? "ไม่ว่าง" : "ว่าง"}
-                          className={`mx-auto h-7 rounded ${busy ? "bg-[color:var(--color-warm-clay)]" : "bg-[color:var(--color-sage-mid)]/15"}`}
+                          className={`mx-auto h-7 rounded ring-1 ring-inset ${busy ? "bg-red-400 ring-red-500/30" : "bg-emerald-400 ring-emerald-500/30"}`}
                         />
                       </td>
                     );
