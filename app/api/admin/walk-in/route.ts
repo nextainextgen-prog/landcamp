@@ -5,6 +5,7 @@ import { checkAvailability } from "@/lib/booking/availability";
 import { generateBookingCode } from "@/lib/booking/code";
 import { calculateBookingTotal } from "@/lib/booking/pricing";
 import { WalkInSchema } from "@/lib/schemas/admin-crm";
+import { notifyTeamWalkIn } from "@/lib/notify/booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -197,6 +198,9 @@ export async function POST(req: NextRequest) {
           { status: 500 },
         );
       }
+
+      // Alert the team group (best-effort — never blocks the response).
+      await notifyTeamWalkIn(inserted.id, paid);
 
       return NextResponse.json(
         {

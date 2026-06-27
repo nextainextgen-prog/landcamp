@@ -255,6 +255,31 @@ export async function notifyTeamSlipPending(bookingId: string, verifyStatus: str
   }
 }
 
+/** Fired when staff create a walk-in booking at the counter — full detail + link. */
+export async function notifyTeamWalkIn(bookingId: string, paid: boolean): Promise<void> {
+  try {
+    const admin = createSupabaseAdminClient();
+    const info = await loadTeamBooking(admin, bookingId);
+    if (!info) return;
+    const { b, name, phone, room } = info;
+    await pushToTeamGroup([
+      {
+        type: "text",
+        text:
+          `🧳 จองหน้าร้าน (Walk-in) · ยืนยันแล้ว\n${b.booking_code} · ${room}\n` +
+          `👤 ${nameLine(name, phone)}\n` +
+          `📅 ${thaiDate(b.check_in)} – ${thaiDate(b.check_out)} (${nightsBetween(b.check_in, b.check_out)} คืน)\n` +
+          `🛏️ ${guestText(b.adults, b.children)}\n` +
+          `💰 ${thb(b.total_amount)} บาท · ${paid ? "ชำระแล้ว" : "ยังไม่ชำระ"}\n` +
+          `🧑‍💼 บันทึกหน้าร้านโดยทีมงาน\n` +
+          `👉 เปิดหลังบ้าน: ${adminBookingLink(b.booking_code)}`,
+      },
+    ]);
+  } catch {
+    // best-effort
+  }
+}
+
 /** Fired when a booking is confirmed (auto-verify or admin) — full detail + link. */
 export async function notifyTeamConfirmed(bookingId: string): Promise<void> {
   try {

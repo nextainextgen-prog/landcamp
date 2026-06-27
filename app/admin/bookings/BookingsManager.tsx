@@ -58,6 +58,7 @@ export type BookingRow = {
   notes: string | null;
   checked_in_at: string | null;
   created_at: string;
+  source: string | null;
   payment: {
     amount: number;
     kind: string;
@@ -343,6 +344,51 @@ export function BookingsManager({
     }
   }
 
+  async function attachSlip(id: string, base64: string): Promise<boolean> {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}/slip`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ base64 }),
+      });
+      const d = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        verify_status?: string | null;
+        verify_note?: string | null;
+        slip_image?: string | null;
+      };
+      if (!res.ok || !d.ok) throw new Error(d.error ?? "");
+      setRows((l) =>
+        l.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                payment: {
+                  amount: r.payment?.amount ?? r.total_amount,
+                  kind: r.payment?.kind ?? "full",
+                  status: r.payment?.status ?? "pending",
+                  verify_status: d.verify_status ?? null,
+                  verify_note: d.verify_note ?? null,
+                  slip_image: d.slip_image ?? r.payment?.slip_image ?? null,
+                },
+              }
+            : r,
+        ),
+      );
+      setToast("แนบสลิปแล้ว · บันทึกในประวัติสลิป");
+      setTimeout(() => setToast(null), 2500);
+      return true;
+    } catch (e) {
+      setToast(`แนบสลิปไม่สำเร็จ${e instanceof Error && e.message ? `: ${e.message}` : ""}`);
+      setTimeout(() => setToast(null), 3000);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveNotes(id: string, notes: string) {
     setBusy(true);
     try {
@@ -498,7 +544,7 @@ export function BookingsManager({
             เลือกการจองทางซ้ายเพื่อดูรายละเอียด
           </div>
         ) : (
-          <BookingDetail key={selected.id} r={selected} busy={busy} overlaps={overlaps} onPatch={patch} onResend={resendCard} onZoom={setZoom} onSaveNotes={saveNotes} onSaveEdit={saveEdit} onRecordPayment={recordPayment} onCheckIn={checkIn} />
+          <BookingDetail key={selected.id} r={selected} busy={busy} overlaps={overlaps} onPatch={patch} onResend={resendCard} onZoom={setZoom} onSaveNotes={saveNotes} onSaveEdit={saveEdit} onRecordPayment={recordPayment} onCheckIn={checkIn} onAttachSlip={attachSlip} />
         )}
         {toast && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{toast}</div>}
       </div>
@@ -702,6 +748,7 @@ function BookingDetail({
   onSaveEdit,
   onRecordPayment,
   onCheckIn,
+  onAttachSlip,
 }: {
   r: BookingRow;
   busy: boolean;
@@ -713,8 +760,10 @@ function BookingDetail({
   onSaveEdit: (id: string, edit: { check_in: string; check_out: string; adults: number; children: number; total_amount: number }) => Promise<boolean>;
   onRecordPayment: (id: string, payment: { amount: number; kind: string; method: string }) => Promise<boolean>;
   onCheckIn: (id: string) => Promise<boolean>;
+  onAttachSlip: (id: string, base64: string) => Promise<boolean>;
 }) {
   const c = r.customer;
+  const isWalkIn = r.source === "walk_in";
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
@@ -722,7 +771,23 @@ function BookingDetail({
   const [noteDraft, setNoteDraft] = useState(r.notes ?? "");
   const [copied, setCopied] = useState<"" | "summary" | "map">("");
   const [hkSent, setHkSent] = useState(false);
+  const [slipUploading, setSlipUploading] = useState(false);
   const [audit, setAudit] = useState<{ id: string; actor: string | null; action: string; to_status: string | null; created_at: string }[]>([]);
+
+  async function handleSlipFile(file: File) {
+    setSlipUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("read failed"));
+        reader.readAsDataURL(file);
+      });
+      await onAttachSlip(r.id, dataUrl);
+    } finally {
+      setSlipUploading(false);
+    }
+  }
 
   async function sendHousekeeping() {
     const res = await fetch("/api/admin/housekeeping", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room_id: r.room_id, booking_id: r.id, note: "ทำความสะอาดหลังเช็คเอาท์" }) });
@@ -782,6 +847,16 @@ function BookingDetail({
             ห้องนี้มีการจองช่วงวันที่ทับซ้อน {overlaps.length} รายการ:{" "}
             <span className="font-semibold">{overlaps.map((o) => o.booking_code).join(", ")}</span> — ตรวจสอบก่อนยืนยัน
           </span>
+        </div>
+      )}
+      {isWalkIn && (
+        <div className="flex items-start gap-2 rounded-xl border border-[color:var(--color-forest-deep)]/15 bg-[color:var(--color-bone-soft)]/50 px-3.5 py-2.5 text-xs text-[color:var(--color-forest-deep)]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="mt-px h-4 w-4 flex-shrink-0" aria-hidden>
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          </svg>
+          <span>ลูกค้า <strong>Walk-in</strong> · จองหน้าร้านโดยทีมงาน (ไม่ใช่การจองออนไลน์)</span>
         </div>
       )}
       {/* Customer */}
@@ -869,6 +944,29 @@ function BookingDetail({
           ) : (
             <p className="text-xs text-[color:var(--color-ink)]/45">ยังไม่มีสลิป</p>
           )}
+
+          {/* Admin slip attach — evidence + EasySlip check; never blocks manual confirm. */}
+          <label className="mt-1 inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-[color:var(--color-forest-deep)]/20 bg-white px-3 py-2 text-xs font-medium text-[color:var(--color-forest-deep)] transition-colors hover:bg-[color:var(--color-bone-soft)]/60 has-[:disabled]:cursor-default has-[:disabled]:opacity-50">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={busy || slipUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleSlipFile(file);
+                e.target.value = "";
+              }}
+            />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <path d="M17 8l-5-5-5 5M12 3v12" />
+            </svg>
+            {slipUploading ? "กำลังตรวจสลิป…" : r.payment.slip_image ? "แนบสลิปใหม่ / ตรวจอีกครั้ง" : "แนบสลิป (หลักฐานการเงิน)"}
+          </label>
+          <p className="text-[11px] text-[color:var(--color-ink)]/40">
+            ระบบจะตรวจสลิปด้วย EasySlip และบันทึกลงประวัติสลิป · หาก QR อ่านไม่ได้ ยังยืนยันการจองเองได้ด้านล่าง
+          </p>
         </div>
       )}
 

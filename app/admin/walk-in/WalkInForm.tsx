@@ -158,7 +158,13 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
     <form onSubmit={onSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
       <div className="flex flex-col gap-6">
         {result?.kind === "error" && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">❌ {result.message}</div>
+          <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 flex-shrink-0" aria-hidden>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M15 9l-6 6M9 9l6 6" />
+            </svg>
+            {result.message}
+          </div>
         )}
 
         <Panel title="ข้อมูลผู้เข้าพัก">
@@ -267,9 +273,19 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
           </div>
           <div className="flex flex-col gap-3 p-5 text-sm">
             {result?.kind === "ok" && (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-emerald-800">
-                ✅ บันทึกแล้ว — <span className="font-mono font-semibold">{result.bookingCode}</span><br />
-                ยอด {baht(result.total)} · {result.paid ? "ชำระแล้ว" : "ยังไม่ชำระ"}
+              <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-emerald-800">
+                <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
+                    <path d="M5 12l5 5L20 7" />
+                  </svg>
+                </span>
+                <div className="leading-relaxed">
+                  <div className="font-semibold">บันทึกการจองแล้ว</div>
+                  <div className="font-mono text-[13px]">{result.bookingCode}</div>
+                  <div className="text-[13px] text-emerald-700">
+                    ยอด {baht(result.total)} · {result.paid ? "ชำระแล้ว" : "ยังไม่ชำระ"}
+                  </div>
+                </div>
               </div>
             )}
 
