@@ -6,6 +6,7 @@ import { requireSection } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader, Panel, Metric, MetricStrip, Badge, DataTable, EmptyState } from "@/components/admin/ui";
 import { RevenueAreaChart, StatusDonut, BookingTrendChart } from "./DashboardCharts";
+import { DashboardToolbar } from "./DashboardToolbar";
 import type { BookingStatus } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -53,14 +54,23 @@ function heatStyle(ratio: number): { background: string; color: string } {
   return { background: `rgba(77,88,75,${a})`, color: ratio > 0.55 ? "rgba(245,241,234,0.95)" : "rgba(26,24,20,0.55)" };
 }
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ym?: string }>;
+}) {
   if (!(await requireSection("bookings")).ok) redirect("/admin");
 
   const admin = createAdminClient();
   const today = bangkokToday();
-  const currentYM = today.slice(0, 7);
-  const [yStr, mStr] = currentYM.split("-");
+  const sp = await searchParams;
+  // The monthly KPIs cover the selected month (?ym=YYYY-MM, default = current).
+  // Operational cards (today / next 14 days) always use the real `today`.
+  const selectedYM =
+    typeof sp.ym === "string" && /^\d{4}-\d{2}$/.test(sp.ym) ? sp.ym : today.slice(0, 7);
+  const [yStr, mStr] = selectedYM.split("-");
   const daysInMonth = new Date(Number(yStr), Number(mStr), 0).getDate();
+  const monthShort = MONTHS_TH[Number(mStr) - 1];
   const sevenDaysAgo = isoDaysAgo(7);
 
   const [
@@ -113,7 +123,7 @@ export default async function AdminDashboardPage() {
     if (EARNING.has(status)) {
       revenueTotal += total;
       revByMonth.set(created.slice(0, 7), (revByMonth.get(created.slice(0, 7)) ?? 0) + total);
-      if (checkIn.slice(0, 7) === currentYM) {
+      if (checkIn.slice(0, 7) === selectedYM) {
         revenueMonth += total;
         roomNightsMonth += (b.nights as number) ?? 0;
         staysMonth += 1;
@@ -124,7 +134,7 @@ export default async function AdminDashboardPage() {
       pendingPaymentCount += 1;
       outstanding += total;
     }
-    if (status === "cancelled" && created.slice(0, 7) === currentYM) cancelledValueMonth += total;
+    if (status === "cancelled" && created.slice(0, 7) === selectedYM) cancelledValueMonth += total;
   }
 
   // payments (cash flow)
@@ -133,7 +143,7 @@ export default async function AdminDashboardPage() {
   for (const p of payments) {
     if (p.status !== "paid") continue;
     const when = ((p.paid_at as string) ?? (p.created_at as string) ?? "").slice(0, 7);
-    if (when === currentYM) collectedMonth += (p.amount as number) ?? 0;
+    if (when === selectedYM) collectedMonth += (p.amount as number) ?? 0;
     const m = (p.method as string) || "อื่นๆ";
     methodCount[m] = (methodCount[m] ?? 0) + 1;
   }
@@ -153,7 +163,7 @@ export default async function AdminDashboardPage() {
 
   // 6-month revenue series
   const revenueSeries: { month: string; revenue: number }[] = [];
-  const base = new Date(`${currentYM}-01T00:00:00Z`);
+  const base = new Date(`${selectedYM}-01T00:00:00Z`);
   for (let i = 5; i >= 0; i--) {
     const d = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() - i, 1));
     const ym = d.toISOString().slice(0, 7);
@@ -275,8 +285,10 @@ export default async function AdminDashboardPage() {
   const todayLabel = new Date(today).toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long" });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="dashboard-print flex flex-col gap-6">
       <PageHeader title="ภาพรวม" description="สรุปการจองและรายได้ของ LandCamp" />
+
+      <DashboardToolbar selectedYM={selectedYM} currentYM={today.slice(0, 7)} />
 
       {/* ── Action Center ── */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -288,12 +300,12 @@ export default async function AdminDashboardPage() {
 
       {/* ── Hotel metrics ── */}
       <MetricStrip cols={6}>
-        <Metric primary label="รายได้เดือนนี้" value={baht(revenueMonth)} foot="ตามวันเข้าพัก" />
+        <Metric primary label={`รายได้ ${monthShort}`} value={baht(revenueMonth)} foot="ตามวันเข้าพัก" />
         <Metric label="Occupancy วันนี้" value={`${occupancyToday}%`} foot={`${occupiedToday}/${roomCount} ห้อง`} accent="forest" />
         <Metric label="ADR" value={baht(adr)} foot="ราคาเฉลี่ย/คืน" accent="sage" />
         <Metric label="RevPAR" value={baht(revpar)} foot="ต่อห้องเปิดขาย" accent="sage" />
         <Metric label="ALOS" value={alos.toFixed(1)} foot="คืน/การเข้าพัก" accent="neutral" />
-        <Metric label="Room-nights" value={roomNightsMonth} foot="ขายได้เดือนนี้" accent="neutral" />
+        <Metric label="Room-nights" value={roomNightsMonth} foot={`ขายได้ ${monthShort}`} accent="neutral" />
       </MetricStrip>
 
       {/* ── Daily ops (2/3) + Finance (1/3) ── */}
@@ -312,8 +324,8 @@ export default async function AdminDashboardPage() {
 
         <Panel title="การเงิน" bodyClassName="flex flex-col gap-1">
           <FinanceRow label="ค้างชำระ" value={baht(outstanding)} hint={`${pendingPaymentCount} รายการ`} tone="amber" />
-          <FinanceRow label="รับชำระเดือนนี้" value={baht(collectedMonth)} hint={methodSummary || "—"} tone="forest" />
-          <FinanceRow label="ยกเลิกเดือนนี้" value={baht(cancelledValueMonth)} hint={`${statusCounts.cancelled ?? 0} รายการรวม`} tone="neutral" />
+          <FinanceRow label={`รับชำระ ${monthShort}`} value={baht(collectedMonth)} hint={methodSummary || "—"} tone="forest" />
+          <FinanceRow label={`ยกเลิก ${monthShort}`} value={baht(cancelledValueMonth)} hint={`${statusCounts.cancelled ?? 0} รายการรวม`} tone="neutral" />
           <FinanceRow label="รายได้รวมสะสม" value={baht(revenueTotal)} hint="ยืนยันทั้งหมด" tone="sage" last />
         </Panel>
       </div>

@@ -307,6 +307,26 @@ body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  /* Admin dashboard "Save PDF / Print": isolate the dashboard so the sidebar /
+     topbar chrome doesn't print. Scoped with :has() so the receipt (.lcrcpt)
+     print rules above are untouched. */
+  body:has(.dashboard-print) * {
+    visibility: hidden;
+  }
+  body:has(.dashboard-print) .dashboard-print,
+  body:has(.dashboard-print) .dashboard-print * {
+    visibility: visible;
+  }
+  body:has(.dashboard-print) .dashboard-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
   .lcrcpt.page{ max-width:none; padding:0; box-shadow:none; margin:0; font-size:13px; line-height:1.42; }
   .lcrcpt .head{ margin-bottom:10px; }
   .lcrcpt h1{ font-size:24px; }
