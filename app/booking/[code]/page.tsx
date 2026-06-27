@@ -1,5 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import QRCode from "qrcode";
 
 import { getCustomerSession } from "@/lib/customer/session";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -54,30 +57,64 @@ export default async function BookingReceiptPage({
   const { data: row } = await admin
     .from("bookings")
     .select(
-      "booking_code, customer_id, room_id, check_in, check_out, adults, children, extra_bed, nights, base_amount, extra_bed_amount, total_amount, status, notes, created_at",
+      "id, booking_code, customer_id, room_id, check_in, check_out, adults, children, extra_bed, nights, base_amount, extra_bed_amount, total_amount, status, notes, created_at",
     )
     .eq("booking_code", code)
-    .maybeSingle<BookingRow & { customer_id: string }>();
+    .maybeSingle<BookingRow & { id: string; customer_id: string }>();
   const booking = row && row.customer_id === session.id ? row : null;
 
   let roomName = "";
   let guestName = "";
   let guestPhone = "";
+  let slipRef: string | null = null;
+  let paidAt: string | null = null;
   if (booking) {
-    const [{ data: room }, { data: customer }] = await Promise.all([
+    const [{ data: room }, { data: customer }, { data: payment }] = await Promise.all([
       admin.from("rooms").select("name_th").eq("id", booking.room_id).maybeSingle<{ name_th: string }>(),
       admin
         .from("customers")
         .select("full_name, phone")
-        .eq("id", row!.customer_id)
+        .eq("id", booking.customer_id)
         .maybeSingle<{ full_name: string | null; phone: string | null }>(),
+      admin
+        .from("payments")
+        .select("trans_ref, paid_at")
+        .eq("booking_id", booking.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle<{ trans_ref: string | null; paid_at: string | null }>(),
     ]);
     roomName = room?.name_th ?? "";
     guestName = customer?.full_name ?? "";
     guestPhone = customer?.phone ?? "";
+    slipRef = payment?.trans_ref ?? null;
+    paidAt = payment?.paid_at ?? null;
   }
 
   const isPaid = booking?.status === "confirmed" || booking?.status === "completed";
+
+  // เอกสารอ้างอิง: เลขที่ใบเสร็จรันตามวันที่ + QR สแกนดูเอกสาร
+  // (เลขรันแบบ sequential ตามกฎหมายจะเปิดใช้เมื่อรันตาราง receipts บน DB จริง)
+  let docNo = "";
+  let issueDate = "";
+  let qrSvg = "";
+  if (booking) {
+    const issuedIso = paidAt ?? booking.created_at;
+    issueDate = formatThaiDate(issuedIso);
+    const ymd = issuedIso.slice(0, 10).replace(/-/g, "");
+    const suffix = booking.booking_code.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase();
+    docNo = `RC-${ymd}-${suffix}`;
+
+    const h = await headers();
+    const host = h.get("host") ?? "";
+    const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+    const receiptUrl = `${proto}://${host}/booking/${booking.booking_code}`;
+    qrSvg = await QRCode.toString(receiptUrl, {
+      type: "svg",
+      margin: 0,
+      color: { dark: "#1a1814", light: "#00000000" },
+    });
+  }
 
   return (
     <main className="min-h-screen bg-[color:var(--color-bone)] px-5 py-12 text-[color:var(--color-ink)]">
@@ -96,17 +133,16 @@ export default async function BookingReceiptPage({
           </div>
         ) : (
           <div className="mt-6 overflow-hidden rounded-[22px] bg-white/80 ring-1 ring-[color:var(--color-forest-deep)]/10 shadow-[0_24px_60px_-30px_rgba(45,55,40,0.35)]">
-            {/* Brand mark — TODO: แทนที่ด้วย <Image> โลโก้จริงเมื่อได้รับไฟล์โลโก้ */}
-            <div className="flex flex-col items-center gap-1 border-b border-[color:var(--color-ink)]/10 px-7 pt-7 pb-5">
-              <span className="font-display text-2xl leading-none text-[color:var(--color-forest-deep)]">
-                Landcamp
-              </span>
-              <span
-                className="text-[10px] uppercase tracking-[0.42em] text-[color:var(--color-sage-mid)]"
-                style={{ fontFamily: "var(--font-ui)" }}
-              >
-                Villa Khaoyai
-              </span>
+            {/* Brand logo */}
+            <div className="flex justify-center border-b border-[color:var(--color-ink)]/10 px-7 pt-7 pb-5">
+              <Image
+                src="/images/brand/landcamp-logo.png"
+                alt="LandCamp Villa Khaoyai"
+                width={2000}
+                height={667}
+                priority
+                className="h-auto w-[210px]"
+              />
             </div>
 
             <div className="border-b border-[color:var(--color-ink)]/10 px-7 py-6">
@@ -181,6 +217,55 @@ export default async function BookingReceiptPage({
                 </div>
               )}
             </div>
+
+            {/* Receipt reference + QR (แสดงเมื่อชำระเงินแล้ว) */}
+            {isPaid && (
+              <div className="flex items-start justify-between gap-5 border-t border-[color:var(--color-ink)]/10 px-7 py-6">
+                <dl className="flex flex-col gap-3 text-sm">
+                  <div className="flex flex-col gap-1">
+                    <dt
+                      className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
+                      style={{ fontFamily: "var(--font-ui)" }}
+                    >
+                      เลขที่ใบเสร็จ
+                    </dt>
+                    <dd className="font-mono font-medium text-[color:var(--color-forest-deep)]">{docNo}</dd>
+                  </div>
+                  {slipRef && (
+                    <div className="flex flex-col gap-1">
+                      <dt
+                        className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
+                        style={{ fontFamily: "var(--font-ui)" }}
+                      >
+                        เลขอ้างอิงสลิป
+                      </dt>
+                      <dd className="break-all font-mono text-xs text-[color:var(--color-ink)]/70">{slipRef}</dd>
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    <dt
+                      className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-ink)]/50"
+                      style={{ fontFamily: "var(--font-ui)" }}
+                    >
+                      วันที่ออกเอกสาร
+                    </dt>
+                    <dd className="font-medium text-[color:var(--color-forest-deep)]">{issueDate}</dd>
+                  </div>
+                </dl>
+                <div className="flex shrink-0 flex-col items-center gap-1.5">
+                  <div
+                    className="rounded-xl bg-white p-2 ring-1 ring-[color:var(--color-ink)]/10 [&>svg]:h-24 [&>svg]:w-24"
+                    dangerouslySetInnerHTML={{ __html: qrSvg }}
+                  />
+                  <span
+                    className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--color-ink)]/45"
+                    style={{ fontFamily: "var(--font-ui)" }}
+                  >
+                    สแกนดูเอกสาร
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* House rules / เงื่อนไขการเข้าพัก */}
             <div className="border-t border-[color:var(--color-ink)]/10 px-7 py-6">
