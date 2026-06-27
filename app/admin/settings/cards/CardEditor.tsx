@@ -220,8 +220,8 @@ export function CardEditor({
         <div className="rounded-xl border border-[color:var(--color-forest-deep)]/12 bg-[color:var(--color-bone-soft)]/40 p-4">
           <Label>ทดสอบส่งจริง</Label>
           <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--color-ink)]/55">
-            กรอก UUID ของการจองเพื่อส่งการ์ดนี้ไปยังลูกค้าจริงทาง LINE ก่อนใช้งาน
-            (ใช้ค่าจริงจากการจองนั้น)
+            กรอก UUID ของการจอง หรือ ลูกค้า เพื่อส่งการ์ดนี้ทาง LINE ก่อนใช้งาน —
+            ถ้าเป็น UUID การจองจะใช้ค่าจริง ถ้าเป็นลูกค้า (ไม่มีการจอง) จะใช้ข้อมูลตัวอย่าง
           </p>
           <input
             className={`${inputCls} mt-2.5 font-mono text-xs`}
