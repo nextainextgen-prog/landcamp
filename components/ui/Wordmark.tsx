@@ -16,8 +16,8 @@ const sizeMap = {
 
 /**
  * LandCamp typographic wordmark. No image logo — the brand identity is
- * the typeface itself. "LandCamp" in Inter semibold tight-tracked, with
- * "Villa Khao Yai" in Inter caps tracked wide directly beneath.
+ * the typeface itself. Both lines share the serif face: "LandCamp" tight-
+ * tracked, with "Villa Khao Yai" in serif caps tracked wide directly beneath.
  */
 export function Wordmark({
   size = "md",
@@ -47,11 +47,10 @@ export function Wordmark({
       </span>
       <span
         className={cn(
-          "uppercase font-light opacity-80",
+          "font-serif uppercase font-normal opacity-80",
           s.sub,
           s.gap,
         )}
-        style={{ fontFamily: "var(--font-ui)" }}
       >
         Villa Khao Yai
       </span>
