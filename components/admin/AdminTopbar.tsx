@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import type { AdminRole } from "@/lib/admin/sections";
 import { topbarMeta } from "@/lib/admin/topbar";
+import { AdminGlobalSearch } from "./AdminGlobalSearch";
 
 const SEEN_KEY = "lc_admin_notif_seen";
 const POLL_MS = 60_000;
@@ -18,14 +19,6 @@ type Notice = {
   href: string;
   ts: string;
   priority?: boolean;
-};
-
-type Hit = {
-  id: string;
-  kind: "customer" | "booking";
-  title: string;
-  subtitle: string;
-  href: string;
 };
 
 /* ── tiny inline icons ───────────────────────────────────────── */
@@ -95,8 +88,8 @@ export function AdminTopbar({
   const [refreshing, startRefresh] = useTransition();
   const refresh = () => startRefresh(() => router.refresh());
 
-  /* ── which dropdown is open ── */
-  const [panel, setPanel] = useState<null | "bell" | "user" | "search">(null);
+  /* ── which dropdown is open (search owns its own state in AdminGlobalSearch) ── */
+  const [panel, setPanel] = useState<null | "bell" | "user">(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -155,45 +148,8 @@ export function AdminTopbar({
     setSeenAt(now);
   };
 
-  /* ── search ── */
-  const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<Hit[]>([]);
-  const [searching, setSearching] = useState(false);
-
-  useEffect(() => {
-    const q = query.trim();
-    const ctrl = new AbortController();
-    const t = window.setTimeout(async () => {
-      if (q.length < 1) {
-        setHits([]);
-        setSearching(false);
-        return;
-      }
-      setSearching(true);
-      try {
-        const res = await fetch(`/api/admin/search?q=${encodeURIComponent(q)}`, {
-          cache: "no-store",
-          signal: ctrl.signal,
-        });
-        if (res.ok) {
-          const json = (await res.json()) as { items?: Hit[] };
-          setHits(json.items ?? []);
-        }
-      } catch {
-        /* aborted / transient */
-      } finally {
-        setSearching(false);
-      }
-    }, 200);
-    return () => {
-      ctrl.abort();
-      window.clearTimeout(t);
-    };
-  }, [query]);
-
   const go = (href: string) => {
     setPanel(null);
-    setQuery("");
     router.push(href);
   };
 
@@ -233,50 +189,12 @@ export function AdminTopbar({
           )}
         </div>
 
-        {/* search */}
-        <div className="relative ml-auto hidden md:block">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--color-ink)]/35">
-            <I name="search" className="h-4 w-4" />
-          </span>
-          <input
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPanel("search");
-            }}
-            onFocus={() => setPanel("search")}
-            placeholder="ค้นหาลูกค้า ชื่อ / เบอร์ / Email..."
-            className="w-[260px] rounded-full border border-[color:var(--color-forest-deep)]/12 bg-white/70 py-2 pl-9 pr-3 text-sm text-[color:var(--color-ink)] outline-none transition-[width,box-shadow] placeholder:text-[color:var(--color-ink)]/35 focus:w-[320px] focus:border-[color:var(--color-warm-clay)]/40 focus:ring-2 focus:ring-[color:var(--color-warm-clay)]/15 lg:w-[300px]"
-          />
-          {panel === "search" && query.trim().length > 0 && (
-            <div className="absolute right-0 mt-2 w-[360px] overflow-hidden rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-white shadow-xl shadow-black/5">
-              {searching && hits.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-[color:var(--color-ink)]/45">กำลังค้นหา…</div>
-              ) : hits.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-[color:var(--color-ink)]/45">ไม่พบผลลัพธ์</div>
-              ) : (
-                <ul className="max-h-[60vh] overflow-y-auto py-1">
-                  {hits.map((h) => (
-                    <li key={`${h.kind}-${h.id}`}>
-                      <button
-                        type="button"
-                        onClick={() => go(h.href)}
-                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[color:var(--color-bone-soft)]"
-                      >
-                        <span className={clsx("flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full", h.kind === "customer" ? "bg-indigo-100 text-indigo-700" : "bg-emerald-100 text-emerald-700")}>
-                          <I name={h.kind} className="h-4 w-4" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-[color:var(--color-forest-deep)]">{h.title}</span>
-                          <span className="block truncate text-[12px] text-[color:var(--color-ink)]/50">{h.subtitle}</span>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+        {/* admin search: jump to a page/menu, or find a customer/booking */}
+        <div className="ml-auto hidden md:block">
+          <AdminGlobalSearch variant="desktop" />
+        </div>
+        <div className="ml-auto md:hidden">
+          <AdminGlobalSearch variant="mobile" />
         </div>
 
         {/* refresh */}
@@ -286,7 +204,7 @@ export function AdminTopbar({
           title="รีโหลดข้อมูล"
           onClick={refresh}
           disabled={refreshing}
-          className={clsx(iconBtn, "ml-auto md:ml-0", refreshing && "cursor-wait")}
+          className={clsx(iconBtn, "md:ml-0", refreshing && "cursor-wait")}
         >
           <I name="refresh" className={clsx("h-[18px] w-[18px]", refreshing && "animate-spin")} />
         </button>
