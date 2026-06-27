@@ -169,14 +169,12 @@ export function KvForm({
                   {f.label}
                 </span>
                 {url ? (
-                  <div className="relative overflow-hidden rounded-lg border border-[color:var(--color-forest-deep)]/15">
+                  <div
+                    className="relative w-full max-w-[280px] overflow-hidden rounded-lg border border-[color:var(--color-forest-deep)]/15"
+                    style={{ aspectRatio: f.aspect ?? "16/9" }}
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={url}
-                      alt="ตัวอย่างรูปประกาศ"
-                      className="w-full object-cover"
-                      style={{ aspectRatio: f.aspect ?? "16/9" }}
-                    />
+                    <img src={url} alt="ตัวอย่างรูปประกาศ" className="h-full w-full object-cover" />
                     <button
                       type="button"
                       onClick={() => set(f.name, "")}
@@ -187,7 +185,7 @@ export function KvForm({
                   </div>
                 ) : (
                   <label
-                    className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-[color:var(--color-forest-deep)]/25 bg-[color:var(--color-bone-soft)]/30 px-4 py-8 text-sm text-[color:var(--color-ink)]/60 transition-colors hover:border-[color:var(--color-warm-clay)]"
+                    className="flex w-full max-w-[280px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-[color:var(--color-forest-deep)]/25 bg-[color:var(--color-bone-soft)]/30 text-sm text-[color:var(--color-ink)]/60 transition-colors hover:border-[color:var(--color-warm-clay)]"
                     style={{ aspectRatio: f.aspect ?? "16/9" }}
                   >
                     <input
@@ -201,6 +199,20 @@ export function KvForm({
                         e.target.value = "";
                       }}
                     />
+                    <svg
+                      aria-hidden
+                      viewBox="0 0 24 24"
+                      className="h-6 w-6 text-[color:var(--color-forest-deep)]/40"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="m21 15-5-5L5 21" />
+                    </svg>
                     {busy ? "กำลังอัปโหลด…" : "คลิกเพื่ออัปโหลดรูป"}
                   </label>
                 )}
