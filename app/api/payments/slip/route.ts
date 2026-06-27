@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { BOOKING_HOLD_MS } from "@/lib/booking/hold";
 import { confirmBookingPaid } from "@/lib/booking/confirm";
+import { notifyTeamSlipPending } from "@/lib/notify/booking";
 import { verifyBankSlip } from "@/lib/easyslip";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCustomerSession } from "@/lib/customer/session";
@@ -248,6 +249,12 @@ export async function POST(request: NextRequest) {
     kind: "slip_submitted",
     payload: { booking_id: booking.id, payment_id: payment.id, verify_status: verifyStatus, decision },
   });
+
+  // Alert the team group only when the slip needs human action — a "matched"
+  // slip already auto-confirmed (which sends its own confirmation alert).
+  if (decision === "review" || decision === "duplicate") {
+    await notifyTeamSlipPending(booking.id, verifyStatus);
+  }
 
   const CUSTOMER_MESSAGE = {
     confirmed: "ชำระเงินสำเร็จ ยืนยันการจองเรียบร้อยแล้ว ขอบคุณครับ",

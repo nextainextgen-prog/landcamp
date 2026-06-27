@@ -7,6 +7,7 @@ import { calculateBookingTotal } from "@/lib/booking/pricing";
 import { CreateBookingSchema } from "@/lib/schemas/booking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCustomerSession } from "@/lib/customer/session";
+import { notifyTeamNewBooking } from "@/lib/notify/booking";
 import { PUBLIC_BOOKING_ENABLED } from "@/lib/features";
 
 export const runtime = "nodejs";
@@ -177,6 +178,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!insertErr && inserted) {
+      // Alert the team group that a new online booking is awaiting payment.
+      await notifyTeamNewBooking(inserted.id as string);
       const createdAtMs = new Date(inserted.created_at as string).getTime();
       return NextResponse.json(
         {

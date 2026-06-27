@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { holdExpiryCutoffIso } from "@/lib/booking/hold";
-import { sendBookingReminder } from "@/lib/notify/booking";
+import { notifyTeamDailyDigest, sendBookingReminder } from "@/lib/notify/booking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -93,5 +93,8 @@ export async function GET(request: NextRequest) {
     // reminders are best-effort — never fail the cron over them
   }
 
-  return NextResponse.json({ cancelled: data?.length ?? 0, reminded, cutoff });
+  // ── Team morning digest: today's arrivals + departures ──
+  const digest = await notifyTeamDailyDigest(bangkokDatePlusDays(Date.now(), 0));
+
+  return NextResponse.json({ cancelled: data?.length ?? 0, reminded, digest, cutoff });
 }
