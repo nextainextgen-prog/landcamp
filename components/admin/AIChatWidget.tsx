@@ -119,8 +119,7 @@ export function AIChatWidget() {
           </svg>
         ) : (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" aria-hidden>
-            <path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.8A8.5 8.5 0 1 1 21 11.5Z" />
-            <path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" />
+            <path d="M3.5 21 14 3M20.5 21 10 3M15.5 21 12 15l-3.5 6M2 21h20" />
           </svg>
         )}
         {!open && unread && (
@@ -135,7 +134,7 @@ export function AIChatWidget() {
           <header className="flex items-center gap-2.5 border-b border-[color:var(--color-forest-deep)]/8 bg-[color:var(--color-bone-soft)]/50 px-4 py-3">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--color-warm-clay)]/15 text-[color:var(--color-warm-clay)]">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
-                <path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.8A8.5 8.5 0 1 1 21 11.5Z" />
+                <path d="M3.5 21 14 3M20.5 21 10 3M15.5 21 12 15l-3.5 6M2 21h20" />
               </svg>
             </span>
             <div className="flex-1">

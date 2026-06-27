@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { requireAdmin } from "@/lib/admin/guard";
-import { getGeminiClient, GEMINI_MODEL, buildSystemPrompt } from "@/lib/ai/client";
+import { getGeminiClient, buildSystemPrompt, generateContentResilient, isTransientGeminiError } from "@/lib/ai/client";
 import { functionDeclarations, dispatchFunction } from "@/lib/ai/functions";
 
 export const runtime = "nodejs";
@@ -59,8 +59,7 @@ export async function POST(request: NextRequest) {
 
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const res = await ai.models.generateContent({
-        model: GEMINI_MODEL,
+      const res = await generateContentResilient(ai, {
         contents,
         config: { systemInstruction, tools: [{ functionDeclarations }], temperature: 0.3 },
       });
@@ -89,6 +88,12 @@ export async function POST(request: NextRequest) {
     // Tool loop exhausted without a final text answer.
     return NextResponse.json({ reply: "ดึงข้อมูลซับซ้อนเกินไปครับ ลองถามใหม่แบบเจาะจงขึ้นได้ไหม", report });
   } catch (e) {
+    if (isTransientGeminiError(e)) {
+      return NextResponse.json(
+        { error: "ตอนนี้ระบบ AI มีผู้ใช้งานหนาแน่นชั่วคราว ลองถามใหม่อีกครั้งในอีกสักครู่นะครับ" },
+        { status: 503 },
+      );
+    }
     const detail = e instanceof Error ? e.message : "unknown";
     return NextResponse.json({ error: `น้องแคมป์เชื่อมต่อ AI ไม่สำเร็จ: ${detail}` }, { status: 502 });
   }
