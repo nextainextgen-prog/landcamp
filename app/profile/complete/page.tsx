@@ -18,6 +18,9 @@ function ProfileCompleteInner() {
   const params = useSearchParams();
   const next = params.get("next");
   const safeNext = next && next.startsWith("/") ? next : "/account/bookings";
+  // ?preview=1 lets an already-registered user view this page (for screenshots)
+  // without being redirected away.
+  const preview = params.get("preview") === "1";
 
   const [user, setUser] = useState<MeUser | undefined>(undefined); // undefined = loading
 
@@ -28,7 +31,7 @@ function ProfileCompleteInner() {
       .then((d: { user: MeUser }) => {
         if (!active) return;
         setUser(d.user);
-        if (d.user?.profileComplete) router.replace(safeNext);
+        if (d.user?.profileComplete && !preview) router.replace(safeNext);
       })
       .catch(() => {
         if (active) setUser(null);
@@ -36,7 +39,7 @@ function ProfileCompleteInner() {
     return () => {
       active = false;
     };
-  }, [router, safeNext]);
+  }, [router, safeNext, preview]);
 
   const firstName = (user?.displayName ?? "").trim().split(/\s+/)[0] ?? "";
 
