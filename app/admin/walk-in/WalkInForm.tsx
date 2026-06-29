@@ -56,8 +56,29 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 type Result =
-  | { kind: "ok"; bookingCode: string; total: number; paid: boolean }
+  | { kind: "ok"; bookingCode: string; total: number; paid: boolean; slipStatus?: string | null }
   | { kind: "error"; message: string };
+
+/** EasySlip verdict → Thai label + pill colour (mirrors /admin/bookings). */
+const SLIP_VERDICT: Record<string, { label: string; cls: string }> = {
+  matched: { label: "สลิปตรง (ยอด+บัญชีถูกต้อง)", cls: "bg-emerald-100 text-emerald-800" },
+  amount_mismatch: { label: "ยอดไม่ตรง", cls: "bg-amber-100 text-amber-800" },
+  account_mismatch: { label: "บัญชีปลายทางไม่ตรง", cls: "bg-amber-100 text-amber-800" },
+  duplicate: { label: "สลิปซ้ำ (เคยใช้แล้ว)", cls: "bg-red-100 text-red-700" },
+  unreadable: { label: "อ่านสลิปไม่ออก", cls: "bg-red-100 text-red-700" },
+  error: { label: "ระบบตรวจไม่สำเร็จ", cls: "bg-neutral-200 text-neutral-600" },
+  pending: { label: "ยังไม่ได้ตรวจ", cls: "bg-neutral-200 text-neutral-600" },
+};
+
+/** Read a picked image file into a base64 data URL (what the slip API expects). */
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("read failed"));
+    reader.readAsDataURL(file);
+  });
+}
 
 /**
  * Front-desk booking form. Submits to POST /api/admin/walk-in which finds/creates
@@ -80,6 +101,7 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
   const [method, setMethod] = useState("cash");
   const [paid, setPaid] = useState(true);
   const [notes, setNotes] = useState("");
+  const [slip, setSlip] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
 
@@ -130,7 +152,7 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
     setRoomId(rooms[0]?.id ?? "");
     setCheckIn(""); setCheckOut("");
     setAdults("2"); setChildren("0");
-    setExtraBed(false); setMethod("cash"); setPaid(true); setNotes("");
+    setExtraBed(false); setMethod("cash"); setPaid(true); setNotes(""); setSlip(null);
   }
 
   async function onSubmit(e: FormEvent) {
@@ -157,12 +179,30 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
           notes,
         }),
       });
-      const data = (await res.json()) as { bookingCode?: string; totalAmount?: number; error?: string };
+      const data = (await res.json()) as { id?: string; bookingCode?: string; totalAmount?: number; error?: string };
       if (!res.ok) {
         setResult({ kind: "error", message: data.error ?? "บันทึกไม่สำเร็จ" });
         return;
       }
-      setResult({ kind: "ok", bookingCode: data.bookingCode ?? "—", total: data.totalAmount ?? 0, paid });
+
+      // ── If a transfer slip was attached, run the same EasySlip check used on
+      //    /admin/bookings (records in slip history; never blocks the booking). ──
+      let slipStatus: string | null | undefined;
+      if (method === "transfer" && slip && data.id) {
+        try {
+          const slipRes = await fetch(`/api/admin/bookings/${data.id}/slip`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ base64: slip }),
+          });
+          const slipData = (await slipRes.json()) as { verify_status?: string | null };
+          slipStatus = slipRes.ok ? slipData.verify_status ?? "pending" : "error";
+        } catch {
+          slipStatus = "error";
+        }
+      }
+
+      setResult({ kind: "ok", bookingCode: data.bookingCode ?? "—", total: data.totalAmount ?? 0, paid, slipStatus });
       resetForm();
       router.refresh();
     } catch {
@@ -320,6 +360,52 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
               <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="เช่น มาถึงดึก" />
             </Field>
           </div>
+
+          {/* Transfer slip — optional. Attach here (e.g. a guest who messaged to
+              book) or later on /admin/bookings; both run the same EasySlip check. */}
+          {method === "transfer" && (
+            <div className="mt-4 rounded-xl border border-[color:var(--color-forest-deep)]/12 bg-[color:var(--color-bone-soft)]/35 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/70">แนบสลิปการโอน</span>
+                <span className="text-[11px] text-[color:var(--color-ink)]/40">ไม่บังคับ · แนบที่หน้ารายการจองภายหลังได้</span>
+              </div>
+              <p className="mt-1 text-[11px] text-[color:var(--color-ink)]/45">
+                เมื่อบันทึกการจอง ระบบจะตรวจสลิปด้วย EasySlip (ยอด · บัญชีปลายทาง · สลิปซ้ำ) และบันทึกลงประวัติสลิปให้อัตโนมัติ
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                {slip ? (
+                  <button type="button" onClick={() => setSlip(null)} className="group relative" title="ลบรูปสลิป">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={slip} alt="สลิปการโอน" className="h-32 w-auto rounded-lg border border-[color:var(--color-forest-deep)]/10 object-contain" />
+                    <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow transition-transform group-hover:scale-110">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </span>
+                  </button>
+                ) : (
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-[color:var(--color-forest-deep)]/25 bg-white px-4 py-3 text-xs font-medium text-[color:var(--color-forest-deep)] transition-colors hover:border-[color:var(--color-warm-clay)] hover:bg-[color:var(--color-bone-soft)]/60">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (file) setSlip(await fileToDataUrl(file));
+                      }}
+                    />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <path d="M17 8l-5-5-5 5M12 3v12" />
+                    </svg>
+                    เลือกรูปสลิป
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
         </Panel>
       </div>
 
@@ -343,6 +429,13 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
                   <div className="text-[13px] text-emerald-700">
                     ยอด {baht(result.total)} · {result.paid ? "ชำระแล้ว" : "ยังไม่ชำระ"}
                   </div>
+                  {result.slipStatus && (
+                    <div className="mt-1.5">
+                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${SLIP_VERDICT[result.slipStatus]?.cls ?? "bg-neutral-200 text-neutral-600"}`}>
+                        สลิป · {SLIP_VERDICT[result.slipStatus]?.label ?? result.slipStatus}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
