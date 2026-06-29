@@ -44,7 +44,6 @@ export const ADMIN_SEARCH_INDEX: SearchEntry[] = [
   { label: "ตั้งค่า Email (Resend)", keywords: ["email", "อีเมล", "resend", "mail", "ส่งเมล", "โดเมน"], href: "/admin/settings/email", section: "การแจ้งเตือน" },
   { label: "OTP (SMS)", keywords: ["otp", "sms", "รหัส otp", "ยืนยันเบอร์", "เบอร์โทร"], href: "/admin/settings/otp", section: "การแจ้งเตือน" },
   { label: "กำหนดการแจ้งเตือน (Routing)", keywords: ["routing", "แจ้งเตือน", "notification", "ส่งหาทีม", "เส้นทางแจ้งเตือน"], href: "/admin/settings/routing", section: "การแจ้งเตือน" },
-  { label: "คลังเทมเพลตข้อความ", keywords: ["templates", "template", "เทมเพลต", "ข้อความ", "คลังข้อความ"], href: "/admin/settings/templates", section: "การแจ้งเตือน" },
 
   // ── เนื้อหาเว็บ & แบรนด์ ──
   { label: "แก้เนื้อหาเว็บ (CMS)", keywords: ["content", "cms", "เนื้อหา", "เว็บ", "ข้อความเว็บ", "รูป", "วิดีโอ", "แบรนด์"], href: "/admin/content", section: "เนื้อหาเว็บ & แบรนด์" },

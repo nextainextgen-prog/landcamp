@@ -35,7 +35,6 @@ export const SETTINGS_GROUPS: SettingGroup[] = [
       { title: "Email (Resend)", desc: "โดเมน · ผู้ส่ง · API key", icon: "email", href: "/admin/settings/email" },
       { title: "OTP (SMS)", desc: "ผู้ให้บริการ · API key · ยืนยันเบอร์โทร", icon: "shield", href: "/admin/settings/otp" },
       { title: "กำหนดการแจ้งเตือน (Routing)", desc: "จองใหม่→ทีม · ยืนยัน→ลูกค้า", icon: "bell", href: "/admin/settings/routing" },
-      { title: "คลังเทมเพลตข้อความ", desc: "แก้ข้อความอีเมล / การ์ด LINE", icon: "template", href: "/admin/settings/templates" },
     ],
   },
   {
