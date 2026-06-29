@@ -206,11 +206,9 @@ export function CompleteProfileForm({
             </span>
           )}
         </div>
-        <span className="text-[11px] text-[color:var(--color-ink)]/45">
-          {emailTrimmed.length > 0 && !emailValid
-            ? "รูปแบบอีเมลไม่ถูกต้อง"
-            : "ถ้ากรอก จะใช้ส่งใบยืนยัน/ติดต่อสำรองนอกเหนือจาก LINE"}
-        </span>
+        {emailTrimmed.length > 0 && !emailValid && (
+          <span className="text-[11px] text-[color:var(--color-ink)]/45">รูปแบบอีเมลไม่ถูกต้อง</span>
+        )}
       </label>
 
       {error && (
