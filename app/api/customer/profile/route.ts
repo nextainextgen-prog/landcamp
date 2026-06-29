@@ -49,15 +49,20 @@ export async function PATCH(req: NextRequest) {
   }
 
   // The session id is the source of truth — a customer can only edit their own row.
+  const update: Record<string, unknown> = {
+    full_name: parsed.data.fullName,
+    phone: parsed.data.phone,
+    profile_completed_at: new Date().toISOString(),
+  };
+  // Email is optional: only set it when given, so leaving it blank never wipes
+  // an address the customer (or an admin) already had on file.
+  if (parsed.data.email) update.email = parsed.data.email;
+
   const { data, error } = await admin
     .from("customers")
-    .update({
-      full_name: parsed.data.fullName,
-      phone: parsed.data.phone,
-      profile_completed_at: new Date().toISOString(),
-    })
+    .update(update)
     .eq("id", session.id)
-    .select("id, full_name, phone, profile_completed_at")
+    .select("id, full_name, phone, email, profile_completed_at")
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -68,6 +73,7 @@ export async function PATCH(req: NextRequest) {
     profile: {
       fullName: data.full_name as string,
       phone: data.phone as string,
+      email: (data.email as string | null) ?? null,
       profileComplete: data.profile_completed_at != null,
     },
   });

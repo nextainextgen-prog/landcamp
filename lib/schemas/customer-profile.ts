@@ -18,8 +18,19 @@ const thaiPhone = z
   .transform(normalizePhone)
   .pipe(z.string().regex(/^0\d{9}$/, "กรุณากรอกเบอร์มือถือ 10 หลัก (เช่น 0812345678)"));
 
+// Email is optional — accept an empty string / omitted, otherwise it must be a
+// valid address. Stored lowercase so matching (e.g. walk-in dedupe) is stable.
+const optionalEmail = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email("รูปแบบอีเมลไม่ถูกต้อง")
+  .optional()
+  .or(z.literal(""));
+
 export const CompleteProfileSchema = z.object({
   fullName: z.string().trim().min(2, "กรุณากรอกชื่อ").max(80),
   phone: thaiPhone,
+  email: optionalEmail,
 });
 export type CompleteProfileInput = z.infer<typeof CompleteProfileSchema>;
