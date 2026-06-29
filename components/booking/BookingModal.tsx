@@ -16,6 +16,7 @@ import { bankLabel, bankLogo } from "@/lib/payment/banks";
 import { AuthOptions } from "@/components/auth/AuthOptions";
 import { CompleteProfileForm } from "@/components/auth/CompleteProfileForm";
 import { useAvailability } from "@/hooks/useAvailability";
+import type { RoomBooking } from "@/lib/rooms/booked";
 import type { Room } from "@/types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -79,10 +80,14 @@ function fileToDataUrl(file: File): Promise<string> {
 export function BookingModal({
   room,
   initialIntent,
+  initialBooking,
   onClose,
 }: {
   room: Room;
   initialIntent?: BookingIntent | null;
+  /** Server-prefetched roomId + occupied nights for this room — seeds the
+   *  calendar so blocked dates show on first paint instead of flickering in. */
+  initialBooking?: RoomBooking;
   onClose: () => void;
 }) {
   const t = useT();
@@ -97,7 +102,7 @@ export function BookingModal({
   const [extraBed, setExtraBed] = useState(prefill?.extraBed ?? false);
   const [notes, setNotes] = useState(prefill?.notes ?? "");
 
-  const [roomId, setRoomId] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState<string | null>(initialBooking?.roomId ?? null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [profileComplete, setProfileComplete] = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -128,7 +133,11 @@ export function BookingModal({
     };
   }, [onClose]);
 
+  // Resolve the DB UUID from the slug — but only when the server didn't already
+  // hand it to us (initialBooking). Skipping this round-trip is what lets the
+  // calendar block dates on open instead of after two chained fetches.
   useEffect(() => {
+    if (initialBooking?.roomId) return;
     let active = true;
     fetch(`/api/rooms?slug=${encodeURIComponent(room.id)}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -139,10 +148,11 @@ export function BookingModal({
     return () => {
       active = false;
     };
-  }, [room.id]);
+  }, [room.id, initialBooking?.roomId]);
 
-  // Occupied nights for this room → calendar dots + blocked dates.
-  const [bookedDates, setBookedDates] = useState<string[]>([]);
+  // Occupied nights for this room → calendar dots + blocked dates. Seeded from
+  // the server prefetch (instant), then refreshed in the background below.
+  const [bookedDates, setBookedDates] = useState<string[]>(initialBooking?.bookedDates ?? []);
   useEffect(() => {
     if (!roomId) return; // roomId resolves once and never clears; nothing to reset
     const ctrl = new AbortController();

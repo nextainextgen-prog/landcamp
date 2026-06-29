@@ -10,13 +10,22 @@ import { cn } from "@/lib/cn";
 import { BookingModal } from "@/components/booking/BookingModal";
 import { loadBookingIntent, type BookingIntent } from "@/lib/booking/intent";
 import { PUBLIC_BOOKING_ENABLED } from "@/lib/features";
+import type { RoomBooking } from "@/lib/rooms/booked";
 import type { Room } from "@/types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const COVER_DURATION_MS = 5000;
 const SLIDE_DURATION_MS = 4000;
 
-export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
+export function RoomsSection({
+  rooms = staticRooms,
+  booking,
+}: {
+  rooms?: Room[];
+  /** Per-slug roomId + occupied nights, prefetched server-side so the booking
+   *  calendar shows blocked dates instantly (no open-then-flicker-to-full). */
+  booking?: Record<string, RoomBooking>;
+}) {
   const t = useT();
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
   const [bookingRoom, setBookingRoom] = useState<Room | null>(null);
@@ -216,6 +225,7 @@ export function RoomsSection({ rooms = staticRooms }: { rooms?: Room[] }) {
           <BookingModal
             room={bookingRoom}
             initialIntent={bookingIntent}
+            initialBooking={booking?.[bookingRoom.id]}
             onClose={closeBooking}
           />
         )}
