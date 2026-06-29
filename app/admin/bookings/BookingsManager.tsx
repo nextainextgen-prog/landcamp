@@ -103,6 +103,12 @@ const VERIFY: Record<string, { label: string; cls: string }> = {
   error: { label: "ระบบตรวจไม่สำเร็จ", cls: "bg-neutral-200 text-neutral-600" },
   pending: { label: "ยังไม่ได้ตรวจ", cls: "bg-neutral-200 text-neutral-600" },
 };
+// LINE cards an admin can send manually from a booking (Option A: pick which).
+type CardKind = "card_confirm" | "card_reminder";
+const CARD_LABELS: Record<CardKind, string> = {
+  card_confirm: "การ์ดยืนยันการจอง",
+  card_reminder: "การ์ดเตือนก่อนเข้าพัก",
+};
 const FILTERS: { key: "all" | BookingStatus; label: string }[] = [
   { key: "all", label: "ทั้งหมด" },
   { key: "payment_review", label: "รอตรวจสลิป" },
@@ -420,12 +426,22 @@ export function BookingsManager({
       setBusy(false);
     }
   }
-  async function resendCard(id: string) {
+  async function resendCard(id: string, kind: CardKind) {
     setBusy(true);
     try {
-      await fetch(`/api/admin/bookings/${id}/resend-card`, { method: "POST" });
-      setToast("ส่งการ์ด LINE แล้ว (ถ้าลูกค้าผูก LINE ไว้)");
-      setTimeout(() => setToast(null), 3000);
+      const res = await fetch(`/api/admin/bookings/${id}/resend-card`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { sent?: boolean };
+      const label = CARD_LABELS[kind];
+      setToast(
+        d.sent
+          ? `ส่ง${label}แล้ว`
+          : `ส่ง${label}ไม่สำเร็จ — ลูกค้าอาจยังไม่ผูก LINE หรือปิดการ์ดนี้ไว้`,
+      );
+      setTimeout(() => setToast(null), 3500);
     } finally {
       setBusy(false);
     }
@@ -754,7 +770,7 @@ function BookingDetail({
   busy: boolean;
   overlaps: BookingRow[];
   onPatch: (id: string, body: Record<string, string>, optimistic: BookingStatus) => Promise<boolean>;
-  onResend: (id: string) => void;
+  onResend: (id: string, kind: CardKind) => void;
   onZoom: (src: string) => void;
   onSaveNotes: (id: string, notes: string) => void;
   onSaveEdit: (id: string, edit: { check_in: string; check_out: string; adults: number; children: number; total_amount: number }) => Promise<boolean>;
@@ -772,6 +788,7 @@ function BookingDetail({
   const [copied, setCopied] = useState<"" | "summary" | "map">("");
   const [hkSent, setHkSent] = useState(false);
   const [slipUploading, setSlipUploading] = useState(false);
+  const [cardMenuOpen, setCardMenuOpen] = useState(false);
   const [audit, setAudit] = useState<{ id: string; actor: string | null; action: string; to_status: string | null; created_at: string }[]>([]);
 
   async function handleSlipFile(file: File) {
@@ -885,7 +902,44 @@ function BookingDetail({
             )}
             <button type="button" onClick={() => setPayOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="cash" /> บันทึกรับเงิน</button>
             <ActionButton variant="secondary" size="sm" onClick={sendHousekeeping} pendingLabel="กำลังส่ง…" doneLabel="ส่งงานแล้ว" className="!rounded-lg !px-2.5 !py-1 !text-xs !font-medium" icon={<BIcon name="broom" />}>{hkSent ? "ส่งงานแล้ว" : "ส่งงานแม่บ้าน"}</ActionButton>
-            {c.lineUserId && <button type="button" disabled={busy} onClick={() => onResend(r.id)} className="rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50">ส่งการ์ด LINE</button>}
+            {c.lineUserId && (
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setCardMenuOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={cardMenuOpen}
+                  className="inline-flex items-center gap-1 rounded-lg border border-[#06C755]/40 px-2.5 py-1 text-xs text-[#06A94B] hover:bg-[#06C755]/8 disabled:opacity-50"
+                >
+                  ส่งการ์ด LINE
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`h-3 w-3 transition-transform ${cardMenuOpen ? "rotate-180" : ""}`} aria-hidden>
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                {cardMenuOpen && (
+                  <>
+                    {/* click-away: a full-screen catcher closes the menu */}
+                    <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-10 cursor-default" onClick={() => setCardMenuOpen(false)} />
+                    <div role="menu" className="absolute left-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-lg border border-[color:var(--color-forest-deep)]/12 bg-white py-1 shadow-[0_12px_32px_-12px_rgba(45,55,40,0.45)]">
+                      {(Object.keys(CARD_LABELS) as CardKind[]).map((kind) => (
+                        <button
+                          key={kind}
+                          type="button"
+                          role="menuitem"
+                          disabled={busy}
+                          onClick={() => { setCardMenuOpen(false); onResend(r.id, kind); }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-[color:var(--color-forest-deep)] hover:bg-[#06C755]/8 disabled:opacity-50"
+                        >
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#06C755]" aria-hidden />
+                          {CARD_LABELS[kind]}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
