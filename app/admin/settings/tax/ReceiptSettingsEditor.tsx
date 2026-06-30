@@ -22,7 +22,7 @@ const inputCls =
 
 // Sample booking used only to render the live preview — never saved.
 const SAMPLE: ReceiptData = {
-  docKind: "receipt",
+  docKind: "booking",
   bookingCode: "LC-2026-0042",
   createdAtIso: "2026-06-20T10:30:00+07:00",
   paidAtIso: "2026-06-20T10:30:00+07:00",
@@ -51,10 +51,10 @@ type Field = {
 };
 
 const FIELDS: Field[] = [
-  { name: "receiptHeader", label: "ชื่อบนใบเสร็จ (ผู้ขาย)", type: "text", placeholder: "LandCamp Villa Khao Yai" },
+  { name: "receiptHeader", label: "ชื่อบนเอกสาร (ผู้ขาย)", type: "text", placeholder: "LandCamp Villa Khao Yai" },
   { name: "receiptAddress", label: "ที่อยู่ผู้ขาย", type: "textarea", placeholder: "ต.ขนงพระ อ.ปากช่อง จ.นครราชสีมา 30130" },
   { name: "taxId", label: "เลขประจำตัวผู้เสียภาษี", type: "text", placeholder: "0-0000-00000-00-0", hint: "เว้นว่างได้ถ้าไม่ต้องการแสดง" },
-  { name: "receiptPhone", label: "เบอร์โทรบนใบเสร็จ", type: "text", placeholder: "098-502-1695" },
+  { name: "receiptPhone", label: "เบอร์โทรบนเอกสาร", type: "text", placeholder: "098-502-1695" },
   { name: "receiptContact", label: "ช่องทางติดต่อ (บรรทัดเพิ่ม)", type: "text", placeholder: "Facebook: LandCamp Villa Khaoyai" },
   { name: "receiptThanks", label: "ข้อความขอบคุณ (บรรทัด 1)", type: "text", placeholder: "ขอบคุณที่ใช้บริการ" },
   { name: "receiptThanksSub", label: "ข้อความขอบคุณ (บรรทัด 2)", type: "text", placeholder: "กรุณาเก็บเอกสารนี้ไว้เป็นหลักฐาน" },
@@ -68,9 +68,6 @@ export function ReceiptSettingsEditor() {
   const [saved, setSaved] = useState<ReceiptSettings>({});
   const [unavailable, setUnavailable] = useState(false);
   const [saving, setSaving] = useState(false);
-  // Which document the preview renders. Both share the same editable content —
-  // only the title + document-number prefix differ.
-  const [docKind, setDocKind] = useState<ReceiptData["docKind"]>("receipt");
   const { show, toastNode } = useSettingsToast();
 
   const dirty = useMemo(() => JSON.stringify(value) !== JSON.stringify(saved), [value, saved]);
@@ -121,10 +118,10 @@ export function ReceiptSettingsEditor() {
       )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
-        <Panel title="แก้ไขข้อความบนใบเสร็จ" bodyClassName="flex flex-col gap-4">
+        <Panel title="แก้ไขข้อความบนใบการจอง" bodyClassName="flex flex-col gap-4">
           <div className="rounded-lg bg-[color:var(--color-bone-soft)]/50 p-3 text-xs leading-relaxed text-[color:var(--color-ink)]/70">
-            ข้อความที่แก้ที่นี่ <strong>ใช้ร่วมกันทั้ง 2 เอกสาร</strong> — <strong>ใบเสร็จรับเงิน</strong> และ <strong>ใบยืนยันการจอง</strong>
-            (ต่างกันแค่หัวเอกสาร) ที่ลูกค้าเปิดดูและบันทึกเป็น PDF — สลับดูตัวอย่างได้ทางขวา เว้นช่องว่างไว้เพื่อใช้ค่ามาตรฐาน
+            ข้อความที่แก้ที่นี่แสดงบน <strong>ใบยืนยันการจอง</strong> ที่ลูกค้าเปิดดูและบันทึกเป็น PDF
+            — ดูตัวอย่างได้ทางขวา เว้นช่องว่างไว้เพื่อใช้ค่ามาตรฐาน
           </div>
 
           {FIELDS.map((f) => (
@@ -179,29 +176,10 @@ export function ReceiptSettingsEditor() {
             <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--color-forest-deep)]/70">
               ตัวอย่างเอกสารจริง (อัปเดตสดตามที่แก้)
             </span>
-            <div className="inline-flex rounded-lg border border-[color:var(--color-forest-deep)]/15 p-0.5 text-xs">
-              {([
-                ["receipt", "ใบเสร็จรับเงิน"],
-                ["booking", "ใบยืนยันการจอง"],
-              ] as const).map(([kind, label]) => (
-                <button
-                  key={kind}
-                  type="button"
-                  onClick={() => setDocKind(kind)}
-                  className={`rounded-md px-3 py-1.5 font-medium transition-colors ${
-                    docKind === kind
-                      ? "bg-[color:var(--color-forest-deep)] text-white"
-                      : "text-[color:var(--color-ink)]/60 hover:bg-[color:var(--color-bone-soft)]/60"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
           <div className="overflow-auto rounded-2xl border border-[color:var(--color-forest-deep)]/10 bg-neutral-100 p-4">
             <div className={`${sarabun.className} receipt-preview`}>
-              <ReceiptDocument settings={value} data={{ ...SAMPLE, docKind }} />
+              <ReceiptDocument settings={value} data={SAMPLE} />
             </div>
           </div>
         </div>

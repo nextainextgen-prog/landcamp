@@ -189,7 +189,6 @@ export function AccountDashboard({
 function BookingItem({ booking: b, onViewSlip }: { booking: BookingCard; onViewSlip: (src: string) => void }) {
   const [open, setOpen] = useState(false);
   const st = BOOKING_STATUS_CUSTOMER[b.status];
-  const paid = b.status === "payment_review" || b.status === "confirmed" || b.status === "completed";
 
   return (
     <div className="overflow-hidden rounded-[22px] border border-[color:var(--color-forest-deep)]/10 bg-white/75 shadow-[0_14px_36px_-26px_rgba(45,55,40,0.3)] transition-colors hover:border-[color:var(--color-warm-clay)]/30">
@@ -241,15 +240,6 @@ function BookingItem({ booking: b, onViewSlip }: { booking: BookingCard; onViewS
           >
             <Icon name="doc" className="h-4 w-4" /> ใบการจอง
           </Link>
-          {paid && (
-            <Link
-              href={`/booking/${b.booking_code}?doc=receipt`}
-              target="_blank"
-              className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--color-warm-clay)] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[color:var(--color-forest-deep)]"
-            >
-              <Icon name="download" className="h-4 w-4" /> ใบเสร็จ
-            </Link>
-          )}
         </div>
       </div>
 

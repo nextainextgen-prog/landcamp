@@ -11,8 +11,8 @@ export default async function ReceiptSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <SubHeader
-        title="ใบเสร็จรับเงิน"
-        description="แก้ไขข้อความบนเอกสารใบเสร็จ/ใบยืนยันการจอง พร้อมดูตัวอย่างจริงแบบสด"
+        title="ใบการจอง"
+        description="แก้ไขข้อความบนเอกสารใบยืนยันการจอง พร้อมดูตัวอย่างจริงแบบสด"
       />
       <ReceiptSettingsEditor />
     </div>

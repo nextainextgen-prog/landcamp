@@ -57,12 +57,15 @@ export async function PATCH(req: NextRequest) {
   // Email is optional: only set it when given, so leaving it blank never wipes
   // an address the customer (or an admin) already had on file.
   if (parsed.data.email) update.email = parsed.data.email;
+  // Address is optional too — only write it when provided, so a blank field
+  // never clears one already on file.
+  if (parsed.data.address) update.address = parsed.data.address;
 
   const { data, error } = await admin
     .from("customers")
     .update(update)
     .eq("id", session.id)
-    .select("id, full_name, phone, email, profile_completed_at")
+    .select("id, full_name, phone, email, address, profile_completed_at")
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -74,6 +77,7 @@ export async function PATCH(req: NextRequest) {
       fullName: data.full_name as string,
       phone: data.phone as string,
       email: (data.email as string | null) ?? null,
+      address: (data.address as string | null) ?? null,
       profileComplete: data.profile_completed_at != null,
     },
   });

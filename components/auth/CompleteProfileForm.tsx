@@ -35,6 +35,7 @@ export function CompleteProfileForm({
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState(""); // raw digits only
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,7 +69,12 @@ export function CompleteProfileForm({
       const res = await fetch("/api/customer/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, phone, email: emailTrimmed || undefined }),
+        body: JSON.stringify({
+          fullName,
+          phone,
+          email: emailTrimmed || undefined,
+          address: address.trim() || undefined,
+        }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
@@ -211,6 +217,36 @@ export function CompleteProfileForm({
         )}
       </label>
 
+      {/* Address — optional, kept for receipt records (team-only) */}
+      <label className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <FieldLabel>ที่อยู่</FieldLabel>
+          <span className="text-[11px] text-[color:var(--color-ink)]/40" style={{ fontFamily: "var(--font-ui)" }}>
+            ไม่บังคับ
+          </span>
+        </div>
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3.5 top-4 text-[color:var(--color-ink)]/35">
+            <IconPin />
+          </span>
+          <textarea
+            value={address}
+            onChange={(e) => {
+              setAddress(e.target.value);
+              if (error) setError(null);
+            }}
+            placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"
+            autoComplete="street-address"
+            rows={2}
+            maxLength={300}
+            className={`${inputClass} resize-y pr-3.5`}
+          />
+        </div>
+        <span className="text-[11px] text-[color:var(--color-ink)]/45">
+          ใช้สำหรับออกเอกสารใบเสร็จ — เห็นเฉพาะทีมงาน ไม่แสดงบนใบการจอง
+        </span>
+      </label>
+
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</p>
       )}
@@ -272,6 +308,15 @@ function IconMail() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden className="h-[18px] w-[18px]">
       <rect x="3" y="5" width="18" height="14" rx="2" />
       <path d="m3 7 9 6 9-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconPin() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden className="h-[18px] w-[18px]">
+      <path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10Z" strokeLinejoin="round" />
+      <circle cx="12" cy="11" r="2.2" />
     </svg>
   );
 }

@@ -95,11 +95,14 @@ export function BookingModal({
 
   const prefill = initialIntent?.slug === room.id ? initialIntent : null;
 
+  // Camper Van + Camper Train rooms sleep 2 only — no children, no extra bed.
+  const twoGuestRoom = room.type === "camper" || room.type === "train";
+
   const [checkIn, setCheckIn] = useState(prefill?.checkIn ?? "");
   const [checkOut, setCheckOut] = useState(prefill?.checkOut ?? "");
   const [adults, setAdults] = useState(prefill?.adults ?? 1);
-  const [children, setChildren] = useState(prefill?.children ?? 0);
-  const [extraBed, setExtraBed] = useState(prefill?.extraBed ?? false);
+  const [children, setChildren] = useState(twoGuestRoom ? 0 : (prefill?.children ?? 0));
+  const [extraBed, setExtraBed] = useState(twoGuestRoom ? false : (prefill?.extraBed ?? false));
   const [notes, setNotes] = useState(prefill?.notes ?? "");
 
   const [roomId, setRoomId] = useState<string | null>(initialBooking?.roomId ?? null);
@@ -432,9 +435,11 @@ export function BookingModal({
                 </div>
               </Field>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className={twoGuestRoom ? "" : "grid grid-cols-2 gap-4"}>
                 <Stepper label={t({ th: "ผู้ใหญ่", en: "Adults" })} value={adults} min={1} max={room.maxGuests} onChange={setAdults} />
-                <Stepper label={t({ th: "เด็ก", en: "Children" })} value={children} min={0} max={Math.max(0, room.maxGuests - 1)} onChange={setChildren} />
+                {!twoGuestRoom && (
+                  <Stepper label={t({ th: "เด็ก", en: "Children" })} value={children} min={0} max={Math.max(0, room.maxGuests - 1)} onChange={setChildren} />
+                )}
               </div>
 
               {overCapacity && (
@@ -443,27 +448,29 @@ export function BookingModal({
                 </p>
               )}
 
-              <label className="flex items-center justify-between gap-4 cursor-pointer">
-                <span className="flex flex-col">
-                  <span className="text-[color:var(--color-forest-deep)] font-medium text-sm">
-                    {t({ th: "เตียงเสริม", en: "Extra bed" })}
+              {!twoGuestRoom && (
+                <label className="flex items-center justify-between gap-4 cursor-pointer">
+                  <span className="flex flex-col">
+                    <span className="text-[color:var(--color-forest-deep)] font-medium text-sm">
+                      {t({ th: "เตียงเสริม", en: "Extra bed" })}
+                    </span>
+                    <span className="text-[12px] text-[color:var(--color-ink)]/55">
+                      {t({ th: "750 บาท / คืน", en: "THB 750 / night" })}
+                    </span>
                   </span>
-                  <span className="text-[12px] text-[color:var(--color-ink)]/55">
-                    {t({ th: "750 บาท / คืน", en: "THB 750 / night" })}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={extraBed}
-                  onClick={() => setExtraBed((v) => !v)}
-                  className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
-                    extraBed ? "bg-[color:var(--color-forest-deep)]" : "bg-[color:var(--color-ink)]/20"
-                  }`}
-                >
-                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-[color:var(--color-bone)] transition-all ${extraBed ? "left-6" : "left-1"}`} />
-                </button>
-              </label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={extraBed}
+                    onClick={() => setExtraBed((v) => !v)}
+                    className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                      extraBed ? "bg-[color:var(--color-forest-deep)]" : "bg-[color:var(--color-ink)]/20"
+                    }`}
+                  >
+                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-[color:var(--color-bone)] transition-all ${extraBed ? "left-6" : "left-1"}`} />
+                  </button>
+                </label>
+              )}
 
               <Field label={t({ th: "หมายเหตุ (ถ้ามี)", en: "Notes (optional)" })}>
                 <textarea

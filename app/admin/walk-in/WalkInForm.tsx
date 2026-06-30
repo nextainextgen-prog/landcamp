@@ -347,7 +347,6 @@ export function WalkInForm({ rooms, booked, today }: { rooms: WalkInRoom[]; book
               <select className={inputClass} value={method} onChange={(e) => setMethod(e.target.value)}>
                 <option value="cash">เงินสด</option>
                 <option value="transfer">โอนเงิน</option>
-                <option value="card">บัตรเครดิต</option>
               </select>
             </Field>
             <div className="flex items-end">

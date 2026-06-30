@@ -28,9 +28,19 @@ const optionalEmail = z
   .optional()
   .or(z.literal(""));
 
+// Address is optional free text — kept for the back office / receipt records,
+// never shown on the customer-facing booking document.
+const optionalAddress = z
+  .string()
+  .trim()
+  .max(300, "ที่อยู่ยาวเกินไป")
+  .optional()
+  .or(z.literal(""));
+
 export const CompleteProfileSchema = z.object({
   fullName: z.string().trim().min(2, "กรุณากรอกชื่อ").max(80),
   phone: thaiPhone,
   email: optionalEmail,
+  address: optionalAddress,
 });
 export type CompleteProfileInput = z.infer<typeof CompleteProfileSchema>;

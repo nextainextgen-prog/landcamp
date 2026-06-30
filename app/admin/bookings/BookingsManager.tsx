@@ -24,6 +24,7 @@ function BIcon({ name, className = "h-3.5 w-3.5" }: { name: string; className?: 
     check: <path d="M20 6 9 17l-5-5" />,
     warn: <><path d="M12 3 2 20h20z" /><path d="M12 9v5M12 17h.01" /></>,
     broom: <><path d="M19 4 9 14M6 21l3-3M4 16l4 4M8 14l2 2" /><path d="M14 9l5 5-3 3-5-5z" /></>,
+    home: <><path d="M4 11.5 12 4l8 7.5" /><path d="M6 10v9h12v-9" /><path d="M10 19v-5h4v5" /></>,
   };
   return (
     <svg viewBox="0 0 24 24" fill={name === "star" ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
@@ -43,6 +44,7 @@ export type BookingRow = {
     name: string;
     email: string;
     phone: string;
+    address: string;
     avatar: string | null;
     provider: string | null;
     lineUserId: string | null;
@@ -781,6 +783,7 @@ function BookingDetail({
   const c = r.customer;
   const isWalkIn = r.source === "walk_in";
   const [phoneOpen, setPhoneOpen] = useState(false);
+  const [addressOpen, setAddressOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const { confirm, dialog } = useConfirmAction();
@@ -895,6 +898,7 @@ function BookingDetail({
             <button type="button" onClick={() => setPhoneOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="phone" /> โทร</button>
             {c.email && <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="mail" /> อีเมล</a>}
             <a href={`/admin/customers/${r.customer_id}`} className="rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">ดูประวัติลูกค้า</a>
+            <button type="button" onClick={() => setAddressOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="home" /> ดูที่อยู่</button>
             <button type="button" onClick={copyMap} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="pin" /> {copied === "map" ? "คัดลอกลิงก์แล้ว" : "แผนที่"}</button>
             <button type="button" onClick={copySummary} className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/20 px-2.5 py-1 text-xs text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"><BIcon name="clipboard" /> {copied === "summary" ? "คัดลอกแล้ว" : "คัดลอกสรุป"}</button>
             {ACTIVE_STATUSES.has(r.status) && (
@@ -1091,6 +1095,7 @@ function BookingDetail({
       </div>
 
       {phoneOpen && <PhonePopup name={c.name} phone={c.phone} onClose={() => setPhoneOpen(false)} />}
+      {addressOpen && <AddressPopup name={c.name} address={c.address} onClose={() => setAddressOpen(false)} />}
       {editOpen && (
         <EditDialog
           r={r}
@@ -1215,7 +1220,6 @@ function PaymentDialog({
               <option value="cash">เงินสด</option>
               <option value="transfer">โอน</option>
               <option value="promptpay">พร้อมเพย์</option>
-              <option value="card">บัตร</option>
             </select>
           </label>
         </div>
@@ -1254,6 +1258,36 @@ function PhonePopup({ name, phone, onClose }: { name: string; phone: string; onC
           </>
         ) : (
           <div className="mt-2 text-sm text-[color:var(--color-ink)]/45">ลูกค้ายังไม่มีเบอร์โทรในระบบ</div>
+        )}
+        <button type="button" onClick={onClose} className="mt-4 text-xs text-[color:var(--color-ink)]/45 hover:text-[color:var(--color-ink)]/70">ปิด</button>
+      </div>
+    </div>
+  );
+}
+
+function AddressPopup({ name, address, onClose }: { name: string; address: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const has = Boolean(address && address.trim());
+  function copy() {
+    if (!has) return;
+    void navigator.clipboard?.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--color-forest-deep)]/10 text-[color:var(--color-forest-deep)]"><BIcon name="home" className="h-5 w-5" /></div>
+        <div className="text-sm text-[color:var(--color-ink)]/55">ที่อยู่ของ {name}</div>
+        {has ? (
+          <>
+            <div className="mt-2 select-all whitespace-pre-line break-words text-left text-sm leading-relaxed text-[color:var(--color-forest-deep)]">{address}</div>
+            <button type="button" onClick={copy} className="mt-5 w-full rounded-lg border border-[color:var(--color-forest-deep)]/20 py-2 text-sm font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]">
+              {copied ? "คัดลอกแล้ว" : "คัดลอกที่อยู่"}
+            </button>
+          </>
+        ) : (
+          <div className="mt-2 text-sm text-[color:var(--color-ink)]/45">ลูกค้ายังไม่ได้กรอกที่อยู่</div>
         )}
         <button type="button" onClick={onClose} className="mt-4 text-xs text-[color:var(--color-ink)]/45 hover:text-[color:var(--color-ink)]/70">ปิด</button>
       </div>

@@ -50,6 +50,7 @@ type ProfileCustomer = {
   name: string;
   email: string;
   phone: string;
+  address: string;
   avatarUrl: string;
   isVip: boolean;
   tags: string[];
@@ -290,6 +291,7 @@ export function CustomerProfile({
               <dl className="flex flex-col gap-3 text-sm">
                 <InfoRow label="อีเมล" value={customer.email || "—"} />
                 <InfoRow label="เบอร์โทร" value={customer.phone || "—"} />
+                <InfoRow label="ที่อยู่" value={customer.address || "—"} wrap />
                 <InfoRow label="ช่องทาง" value={channelLabel(customer.source, customer.authProvider)} />
                 <InfoRow label="เป็นสมาชิกตั้งแต่" value={thaiDate(customer.createdAt)} />
                 <div className="flex items-center justify-between gap-3 border-t border-[color:var(--color-forest-deep)]/8 pt-3">
@@ -393,9 +395,9 @@ export function CustomerProfile({
             )}
           </SectionCard>
 
-          <SectionCard title={`ใบเสร็จ / ใบยืนยันการจอง (${bookings.length})`} noPad>
+          <SectionCard title={`ใบการจอง (${bookings.length})`} noPad>
             {bookings.length === 0 ? (
-              <div className="p-5"><Empty>ยังไม่มีใบเสร็จ</Empty></div>
+              <div className="p-5"><Empty>ยังไม่มีใบการจอง</Empty></div>
             ) : (
               <ul className="divide-y divide-[color:var(--color-forest-deep)]/8">
                 {bookings.map((b) => (
@@ -412,7 +414,7 @@ export function CustomerProfile({
                       target="_blank"
                       className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[color:var(--color-forest-deep)]/15 px-3 py-1.5 text-xs font-medium text-[color:var(--color-forest-deep)] hover:bg-[color:var(--color-bone-soft)]"
                     >
-                      <I.Download /> ดูใบเสร็จ
+                      <I.Download /> ดูใบการจอง
                     </Link>
                   </li>
                 ))}
@@ -511,11 +513,11 @@ function BookingTable({ rows }: { rows: ProfileBooking[] }) {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, wrap = false }: { label: string; value: string; wrap?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <dt className="text-[color:var(--color-ink)]/50">{label}</dt>
-      <dd className="truncate text-right font-medium text-[color:var(--color-forest-deep)]">{value}</dd>
+    <div className={`flex gap-4 ${wrap ? "items-start" : "items-center justify-between"}`}>
+      <dt className="shrink-0 text-[color:var(--color-ink)]/50">{label}</dt>
+      <dd className={`text-right font-medium text-[color:var(--color-forest-deep)] ${wrap ? "whitespace-pre-line break-words" : "truncate"}`}>{value}</dd>
     </div>
   );
 }

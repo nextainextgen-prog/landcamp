@@ -39,13 +39,11 @@ type BookingRow = {
 
 export default async function BookingReceiptPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ code: string }>;
-  searchParams?: Promise<{ doc?: string }>;
 }) {
   const { code } = await params;
-  const docKind = (await searchParams)?.doc === "receipt" ? "receipt" : "booking";
+  const docKind = "booking" as const;
 
   const session = await getCustomerSession();
   // No session (e.g. opened fresh from the LINE card's "ดูใบจอง" button in the
@@ -123,8 +121,6 @@ export default async function BookingReceiptPage({
     color: { dark: "#1a1814", light: "#00000000" },
   });
 
-  const isPaid = booking.status === "confirmed" || booking.status === "completed";
-
   const data: ReceiptData = {
     docKind,
     bookingCode: booking.booking_code,
@@ -157,27 +153,6 @@ export default async function BookingReceiptPage({
             <span aria-hidden>←</span> การจองของฉัน
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Document switcher — one card link, two documents to choose from. */}
-            <div className="inline-flex rounded-full border border-neutral-300 bg-white p-0.5 text-sm">
-              <Link
-                href={`/booking/${booking.booking_code}?doc=booking`}
-                className={`rounded-full px-3.5 py-1.5 font-medium transition-colors ${
-                  docKind === "booking" ? "bg-neutral-800 text-white" : "text-neutral-600 hover:bg-neutral-100"
-                }`}
-              >
-                ใบยืนยันการจอง
-              </Link>
-              {isPaid && (
-                <Link
-                  href={`/booking/${booking.booking_code}?doc=receipt`}
-                  className={`rounded-full px-3.5 py-1.5 font-medium transition-colors ${
-                    docKind === "receipt" ? "bg-neutral-800 text-white" : "text-neutral-600 hover:bg-neutral-100"
-                  }`}
-                >
-                  ใบเสร็จรับเงิน
-                </Link>
-              )}
-            </div>
             <PrintButton />
           </div>
         </div>

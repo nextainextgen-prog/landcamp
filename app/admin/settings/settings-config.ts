@@ -15,7 +15,7 @@ export const SETTINGS_GROUPS: SettingGroup[] = [
     label: "การเงิน",
     cards: [
       { title: "ตั้งค่าการเงิน", desc: "บัญชีรับเงิน · พร้อมเพย์ · QR · มัดจำ", icon: "finance", href: "/admin/payment-settings" },
-      { title: "ใบเสร็จรับเงิน", desc: "แก้ข้อความบนใบเสร็จ · ดูตัวอย่างจริงแบบสด", icon: "receipt", href: "/admin/settings/tax" },
+      { title: "ใบการจอง", desc: "แก้ข้อความบนใบยืนยันการจอง · ดูตัวอย่างจริงแบบสด", icon: "receipt", href: "/admin/settings/tax" },
       { title: "เป้าหมาย / KPI", desc: "เป้ารายเดือน · อัตราเข้าพักเป้าหมาย", icon: "kpi", href: "/admin/settings/goals" },
     ],
   },

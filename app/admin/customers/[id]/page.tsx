@@ -33,7 +33,7 @@ export default async function CustomerDetailPage({ params }: Ctx) {
   const { data: customer } = await admin
     .from("customers")
     .select(
-      "id, full_name, email, phone, avatar_url, is_vip, tags, source, auth_provider, line_user_id, created_at, tax_id, tax_name, tax_address, tax_branch, is_vat",
+      "id, full_name, email, phone, address, avatar_url, is_vip, tags, source, auth_provider, line_user_id, created_at, tax_id, tax_name, tax_address, tax_branch, is_vat",
     )
     .eq("id", id)
     .maybeSingle();
@@ -190,6 +190,7 @@ export default async function CustomerDetailPage({ params }: Ctx) {
         name: (customer.full_name as string) ?? "—",
         email: (customer.email as string) ?? "",
         phone: (customer.phone as string) ?? "",
+        address: (customer.address as string) ?? "",
         avatarUrl: (customer.avatar_url as string) ?? "",
         isVip: Boolean(customer.is_vip),
         tags: (customer.tags as string[]) ?? [],

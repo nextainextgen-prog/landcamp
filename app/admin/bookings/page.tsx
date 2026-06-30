@@ -54,7 +54,7 @@ export default async function AdminBookingsPage({
       customerIds.length
         ? admin
             .from("customers")
-            .select("id, full_name, email, phone, avatar_url, line_user_id, auth_provider, is_vip, tags")
+            .select("id, full_name, email, phone, address, avatar_url, line_user_id, auth_provider, is_vip, tags")
             .in("id", customerIds)
         : Promise.resolve({ data: [] as Record<string, unknown>[] }),
     ]);
@@ -69,6 +69,7 @@ export default async function AdminBookingsPage({
           name: (c.full_name as string) ?? "—",
           email: (c.email as string) ?? "",
           phone: (c.phone as string) ?? "",
+          address: (c.address as string) ?? "",
           avatar: (c.avatar_url as string) ?? null,
           provider: (c.auth_provider as string) ?? null,
           lineUserId: (c.line_user_id as string) ?? null,
@@ -106,7 +107,7 @@ export default async function AdminBookingsPage({
         room_id: b.room_id as string,
         room_name: room?.name ?? (b.room_id as string).slice(0, 8),
         room_image: room?.image ?? null,
-        customer: c ?? { name: "—", email: "", phone: "", avatar: null, provider: null, lineUserId: null, isVip: false, tags: [] },
+        customer: c ?? { name: "—", email: "", phone: "", address: "", avatar: null, provider: null, lineUserId: null, isVip: false, tags: [] },
         check_in: b.check_in as string,
         check_out: b.check_out as string,
         adults: b.adults as number,

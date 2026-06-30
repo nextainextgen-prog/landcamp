@@ -24,6 +24,8 @@ export interface Customer {
   // Profile completion + tax (migration 014)
   profile_completed_at: string | null;
   phone_verified: boolean;
+  // Customer-entered contact/billing address (migration 024) — team-only
+  address: string | null;
   tax_id: string | null;
   tax_name: string | null;
   tax_address: string | null;
