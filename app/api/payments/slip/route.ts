@@ -269,9 +269,13 @@ export async function POST(request: NextRequest) {
     payload: { booking_id: booking.id, payment_id: payment.id, verify_status: verifyStatus, decision },
   });
 
-  // Alert the team group whenever the slip needs attention — a "matched" slip
-  // already auto-confirmed (which sends its own confirmation alert).
-  if (decision !== "confirmed") {
+  // Alert the team group only when a slip genuinely needs a human:
+  //   • "confirmed" already auto-confirmed (sends its own confirmation alert).
+  //   • "duplicate" / "account_mismatch" are clear customer errors — the guest
+  //     is told to re-attach a correct slip, so we DON'T bother the team group.
+  //   • "review" (unreadable / amount mismatch / API error) is the only case a
+  //     staffer must check manually, so that's the one we announce.
+  if (decision === "review") {
     await notifyTeamSlipPending(booking.id, verifyStatus);
   }
 

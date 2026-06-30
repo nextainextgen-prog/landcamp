@@ -243,7 +243,7 @@ export function CompleteProfileForm({
           />
         </div>
         <span className="text-[11px] text-[color:var(--color-ink)]/45">
-          ใช้สำหรับออกเอกสารใบเสร็จ — เห็นเฉพาะทีมงาน ไม่แสดงบนใบการจอง
+          ใช้สำหรับออกเอกสารใบเสร็จ / การเงิน
         </span>
       </label>
 
