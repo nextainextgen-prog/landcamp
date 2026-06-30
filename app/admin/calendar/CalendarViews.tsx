@@ -37,6 +37,10 @@ const DAY_END = 22;
 const MIN_HOUR_PX = 30;
 const CHECK_IN_H = 14;
 const CHECK_OUT_H = 12;
+// Departure blocks get a warm earth tone (warm-clay) so staff can tell
+// "leaving today" from "arriving today" at a glance — independent of status.
+const CHECKOUT_COLOR = "#9a795b"; // --color-warm-clay
+const CHECKOUT_SOFT = "rgba(154,121,91,0.14)";
 const PAD = 12; // top/bottom breathing room so the first/last label isn't clipped
 
 export function DayView({
@@ -203,7 +207,10 @@ export function DayView({
                 ))}
                 {/* booking blocks */}
                 {blocks.map(({ b, geo }) => {
-                  const color = statusColor(b.status);
+                  const statusDot = statusColor(b.status);
+                  // departure → warm clay edge + fill; otherwise status-driven
+                  const color = geo.isCheckOut ? CHECKOUT_COLOR : statusDot;
+                  const fill = geo.isCheckOut ? CHECKOUT_SOFT : softOf(b.status);
                   return (
                     <div
                       key={b.id}
@@ -216,12 +223,12 @@ export function DayView({
                       style={{
                         top: geo.top + 2,
                         height: geo.height - 4,
-                        background: softOf(b.status),
+                        background: fill,
                         borderLeft: `3px solid ${color}`,
                       }}
                     >
                       <p className="flex items-center gap-1 truncate text-[12px] font-semibold text-[color:var(--color-forest-deep)]">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: statusDot }} />
                         <span className="truncate">{b.customer}</span>
                       </p>
                       {geo.height > 34 && (
