@@ -515,9 +515,9 @@ function BookingTable({ rows }: { rows: ProfileBooking[] }) {
 
 function InfoRow({ label, value, wrap = false }: { label: string; value: string; wrap?: boolean }) {
   return (
-    <div className={`flex gap-4 ${wrap ? "items-start" : "items-center justify-between"}`}>
+    <div className={`flex justify-between gap-4 ${wrap ? "items-start" : "items-center"}`}>
       <dt className="shrink-0 text-[color:var(--color-ink)]/50">{label}</dt>
-      <dd className={`text-right font-medium text-[color:var(--color-forest-deep)] ${wrap ? "whitespace-pre-line break-words" : "truncate"}`}>{value}</dd>
+      <dd className={`min-w-0 text-right font-medium text-[color:var(--color-forest-deep)] ${wrap ? "whitespace-pre-line break-words" : "truncate"}`}>{value}</dd>
     </div>
   );
 }
