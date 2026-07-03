@@ -63,6 +63,18 @@ export function RoomsSection({
     setBookingRoom(room);
   }
 
+  // Primary "book" action. Online booking is temporarily off — until the new
+  // flow ships, tapping "book" pops open LINE so the guest contacts the admin
+  // directly instead of the self-serve modal. Flip PUBLIC_BOOKING_ENABLED to
+  // restore the modal (see lib/features.ts).
+  function bookAction(room: Room) {
+    if (PUBLIC_BOOKING_ENABLED) {
+      openBooking(room);
+      return;
+    }
+    window.open(siteConfig.contact.lineUrl, "_blank", "noopener,noreferrer");
+  }
+
   function closeBooking() {
     setBookingRoom(null);
     setBookingIntent(null);
@@ -192,7 +204,7 @@ export function RoomsSection({
                   </button>
                   <button
                     type="button"
-                    onClick={() => openBooking(room)}
+                    onClick={() => bookAction(room)}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--color-warm-clay)] text-[color:var(--color-bone)] px-5 py-3.5 text-[11px] uppercase tracking-[0.3em] font-medium hover:bg-[color:var(--color-forest-deep)] transition-colors duration-300"
                     style={{ fontFamily: "var(--font-ui)" }}
                   >
@@ -214,7 +226,7 @@ export function RoomsSection({
             onBook={() => {
               const r = activeRoom;
               setActiveRoom(null);
-              openBooking(r);
+              bookAction(r);
             }}
           />
         )}
