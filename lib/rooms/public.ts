@@ -30,9 +30,19 @@ type DbRoom = {
 
 function bi(v: unknown, fb: Bilingual): Bilingual {
   if (v && typeof v === "object" && "th" in v && "en" in v) {
-    return { th: String((v as Bilingual).th ?? ""), en: String((v as Bilingual).en ?? "") };
+    const th = String((v as Bilingual).th ?? "");
+    const en = String((v as Bilingual).en ?? "");
+    // An empty bilingual in the DB means "not filled in" — treat it as missing
+    // and fall back to the static default, so admin blanks don't wipe the seed.
+    if (!th.trim() && !en.trim()) return fb;
+    return { th, en };
   }
   return fb;
+}
+
+/** Null out an empty bilingual so conditional rows (layout, badge) don't render blank. */
+function nonEmpty(v: Bilingual | undefined): Bilingual | undefined {
+  return v && (v.th.trim() || v.en.trim()) ? v : undefined;
 }
 function biList(v: unknown): Bilingual[] | null {
   if (!Array.isArray(v)) return null;
@@ -91,7 +101,7 @@ function mergeRoom(db: DbRoom, base: Room | undefined): Room {
     startingPrice: typeof d.startingPrice === "number" ? d.startingPrice : fb.startingPrice,
     bedSize: bi(d.bedSize, fb.bedSize),
     roomSize: bi(d.roomSize, fb.roomSize),
-    layout: d.layout ? bi(d.layout, fb.layout ?? { th: "", en: "" }) : fb.layout,
+    layout: nonEmpty(d.layout ? bi(d.layout, fb.layout ?? { th: "", en: "" }) : fb.layout),
     breakfastIncluded: bi(d.breakfast, fb.breakfastIncluded),
     extraBed: bi(d.extraBed, fb.extraBed),
     services: biList(d.services) ?? fb.services,
@@ -99,7 +109,7 @@ function mergeRoom(db: DbRoom, base: Room | undefined): Room {
     checkOut: typeof d.checkOut === "string" && d.checkOut ? d.checkOut : fb.checkOut,
     amenities: amenities && amenities.length ? amenities : fb.amenities,
     images: images && images.length ? images : fb.images,
-    badge: d.badge ? bi(d.badge, { th: "", en: "" }) : undefined,
+    badge: nonEmpty(d.badge ? bi(d.badge, { th: "", en: "" }) : undefined),
   };
 }
 
