@@ -131,7 +131,6 @@ export const CONTENT_DEFAULTS: SiteContent = {
     { src: "/images/atmosphere/atmosphere-19.jpeg", alt: "Stone villa exterior with adirondack chairs" },
     { src: "/images/atmosphere/atmosphere-20.jpeg", alt: "Garden path through the property" },
     { src: "/images/atmosphere/atmosphere-21.jpeg", alt: "Cabana with shade sail" },
-    { src: "/images/atmosphere/atmosphere-22.jpeg", alt: "Lawn and pine grove" },
     { src: "/images/atmosphere/atmosphere-23.jpeg", alt: "Aerial view of stone fire pit area" },
     { src: "/images/atmosphere/atmosphere-24.jpeg", alt: "Camper Van bedroom living space" },
     { src: "/images/atmosphere/atmosphere-25.jpeg", alt: "Wood-paneled bathroom with shower" },
