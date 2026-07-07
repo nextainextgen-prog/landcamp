@@ -46,9 +46,12 @@ function nonEmpty(v: Bilingual | undefined): Bilingual | undefined {
 }
 function biList(v: unknown): Bilingual[] | null {
   if (!Array.isArray(v)) return null;
-  return v
+  const list = v
     .filter((x) => x && typeof x === "object")
     .map((x) => ({ th: String((x as Bilingual).th ?? ""), en: String((x as Bilingual).en ?? "") }));
+  // An empty array in the DB means "not filled in" — treat it as missing so the
+  // caller's `?? fb` falls back to the static default (matches bi()'s behaviour).
+  return list.length ? list : null;
 }
 function imageList(v: unknown): { src: string; alt: Bilingual }[] | null {
   if (!Array.isArray(v)) return null;
