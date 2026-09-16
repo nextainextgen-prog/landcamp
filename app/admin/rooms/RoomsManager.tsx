@@ -643,9 +643,9 @@ export function RoomsManager({ initialRooms }: { initialRooms: AdminRoom[] }) {
 
       {/* ── editor modal ── */}
       {draft && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm sm:p-8" onClick={close}>
-          <div className="my-4 w-full max-w-3xl rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 z-10 rounded-t-2xl border-b border-[color:var(--color-forest-deep)]/10 bg-white">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm sm:items-center sm:p-8" onClick={close}>
+          <div className="my-4 flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl sm:max-h-[calc(100dvh-4rem)]" onClick={(e) => e.stopPropagation()}>
+            <div className="z-10 rounded-t-2xl border-b border-[color:var(--color-forest-deep)]/10 bg-white">
               <div className="flex items-center justify-between px-5 pt-4">
                 <h2 className="font-display text-lg font-semibold text-[color:var(--color-forest-deep)]">{editing ? `แก้ไข — ${editing.name_th}` : "เพิ่มห้องใหม่"}</h2>
                 <button type="button" onClick={close} className="rounded-lg p-1.5 text-[color:var(--color-ink)]/50 hover:bg-[color:var(--color-bone-soft)]"><IconClose className="h-4 w-4" /></button>
@@ -664,7 +664,7 @@ export function RoomsManager({ initialRooms }: { initialRooms: AdminRoom[] }) {
               </div>
             </div>
 
-            <div className="flex flex-col gap-5 p-5">
+            <div className="flex flex-1 min-h-0 flex-col gap-5 overflow-y-auto p-5">
               {tab === "basic" && (
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -717,7 +717,7 @@ export function RoomsManager({ initialRooms }: { initialRooms: AdminRoom[] }) {
               {err && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>}
             </div>
 
-            <div className="sticky bottom-0 flex items-center justify-end gap-2 rounded-b-2xl border-t border-[color:var(--color-forest-deep)]/10 bg-white px-5 py-3">
+            <div className="flex items-center justify-end gap-2 rounded-b-2xl border-t border-[color:var(--color-forest-deep)]/10 bg-white px-5 py-3">
               <Btn type="button" variant="ghost" onClick={close} disabled={saving}>ยกเลิก</Btn>
               <ActionButton
                 type="button"
