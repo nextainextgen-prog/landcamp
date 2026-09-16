@@ -409,7 +409,7 @@ function RoomModal({
             >
               {t({ th: "เริ่มต้นที่", en: "From" })}{" "}
               <span className="text-[color:var(--color-warm-clay)] font-medium">
-                {room.startingPrice.toLocaleString("en-US")}
+                {Math.min(room.priceWeekday, room.priceWeekend).toLocaleString("en-US")}
               </span>{" "}
               {t({ th: "บาท / คืน", en: "THB / night" })}
             </p>
